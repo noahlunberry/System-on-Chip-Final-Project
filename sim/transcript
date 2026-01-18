@@ -1,0 +1,276 @@
+# Compile of bnn_fcc.sv was successful.
+# Compile of bnn_fcc_tb_pkg.sv was successful with warnings.
+# Compile of axi4_stream_if.sv was successful with warnings.
+# Compile of bnn_fcc_tb.sv was successful.
+# 4 compiles, 0 failed with no errors.
+vsim -gui work.bnn_fcc_tb
+# vsim -gui work.bnn_fcc_tb 
+# Start time: 16:14:10 on Jan 16,2026
+# Loading sv_std.std
+# Loading work.bnn_fcc_tb_pkg
+# Loading work.bnn_fcc_tb
+# Loading work.axi4_stream_if
+# Loading work.bnn_fcc
+# ** Warning: (vsim-8311) System Verilog assertions are supported only in Questasim.
+add wave -position end  sim:/bnn_fcc_tb/USE_CUSTOM_TOPOLOGY
+add wave -position end  sim:/bnn_fcc_tb/CUSTOM_LAYERS
+add wave -position end  sim:/bnn_fcc_tb/CUSTOM_TOPOLOGY
+# Drop insertion failed: sim:/bnn_fcc_tb/CUSTOM_TOPOLOGY
+# (vish-4014) No objects found matching '/bnn_fcc_tb/CUSTOM_TOPOLOGY'.
+add wave -position end  sim:/bnn_fcc_tb/NUM_TEST_IMAGES
+add wave -position end  sim:/bnn_fcc_tb/VERIFY_SV_MODEL_AGAINST_PYTHON
+add wave -position end  sim:/bnn_fcc_tb/BASE_DIR
+# Drop insertion failed: sim:/bnn_fcc_tb/BASE_DIR
+# (vish-4014) No objects found matching '/bnn_fcc_tb/BASE_DIR'.
+add wave -position end  sim:/bnn_fcc_tb/TOGGLE_DATA_OUT_READY
+add wave -position end  sim:/bnn_fcc_tb/CONFIG_VALID_PROBABILITY
+add wave -position end  sim:/bnn_fcc_tb/DATA_IN_VALID_PROBABILITY
+add wave -position end  sim:/bnn_fcc_tb/TIMEOUT
+add wave -position end  sim:/bnn_fcc_tb/CONFIG_BUS_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/INPUT_BUS_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/OUTPUT_BUS_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/INPUT_DATA_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/INPUTS_PER_CYCLE
+add wave -position end  sim:/bnn_fcc_tb/BYTES_PER_INPUT
+add wave -position end  sim:/bnn_fcc_tb/OUTPUT_DATA_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/PARALLELIZE_LAYERS
+add wave -position end  sim:/bnn_fcc_tb/PARALLEL_NEURONS
+add wave -position end  sim:/bnn_fcc_tb/PARALLEL_INPUTS
+add wave -position end  sim:/bnn_fcc_tb/TRAINED_LAYERS
+add wave -position end  sim:/bnn_fcc_tb/TRAINED_TOPOLOGY
+# Drop insertion failed: sim:/bnn_fcc_tb/TRAINED_TOPOLOGY
+# (vish-4014) No objects found matching '/bnn_fcc_tb/TRAINED_TOPOLOGY'.
+add wave -position end  sim:/bnn_fcc_tb/ACTUAL_TOTAL_LAYERS
+add wave -position end  sim:/bnn_fcc_tb/ACTUAL_TOPOLOGY
+# Drop insertion failed: sim:/bnn_fcc_tb/ACTUAL_TOPOLOGY
+# (vish-4014) No objects found matching '/bnn_fcc_tb/ACTUAL_TOPOLOGY'.
+add wave -position end  sim:/bnn_fcc_tb/MNIST_TEST_VECTOR_INPUT_PATH
+# Drop insertion failed: sim:/bnn_fcc_tb/MNIST_TEST_VECTOR_INPUT_PATH
+# (vish-4014) No objects found matching '/bnn_fcc_tb/MNIST_TEST_VECTOR_INPUT_PATH'.
+add wave -position end  sim:/bnn_fcc_tb/MNIST_TEST_VECTOR_OUTPUT_PATH
+# Drop insertion failed: sim:/bnn_fcc_tb/MNIST_TEST_VECTOR_OUTPUT_PATH
+# (vish-4014) No objects found matching '/bnn_fcc_tb/MNIST_TEST_VECTOR_OUTPUT_PATH'.
+add wave -position end  sim:/bnn_fcc_tb/MNIST_MODEL_DATA_PATH
+# Drop insertion failed: sim:/bnn_fcc_tb/MNIST_MODEL_DATA_PATH
+# (vish-4014) No objects found matching '/bnn_fcc_tb/MNIST_MODEL_DATA_PATH'.
+add wave -position end  sim:/bnn_fcc_tb/CONFIG_KEEP_WIDTH
+add wave -position end  sim:/bnn_fcc_tb/model
+add wave -position end  sim:/bnn_fcc_tb/stim
+add wave -position end  sim:/bnn_fcc_tb/config_bus_data_stream
+# Drop insertion failed: sim:/bnn_fcc_tb/config_bus_data_stream
+# (vsim-4027) Logging is not supported for Dynamic Array item: /bnn_fcc_tb/config_bus_data_stream 
+add wave -position end  sim:/bnn_fcc_tb/config_bus_keep_stream
+# Drop insertion failed: sim:/bnn_fcc_tb/config_bus_keep_stream
+# (vsim-4027) Logging is not supported for Dynamic Array item: /bnn_fcc_tb/config_bus_keep_stream 
+add wave -position end  sim:/bnn_fcc_tb/num_tests
+add wave -position end  sim:/bnn_fcc_tb/passed
+add wave -position end  sim:/bnn_fcc_tb/failed
+add wave -position end  sim:/bnn_fcc_tb/clk
+add wave -position end  sim:/bnn_fcc_tb/rst
+add wave -position end  sim:/bnn_fcc_tb/expected_outputs
+# Drop insertion failed: sim:/bnn_fcc_tb/expected_outputs
+# (vsim-4027) Logging is not supported for Queue item: /bnn_fcc_tb/expected_outputs 
+run
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 10 vectors from ../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+run
+run
+run
+run
+run
+run
+run
+run
+# [95 ns] Streaming weights and thresholds.
+run
+run
+run -all
+# [44805 ns] Streaming image 0.
+# [45795 ns] Streaming image 1.
+# [46785 ns] Streaming image 2.
+# [47775 ns] Streaming image 3.
+# [48765 ns] Streaming image 4.
+# [49755 ns] Streaming image 5.
+# [50745 ns] Streaming image 6.
+# [51735 ns] Streaming image 7.
+# [52725 ns] Streaming image 8.
+# [53715 ns] Streaming image 9.
+# [54705 ns] All images loaded, waiting for outputs.
+# ** Fatal: Simulation failed due to timeout of 10000000 ns.
+#    Time: 10 ms  Scope: bnn_fcc_tb.l_timeout File: C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/verification/bnn_fcc_tb.sv Line: 430
+# ** Note: $finish    : C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/verification/bnn_fcc_tb.sv(430)
+#    Time: 10 ms  Iteration: 0  Instance: /bnn_fcc_tb
+# 1
+# Break in NamedBeginStat l_timeout at C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/verification/bnn_fcc_tb.sv line 430
+restart
+run
+# GetModuleFileName: The specified module could not be found.
+# 
+# 
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 10 vectors from ../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+# [95 ns] Streaming weights and thresholds.
+add wave -position end  sim:/bnn_fcc_tb/DUT/clk
+add wave -position end  sim:/bnn_fcc_tb/DUT/rst
+add wave -position end  sim:/bnn_fcc_tb/DUT/config_valid
+add wave -position end  sim:/bnn_fcc_tb/DUT/config_ready
+add wave -position end  sim:/bnn_fcc_tb/DUT/config_data
+add wave -position end  sim:/bnn_fcc_tb/DUT/config_keep
+add wave -position end  sim:/bnn_fcc_tb/DUT/config_last
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_in_valid
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_in_ready
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_in_data
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_in_keep
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_in_last
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_out_valid
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_out_ready
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_out_data
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_out_keep
+add wave -position end  sim:/bnn_fcc_tb/DUT/data_out_last
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+run
+# [44805 ns] Streaming image 0.
+# [45795 ns] Streaming image 1.
+# [46785 ns] Streaming image 2.
+# [47775 ns] Streaming image 3.
+# [48765 ns] Streaming image 4.
+# [49755 ns] Streaming image 5.
+# [50745 ns] Streaming image 6.
+# [51735 ns] Streaming image 7.
+# [52725 ns] Streaming image 8.
+restart
+run
+# GetModuleFileName: The specified module could not be found.
+# 
+# 
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 10 vectors from ../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+# [95 ns] Streaming weights and thresholds.
+run
+restart
+run
+# GetModuleFileName: The specified module could not be found.
+# 
+# 
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 10 vectors from ../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+# [95 ns] Streaming weights and thresholds.
+run
+run
+run
+run
+# [44805 ns] Streaming image 0.
+# [45795 ns] Streaming image 1.
+# [46785 ns] Streaming image 2.
+# [47775 ns] Streaming image 3.
+# [48765 ns] Streaming image 4.
+# [49755 ns] Streaming image 5.
+run
+# [50745 ns] Streaming image 6.
+# [51735 ns] Streaming image 7.
+# [52725 ns] Streaming image 8.
+# [53715 ns] Streaming image 9.
+# [54705 ns] All images loaded, waiting for outputs.
+run
+run
+run
+run
+run
+run
+add wave -position 11  sim:/bnn_fcc_tb/config_in/tkeep
+add wave -position 12  sim:/bnn_fcc_tb/config_in/tlast
+restart
+run
+# GetModuleFileName: The specified module could not be found.
+# 
+# 
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 10 vectors from ../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+# [95 ns] Streaming weights and thresholds.
+run
+run
+run
+run
+# [44805 ns] Streaming image 0.
+# [45795 ns] Streaming image 1.
+# [46785 ns] Streaming image 2.
+# [47775 ns] Streaming image 3.
+# [48765 ns] Streaming image 4.
+# [49755 ns] Streaming image 5.
