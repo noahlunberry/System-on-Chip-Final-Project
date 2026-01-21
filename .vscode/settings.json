@@ -1,0 +1,5 @@
+{
+  "verible.arguments": [
+    "--assignment_statement_alignment=align"
+  ]
+}

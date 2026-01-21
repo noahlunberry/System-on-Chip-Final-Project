@@ -12,6 +12,7 @@ module bnn_fcc #(
     parameter int PARALLEL_NEURONS   = 1,
     parameter int PARALLEL_INPUTS    = 32
 ) (
+
     input logic clk,
     input logic rst,
 
@@ -35,8 +36,7 @@ module bnn_fcc #(
     output logic [  OUTPUT_BUS_WIDTH-1:0] data_out_data,
     output logic [OUTPUT_BUS_WIDTH/8-1:0] data_out_keep,
     output logic                          data_out_last
-);
-   
+); 
     always_comb begin
         config_ready = 1'b1;
         data_in_ready = 1'b1;
