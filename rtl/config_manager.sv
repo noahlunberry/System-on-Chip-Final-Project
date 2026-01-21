@@ -1,5 +1,6 @@
 module config_manager #(
-    parameter int CONFIG_BUS_WIDTH = 32,
+    parameter int CONFIG_BUS_WIDTH = 64,
+    parameter int PARALLEL_INPUTS  = 32,
 
     parameter int TOTAL_LAYERS = 4,  // Includes input, hidden, and output
     parameter int TOPOLOGY[TOTAL_LAYERS] = '{
@@ -23,17 +24,28 @@ module config_manager #(
     input  logic [  CONFIG_BUS_WIDTH-1:0] config_data,
     input  logic [CONFIG_BUS_WIDTH/8-1:0] config_keep,
     input  logic                          config_last
+
 );
+  //Parser Controller Interface
+  logic header_done;
+
   // Parser Controler Module
-  parser_controller parser_controller (
-      .clk (clk),
-      .rst (rst),
-      .go  (config_valid),
+  parser_controller #(
+      .CONFIG_BUS_WIDTH(CONFIG_BUS_WIDTH),
+      .PARALLEL_INPUTS (PARALLEL_INPUTS)
+  ) parser_controller (
+      .clk(clk),
+      .en(config_valid),
+      .rst(rst),
       .data(config_data),
-      .done(done_layer)
+      .done(done_layer),
+      .ready(config_ready),
+      .header_done(header_done)
   );
 
   // FIFO
+
+  /////////////////////////// DRAM CLK ///////////////////////////
 
   // Counter
 

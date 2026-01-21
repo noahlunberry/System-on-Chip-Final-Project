@@ -9,11 +9,10 @@ module parser_controller #(
     input logic clk,
     input logic en,
     input logic rst,
-    input logic go,
     input logic [CONFIG_BUS_WIDTH-1:0] data,
     input logic done,
-    output logic header_done,
-    output logic ready
+    output logic ready,
+    output logic header_done
 );
 
   localparam int PARALLEL_BITS = $clog2(PARALLEL_INPUTS);  // bits needed for batch count
@@ -28,6 +27,7 @@ module parser_controller #(
 
   // Control Signals
   logic ready_r, next_ready;
+  logic header_done_r, next_header_done;
 
   state_t state_r, next_state;
   logic [$bits(data)-1:0] data_r, next_data;
@@ -43,9 +43,15 @@ module parser_controller #(
   logic [31:0] global_count_r, next_global_count;
   logic [31:0] count_r, next_count;
 
+  // Concurrent Assignments
+  assign ready       = ready_r;
+  assign header_done = header_done_r;
+
   always_ff @(posedge clk) begin
     // Control Signals
     ready_r            <= next_ready;
+    header_done_r      <= next_header_done;
+
     state_r            <= next_state;
     data_r             <= next_data;
     msg_type_r         <= next_msg_type;
@@ -72,6 +78,7 @@ module parser_controller #(
   always_comb begin
     // Control
     next_ready            = ready_r;
+    next_header_done      = header_done_r;
 
     next_state            = state_r;
     next_data             = data_r;
@@ -92,6 +99,7 @@ module parser_controller #(
         next_ready = 1'b1;
 
         if (en == 1) begin
+
           next_msg_type         = data[0];
           next_layer_id         = data[9:8];
           next_layer_inputs     = data[31:16];
@@ -107,6 +115,7 @@ module parser_controller #(
       HEADER: begin
         next_state        = PAYLOAD;
         next_global_count = (data[31:0] + PARALLEL_BYTES - 1) / PARALLEL_BYTES;
+        next_header_done  = 1'b1;
 
       end
 
