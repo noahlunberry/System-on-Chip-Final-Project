@@ -12,9 +12,12 @@ module parser_controller #(
     input logic go,
     input logic [CONFIG_BUS_WIDTH-1:0] data,
     input logic done,
-    output logic header_done
+    output logic header_done,
+    output logic ready
 );
 
+  localparam int PARALLEL_BITS = $clog2(PARALLEL_INPUTS);  // bits needed for batch count
+  localparam int PARALLEL_BYTES = (PARALLEL_INPUTS + 8 - 1) / 8;
 
   typedef enum logic [1:0] {
     START,
@@ -23,17 +26,38 @@ module parser_controller #(
     DONE
   } state_t;
 
+  // Control Signals
+  logic ready_r, next_ready;
+
   state_t state_r, next_state;
   logic [$bits(data)-1:0] data_r, next_data;
   bit msg_type_r, next_msg_type;
   logic [1:0] layer_id_r, next_layer_id;
+  logic [15:0] layer_inputs_r, next_layer_inputs;
   logic [15:0] num_neurons_r, next_num_neurons;
   logic [15:0] bytes_per_neuron_r, next_bytes_per_neuron;
   logic [31:0] total_bytes_r, next_total_bytes;
 
-	
+  // Counter Signals
+  logic [15:0] batch_count_r, next_batch_count;
+  logic [31:0] global_count_r, next_global_count;
+  logic [31:0] count_r, next_count;
 
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
+    // Control Signals
+    ready_r            <= next_ready;
+    state_r            <= next_state;
+    data_r             <= next_data;
+    msg_type_r         <= next_msg_type;
+    layer_id_r         <= next_layer_id;
+    num_neurons_r      <= next_num_neurons;
+    bytes_per_neuron_r <= next_bytes_per_neuron;
+    total_bytes_r      <= next_total_bytes;
+    //counter signals
+    batch_count_r      <= next_batch_count;
+    global_count_r     <= next_global_count;
+    count_r            <= next_count;
+
     if (rst) begin
       state_r            <= START;
       data_r             <= '0;
@@ -42,18 +66,13 @@ module parser_controller #(
       num_neurons_r      <= '0;
       bytes_per_neuron_r <= '0;
       total_bytes_r      <= '0;
-    end else begin
-      state_r            <= next_state;
-      data_r             <= next_data;
-      msg_type_r         <= next_msg_type;
-      layer_id_r         <= next_layer_id;
-      num_neurons_r      <= next_num_neurons;
-      bytes_per_neuron_r <= next_bytes_per_neuron;
-      total_bytes_r      <= next_total_bytes;
     end
   end
 
   always_comb begin
+    // Control
+    next_ready            = ready_r;
+
     next_state            = state_r;
     next_data             = data_r;
     next_msg_type         = msg_type_r;
@@ -62,8 +81,16 @@ module parser_controller #(
     next_bytes_per_neuron = bytes_per_neuron_r;
     next_total_bytes      = total_bytes_r;
 
+    // Counters
+    next_batch_count      = batch_count_r;
+    next_global_count     = global_count_r;
+    next_count            = count_r;
+
+
     case (state_r)
       START: begin
+        next_ready = 1'b1;
+
         if (en == 1) begin
           next_msg_type         = data[0];
           next_layer_id         = data[9:8];
@@ -71,19 +98,37 @@ module parser_controller #(
           next_num_neurons      = data[47:32];
           next_bytes_per_neuron = data[63:48];
           next_state            = HEADER;
+
+          next_batch_count      = (data[31:16] + PARALLEL_INPUTS - 1) / PARALLEL_INPUTS;
+          next_count            = '0;
         end
       end
 
       HEADER: begin
-        next_state = PAYLOAD;
-
+        next_state        = PAYLOAD;
+        next_global_count = (data[31:0] + PARALLEL_BYTES - 1) / PARALLEL_BYTES;
 
       end
 
       PAYLOAD: begin
+        if (en == 1'b1) begin
+          next_count = count_r + 1'b1;
+
+          if (count_r == global_count_r - 1) begin
+            next_state = DONE;
+            next_ready = 1'b0;
+          end
+        end
+
       end
 
+      // Wait for FIFO to assert done writing the payload to memory, stall reads until then
+      // Can be later optimized to improve latency
       DONE: begin
+        if (done) begin
+          next_state = START;
+          next_ready = 1'b1;
+        end
       end
 
     endcase
