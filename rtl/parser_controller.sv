@@ -4,7 +4,8 @@
 
 module parser_controller #(
     parameter int CONFIG_BUS_WIDTH = 64,
-    parameter int PARALLEL_INPUTS  = 32
+    parameter int PARALLEL_INPUTS = 32,
+    parameter int FIFO_RD_WIDTH = 64
 ) (
     input logic clk,
     input logic en,
@@ -16,7 +17,9 @@ module parser_controller #(
 );
 
   localparam int PARALLEL_BITS = $clog2(PARALLEL_INPUTS);  // bits needed for batch count
-  localparam int PARALLEL_BYTES = (PARALLEL_INPUTS + 8 - 1) / 8;
+  //ADD ASSERTION TO BREAK IF PARALLEL_INPUTS IS NOT FACTOR OF 8
+  localparam int PARALLEL_BYTES = (PARALLEL_INPUTS) / 8;
+
 
   typedef enum logic [1:0] {
     START,
@@ -40,6 +43,7 @@ module parser_controller #(
 
   // Counter Signals
   logic [15:0] batch_count_r, next_batch_count;
+  logic [15:0] rd_count_r, next_rd_count;
   logic [31:0] global_count_r, next_global_count;
   logic [31:0] count_r, next_count;
 
@@ -61,6 +65,7 @@ module parser_controller #(
     total_bytes_r      <= next_total_bytes;
     //counter signals
     batch_count_r      <= next_batch_count;
+    rd_count_r         <= next_rd_count;
     global_count_r     <= next_global_count;
     count_r            <= next_count;
 
@@ -90,6 +95,7 @@ module parser_controller #(
 
     // Counters
     next_batch_count      = batch_count_r;
+    next_rd_count         = rd_count_r;
     next_global_count     = global_count_r;
     next_count            = count_r;
 
@@ -108,13 +114,14 @@ module parser_controller #(
           next_state            = HEADER;
 
           next_batch_count      = (data[31:16] + PARALLEL_INPUTS - 1) / PARALLEL_INPUTS;
+          next_rd_count         = (data[31:16] + FIFO_RD_WIDTH - 1) / FIFO_RD_WIDTH;
           next_count            = '0;
         end
       end
 
       HEADER: begin
         next_state        = PAYLOAD;
-        next_global_count = (data[31:0] + PARALLEL_BYTES - 1) / PARALLEL_BYTES;
+        next_global_count = (data[31:0] + rd_count_r - 1) / rd_count_r;
         next_header_done  = 1'b1;
 
       end

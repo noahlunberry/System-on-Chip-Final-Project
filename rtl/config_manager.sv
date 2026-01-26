@@ -32,7 +32,8 @@ module config_manager #(
   // Parser Controler Module
   parser_controller #(
       .CONFIG_BUS_WIDTH(CONFIG_BUS_WIDTH),
-      .PARALLEL_INPUTS (PARALLEL_INPUTS)
+      .PARALLEL_INPUTS (PARALLEL_INPUTS),
+      .FIFO_RD_WIDTH(64)
   ) parser_controller (
       .clk(clk),
       .en(config_valid),
@@ -43,14 +44,18 @@ module config_manager #(
       .header_done(header_done)
   );
 
-  // FIFO
+  // Handshake
+  // Send Counter Signals to the DRAM CLK side
 
-  /////////////////////////// DRAM CLK ///////////////////////////
+  // FIFO 64 x 64
 
-  // Counter
+  // Done Counter
+  // Send done to the parser when ready for the next layer
+
+  // Figure out how to use a for-generate to implement the BRAMs and address generators
+  // Also figure out how to rotate the wr_en between them
 
   // Address Generator(s)
-
   // Weight BRAM(s)
 
 endmodule
