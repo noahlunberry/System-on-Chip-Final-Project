@@ -23,11 +23,16 @@ module config_manager #(
     output logic                          config_ready,
     input  logic [  CONFIG_BUS_WIDTH-1:0] config_data,
     input  logic [CONFIG_BUS_WIDTH/8-1:0] config_keep,
-    input  logic                          config_last
+    input  logic                          config_last,
+
+    // Layer Arch Interface
+    output  logic [PARALLEL_INPUTS-1:0] config_data,
+    output  logic                       config_rd_en,
+    output  logic [               15:0] total_bytes,
+    output  logic [                7:0] bytes_per_neuron,
+    input logic                       payload_done
 
 );
-  //Parser Controller Interface
-  logic header_done;
 
   // Parser Controler Module
   parser_controller #(
@@ -44,19 +49,8 @@ module config_manager #(
       .header_done(header_done)
   );
 
-  // Handshake
-  // Send Counter Signals to the DRAM CLK side
+  // FIFO 64 x 8
 
-  // FIFO 64 x 64
-
-  // Done Counter
-  // Send done to the parser when ready for the next layer
-
-  // Figure out how to use a for-generate to implement the BRAMs and address generators
-  // Also figure out how to rotate the wr_en between them
-
-  // Address Generator(s)
-  // Weight BRAM(s)
 
 endmodule
 ;

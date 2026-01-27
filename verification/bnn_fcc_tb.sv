@@ -90,7 +90,7 @@ module bnn_fcc_tb #(
     parameter bit      VERIFY_SV_MODEL_AGAINST_PYTHON                = 1,
     parameter string   BASE_DIR                                      = "../python",
     parameter bit      TOGGLE_DATA_OUT_READY                         = 1'b1,
-    parameter real     CONFIG_VALID_PROBABILITY                      = 1.0,
+    parameter real     CONFIG_VALID_PROBABILITY                      = 0.7,
     parameter real     DATA_IN_VALID_PROBABILITY                     = 1.0,
     parameter realtime TIMEOUT                                       = 10ms,
 

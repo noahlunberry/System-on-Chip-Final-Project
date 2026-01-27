@@ -44,5 +44,8 @@ module bnn_fcc #(
 
     // Configuration Manager
 
+    // Instantiate the 3 layers
+    
+
     
 endmodule
