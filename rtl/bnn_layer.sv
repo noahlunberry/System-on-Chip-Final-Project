@@ -29,35 +29,34 @@ module bnn_layer #(
 
 );
 
-  localparam int W_RAM_DATA_W = PARALLEL_NEURONS;  // example: store Pw weights per write
+  localparam int W_RAM_DATA_W = PARALLEL_INPUTS;  // example: store Pw weights per write
   localparam int W_RAM_ADDR_W = 12;  // example
   localparam int T_RAM_DATA_W = 32;
   localparam int T_RAM_ADDR_W = 8;  // example
 
-  // One lane per BRAM instance (per parallel neuron / NP)
-  logic [PARALLEL_NEURONS-1:0]                   w_wr_en;
-  logic [PARALLEL_NEURONS-1:0][W_RAM_ADDR_W-1:0] w_wr_addr;
-  logic [PARALLEL_NEURONS-1:0][W_RAM_DATA_W-1:0] w_wr_data;
+  // Each BRAM has its own write enable and write address, since data is entering serially.
+  logic                    w_wr_en   [PARALLEL_NEURONS];
+  logic [W_RAM_ADDR_W-1:0] w_wr_addr [PARALLEL_NEURONS];
+  logic [W_RAM_DATA_W-1:0] w_wr_data;
 
-  logic [PARALLEL_NEURONS-1:0]                   t_wr_en;
-  logic [PARALLEL_NEURONS-1:0][T_RAM_ADDR_W-1:0] t_wr_addr;
-  logic [PARALLEL_NEURONS-1:0][T_RAM_DATA_W-1:0] t_wr_data;
+  logic                    t_wr_en   [PARALLEL_NEURONS];
+  logic [T_RAM_ADDR_W-1:0] t_wr_addr [PARALLEL_NEURONS];
+  logic [T_RAM_DATA_W-1:0] t_wr_data;
 
-  // weight and threshold rams : instantiates and sets up 
+  // They each have their own rd data and rd addresses, since data will be read in parallel
+  logic                    w_rd_en;
+  logic [W_RAM_ADDR_W-1:0] w_rd_addr [PARALLEL_NEURONS];
+  logic [W_RAM_DATA_W-1:0] w_rd_data [PARALLEL_NEURONS];
 
-  // Config Controller Signals
-  logic [PARALLEL_NEURONS-1:0]                   w_rd_en;
-  logic [PARALLEL_NEURONS-1:0][W_RAM_ADDR_W-1:0] w_rd_addr;
-  logic [PARALLEL_NEURONS-1:0][W_RAM_DATA_W-1:0] w_rd_data;
-
-  logic [PARALLEL_NEURONS-1:0]                   t_rd_en;
-  logic [PARALLEL_NEURONS-1:0][T_RAM_ADDR_W-1:0] t_rd_addr;
-  logic [PARALLEL_NEURONS-1:0][T_RAM_DATA_W-1:0] t_rd_data;
+  logic                    t_rd_en;
+  logic [T_RAM_ADDR_W-1:0] t_rd_addr [PARALLEL_NEURONS];
+  logic [T_RAM_DATA_W-1:0] t_rd_data [PARALLEL_NEURONS];
 
   // inputs from binarization module
 
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
+  // outputs the enables to write into the BRAMS
   config_controller #(
       .MANAGER_BUS_WIDTH(MANAGER_BUS_WIDTH),
       .PARALLEL_NEURONS(PARALLEL_NEURONS),
@@ -139,7 +138,7 @@ module bnn_layer #(
           .STYLE("block")
       ) u_t_ram (
           .clk    (clk),
-          .rd_en  (t_rd_en[gi]),
+          .rd_en  (t_rd_en),
           .rd_addr(t_rd_addr[gi]),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
@@ -175,7 +174,7 @@ module bnn_layer #(
 
   endgenerate
 
-
+  // parallel to serial shift register to buffer the outputs
 
   // outputs the results for next module
 
