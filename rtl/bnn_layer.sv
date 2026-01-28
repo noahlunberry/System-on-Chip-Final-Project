@@ -67,7 +67,6 @@ module bnn_layer #(
       .clk(clk),
       .rst(rst),
 
-      .config_data(config_data),
       .config_rd_en(config_rd_en),
       .total_bytes(total_bytes),
       .bytes_per_neuron(bytes_per_neuron),
