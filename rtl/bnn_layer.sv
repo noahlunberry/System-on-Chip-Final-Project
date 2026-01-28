@@ -64,7 +64,7 @@ module bnn_layer #(
       .W_RAM_DATA_W(W_RAM_DATA_W),
       .W_RAM_ADDR_W(W_RAM_ADDR_W),
       .T_RAM_ADDR_W(T_RAM_ADDR_W)
-  ) u_cfg (
+  ) u_cfc (
       .clk(clk),
       .rst(rst),
 
@@ -88,7 +88,7 @@ module bnn_layer #(
       .W_RAM_DATA_W(W_RAM_DATA_W),
       .W_RAM_ADDR_W(W_RAM_ADDR_W),
       .T_RAM_ADDR_W(T_RAM_ADDR_W)
-  ) u_cfg (
+  ) u_nc (
       .clk(clk),
       .rst(rst),
 
@@ -100,7 +100,7 @@ module bnn_layer #(
       .last(np_last),
       .layer_done(),
 
-      // fanout write lanes
+      // fanout read lanes
       .weight_rd_en  (w_rd_en),
       .weight_rd_addr(w_rd_addr),
 
