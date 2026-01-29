@@ -1,41 +1,122 @@
 module neuron_controller #(
-    parameter int MANAGER_BUS_WIDTH = 8,   // kept for symmetry w/ other blocks
-    parameter int PARALLEL_NEURONS  = 32,
-    parameter int W_RAM_DATA_W      = 32,  // kept for symmetry w/ other blocks
-    parameter int W_RAM_ADDR_W      = 10,
-    parameter int T_RAM_ADDR_W      = 10
+    parameter int PARALLEL_INPUTS  = 8,
+    parameter int PARALLEL_NEURONS = 8,
+    parameter int TOTAL_INPUTS     = 32,
+    parameter int TOTAL_NEURONS    = 32,
+    parameter int W_RAM_ADDR_W     = 12,
+    parameter int T_RAM_ADDR_W     = 8
 ) (
     input logic clk,
     input logic rst,
+    input logic go,
 
-    // Config-derived sizing
-    input logic [15:0] total_bytes,
-    input logic [ 7:0] bytes_per_neuron,
-    input logic        payload_done,
+    // Control signals to Neuron Processors
+    output logic valid_in,
+    output logic last,
+    output logic layer_done,
 
-    // Control signals to neuron_processors (per-neuron lanes)
-    output logic [PARALLEL_NEURONS-1:0] valid_in,
-    output logic [PARALLEL_NEURONS-1:0] last,
-    output logic                        layer_done,
-
-    // fanout read lanes (per-neuron)
-    output logic [PARALLEL_NEURONS-1:0]                   weight_rd_en,
-    output logic [PARALLEL_NEURONS-1:0][W_RAM_ADDR_W-1:0] weight_rd_addr,
-
-    output logic [PARALLEL_NEURONS-1:0]                   threshold_rd_en,
-    output logic [PARALLEL_NEURONS-1:0][T_RAM_ADDR_W-1:0] threshold_rd_addr
+    // BRAM Read Interface
+    output logic                    weight_rd_en,
+    output logic [W_RAM_ADDR_W-1:0] weight_rd_addr,
+    output logic                    threshold_rd_en,
+    output logic [T_RAM_ADDR_W-1:0] threshold_rd_addr
 );
 
-  // ============================================================
-  // Internal signals / state (add as needed)
-  // ============================================================
+  // Constants
+  localparam int WORDS_PER_NEURON = TOTAL_INPUTS / PARALLEL_INPUTS;
+  localparam int NEURON_BATCHES = TOTAL_NEURONS / PARALLEL_NEURONS;
 
+  typedef enum logic [1:0] {
+    START,
+    RUN,
+    DONE
+  } state_t;
+  state_t state_r, next_state;
 
+  // Counters
+  logic [$clog2(WORDS_PER_NEURON)-1:0] word_count_r, next_word_count;
+  logic [$clog2(NEURON_BATCHES)-1:0] batch_count_r, next_batch_count;
+  logic [W_RAM_ADDR_W-1:0] addr_count_r, next_addr_count;
 
-  // ============================================================
-  // Control FSM / sequencing goes here
-  // ============================================================
+  // Registered Outputs
+  logic valid_in_r, next_valid_in;
+  logic last_r, next_last;
 
+  assign valid_in          = valid_in_r;
+  assign last              = last_r;
+  assign weight_rd_addr    = addr_count_r;
+  assign threshold_rd_addr = batch_count_r;
 
+  always_ff @(posedge clk) begin
+    state_r       <= next_state;
+    word_count_r  <= next_word_count;
+    batch_count_r <= next_batch_count;
+    addr_count_r  <= next_addr_count;
+    valid_in_r    <= next_valid_in;
+    last_r        <= next_last;
 
+    if (rst) begin
+      state_r       <= START;
+      word_count_r  <= '0;
+      batch_count_r <= '0;
+      addr_count_r  <= '0;
+    end
+  end
+
+  always_comb begin
+    // Defaults
+    next_state       = state_r;
+    next_word_count  = word_count_r;
+    next_batch_count = batch_count_r;
+    next_addr_count  = addr_count_r;
+    next_valid_in    = 1'b0;
+    next_last        = 1'b0;
+
+    weight_rd_en     = 1'b0;
+    threshold_rd_en  = 1'b0;
+    layer_done       = 1'b0;
+
+    case (state_r)
+      START: begin
+        next_word_count  = '0;
+        next_batch_count = '0;
+        next_addr_count  = '0;
+        if (go) next_state = RUN;
+      end
+
+      RUN: begin
+        weight_rd_en    = 1'b1;
+        threshold_rd_en = 1'b1;
+        next_valid_in   = 1'b1;
+
+        // Check if this is the last input for the current neuron set
+        if (word_count_r == WORDS_PER_NEURON - 1) begin
+          next_last       = 1'b1;
+          next_word_count = '0;
+
+          // Check if we've done all neuron batches
+          if (batch_count_r == NEURON_BATCHES - 1) begin
+            next_state = DONE;
+          end else begin
+            next_batch_count = batch_count_r + 1'b1;
+          end
+        end else begin
+          next_word_count = word_count_r + 1'b1;
+        end
+
+        // Address always increments to pull next weight/input chunk
+        next_addr_count = addr_count_r + 1'b1;
+      end
+
+      DONE: begin
+        layer_done       = 1'b1;
+        next_word_count  = '0;
+        next_batch_count = '0;
+        next_addr_count  = '0;
+        if (go) next_state = RUN;
+      end
+
+      default: next_state = START;
+    endcase
+  end
 endmodule
