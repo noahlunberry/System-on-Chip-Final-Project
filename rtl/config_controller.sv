@@ -100,9 +100,9 @@ module config_controller #(
           next_payload_done     = '0;
           next_state            = RUN;
           for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-            next_addr_pointers_r[i]   = '0;
-            next_weight_wr_en_r[i]    = '0;
-            next_threshold_wr_en_r[i] = '0;
+            next_addr_pointers[i]   = '0;
+            next_weight_wr_en[i]    = '0;
+            next_threshold_wr_en[i] = '0;
           end
         end
       end

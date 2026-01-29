@@ -52,6 +52,7 @@ module bnn_layer #(
   logic [T_RAM_ADDR_W-1:0] t_rd_addr [PARALLEL_NEURONS];
   logic [T_RAM_DATA_W-1:0] t_rd_data [PARALLEL_NEURONS];
 
+  logic [T_RAM_ADDR_W-1:0] addr_out;
   // inputs from binarization module
 
   // config controller : communicates with config manager and streams data into the rams
@@ -68,16 +69,15 @@ module bnn_layer #(
       .rst(rst),
 
       .config_rd_en(config_rd_en),
+      .msg_type(msg_type),
       .total_bytes(total_bytes),
       .bytes_per_neuron(bytes_per_neuron),
       .payload_done(payload_done),
 
       // fanout write lanes
-      .weight_wr_en  (w_wr_en),
-      .weight_wr_addr(w_wr_addr),
-
-      .threshold_wr_en  (t_wr_en),
-      .threshold_wr_addr(t_wr_addr)
+      .weight_wr_en(w_wr_en),
+      .threshold_wr_en(t_wr_en),
+      .addr_out(addr_out)
   );
 
   neuron_controller #(
@@ -120,11 +120,11 @@ module bnn_layer #(
           .STYLE("block")
       ) u_w_ram (
           .clk    (clk),
-          .rd_en  (w_rd_en[gi]),
+          .rd_en  (w_rd_en),
           .rd_addr(w_rd_addr[gi]),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
-          .wr_addr(w_wr_addr[gi]),
+          .wr_addr(addr_out),
           .wr_data(config_data)
       );
 
@@ -141,7 +141,7 @@ module bnn_layer #(
           .rd_addr(t_rd_addr[gi]),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
-          .wr_addr(t_wr_addr[gi]),
+          .wr_addr(addr_out),
           .wr_data(config_data)
       );
 
