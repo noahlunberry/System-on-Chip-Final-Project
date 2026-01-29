@@ -89,7 +89,7 @@ module bnn_layer #(
   ) u_nc (
       .clk(clk),
       .rst(rst),
-      .go(nc_go),
+      .go (nc_go),
 
       .total_bytes(total_bytes),
       .bytes_per_neuron(bytes_per_neuron),

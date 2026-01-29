@@ -6,7 +6,13 @@ module bnn_fcc #(
     parameter int OUTPUT_BUS_WIDTH  = 8,
 
     parameter int TOTAL_LAYERS = 4,  // Includes input, hidden, and output
-    parameter int TOPOLOGY[TOTAL_LAYERS] = '{0: 784, 1: 256, 2: 256, 3: 10, default: 0},  // 0: input, TOTAL_LAYERS-1: output
+    parameter int TOPOLOGY[TOTAL_LAYERS] = '{
+        0: 784,
+        1: 256,
+        2: 256,
+        3: 10,
+        default: 0
+    },  // 0: input, TOTAL_LAYERS-1: output
 
     parameter bit PARALLELIZE_LAYERS = 1'b0,
     parameter int PARALLEL_NEURONS   = 1,
@@ -36,16 +42,16 @@ module bnn_fcc #(
     output logic [  OUTPUT_BUS_WIDTH-1:0] data_out_data,
     output logic [OUTPUT_BUS_WIDTH/8-1:0] data_out_keep,
     output logic                          data_out_last
-); 
-    always_comb begin
-        config_ready = 1'b1;
-        data_in_ready = 1'b1;
-    end
+);
+  always_comb begin
+    config_ready  = 1'b1;
+    data_in_ready = 1'b1;
+  end
 
-    // Configuration Manager
+  // Configuration Manager
 
-    // Instantiate the 3 layers
-    
+  // Instantiate the 3 layers
 
-    
+
+
 endmodule

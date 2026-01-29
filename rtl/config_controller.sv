@@ -87,7 +87,7 @@ module config_controller #(
 
     case (state_r)
       START: begin
-        payload_done      = 0;
+        payload_done = 0;
         if (config_rd_en) begin
           next_state            = RUN;
           next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
@@ -124,7 +124,7 @@ module config_controller #(
       end
 
       DONE: begin
-        payload_done      = 1;
+        payload_done = 1;
         if (config_rd_en) begin
           next_state            = RUN;
           next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
