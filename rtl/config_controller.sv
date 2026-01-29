@@ -1,7 +1,7 @@
 module config_controller #(
     parameter int MANAGER_BUS_WIDTH = 8,
     parameter int PARALLEL_NEURONS  = 8,
-    parameter int PARALLEL_INPUTS   = 8, // MANAGER BUS WIDTH MUST MATCH PARALLEL INPUTS
+    parameter int PARALLEL_INPUTS   = 8,   // MANAGER BUS WIDTH MUST MATCH PARALLEL INPUTS
     parameter int W_RAM_DATA_W      = 32,
     parameter int W_RAM_ADDR_W      = 10,
     parameter int T_RAM_ADDR_W      = 10
@@ -54,11 +54,9 @@ module config_controller #(
   assign addr_out        = addr_pointers_r[neuron_idx_r];
   assign weight_wr_en    = weight_wr_en_r;
   assign threshold_wr_en = threshold_wr_en_r;
-  assign payload_done    = payload_done_r;
 
   always_ff @(posedge clk) begin
     state_r            <= next_state;
-    payload_done_r     <= next_payload_done;
     batch_count_r      <= next_batch_count;
     global_count_r     <= next_global_count;
     neuron_idx_r       <= next_neuron_idx;
@@ -77,7 +75,6 @@ module config_controller #(
   always_comb begin
     // Default Assignments
     next_state              = state_r;
-    next_payload_done       = payload_done_r;
     next_batch_count        = batch_count_r;
     next_global_count       = global_count_r;
     next_neuron_idx         = neuron_idx_r;
@@ -90,20 +87,21 @@ module config_controller #(
 
     case (state_r)
       START: begin
+        payload_done      = 0;
         if (config_rd_en) begin
+          next_state            = RUN;
           next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
           next_total_beats      = total_bytes >> $clog2(BYTES_PER_BEAT);
+        end
 
-          next_batch_count      = '0;
-          next_global_count     = '0;
-          next_neuron_idx       = '0;
-          next_payload_done     = '0;
-          next_state            = RUN;
-          for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-            next_addr_pointers[i]   = '0;
-            next_weight_wr_en[i]    = '0;
-            next_threshold_wr_en[i] = '0;
-          end
+        next_batch_count  = '0;
+        next_global_count = '0;
+        next_neuron_idx   = '0;
+
+        for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+          next_addr_pointers[i]   = '0;
+          next_weight_wr_en[i]    = '0;
+          next_threshold_wr_en[i] = '0;
         end
       end
 
@@ -126,8 +124,22 @@ module config_controller #(
       end
 
       DONE: begin
-        next_payload_done = 1'b1;
-        next_state        = START;
+        payload_done      = 1;
+        if (config_rd_en) begin
+          next_state            = RUN;
+          next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
+          next_total_beats      = total_bytes >> $clog2(BYTES_PER_BEAT);
+        end
+
+        next_batch_count  = '0;
+        next_global_count = '0;
+        next_neuron_idx   = '0;
+
+        for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+          next_addr_pointers[i]   = '0;
+          next_weight_wr_en[i]    = '0;
+          next_threshold_wr_en[i] = '0;
+        end
       end
 
       default: next_state = START;
