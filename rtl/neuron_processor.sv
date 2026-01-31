@@ -1,31 +1,60 @@
-// ============================================================
-// neuron_processor.sv (skeleton)
-// Matches your generate instantiation u_np
-// IMPORTANT: valid_in/last are PER-NEURON signals, so in the generate
-// you likely want: .valid_in(np_valid[gi]) and .last(np_last[gi])
-// ============================================================
-module neuron_processor #(
-    parameter int PARALLEL_INPUTS = 32
+module neuron_processor_top #(
+    parameter int P_WIDTH      = 64,   // Parallel inputs per cycle
+    parameter int TOTAL_INPUTS = 788,  // Total inputs per neuron
+    parameter int ACC_WIDTH    = 16    // Width of final accumulator
 ) (
-    input logic clk,
-    input logic rst,
+    input logic                 clk,
+    input logic                 rst,
+    input logic                 valid_in,  // Input stream is valid
+    input logic                 last,
+    input logic [  P_WIDTH-1:0] x,         // Input data stream
+    input logic [  P_WIDTH-1:0] w,         // Weight data stream
+    input logic [ACC_WIDTH-1:0] threshold,
 
-    input logic                       valid_in,
-    input logic                       last,
-    input logic [PARALLEL_INPUTS-1:0] x,
-
-    // Keep these as "logic [*]" so you can drive them from BRAM outputs
-    // (often W_RAM_DATA_W == PARALLEL_INPUTS for BNN bit-weights)
-    input logic [PARALLEL_INPUTS-1:0] w,
-    input logic [PARALLEL_INPUTS-1:0] thresh,
-
-    output logic y
+    output logic y,       // Final neuron activation
+    output logic y_valid  // Pulsed when y is ready
 );
 
-  // ============================================================
-  // Datapath / accumulation / compare logic goes here
-  // ============================================================
 
+  localparam int TREE_OUT_W = 1 + $clog2(P_WIDTH);  // 7 bits
+  logic [TREE_OUT_W-1:0] tree_sum;
+  logic                  tree_last_out;
 
+  neuron_tree #(
+      .NUM_INPUTS(P_WIDTH)
+  ) u_tree (
+      .clk(clk),
+      .rst(rst),
+      .en(valid_in),
+      .x(x),
+      .w(w),
+      .last_in(last),
+      .last_out(tree_last_out),
+      .sum(tree_sum)
+  );
+
+  // --- 3. Temporal Accumulator ---
+  logic [ACC_WIDTH-1:0] acc;
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      acc     <= '0;
+      y       <= 1'b0;
+      y_valid <= 1'b0;
+    end else if (valid_in) begin
+      y_valid <= 1'b0;
+      // Wait for the 'last' signal to emerge from the pipeline
+      if (tree_last_out) begin
+        // Finalize: Add last chunk + Compare + Reset
+        y       <= ((acc + tree_sum) >= threshold);
+        y_valid <= 1'b1;
+        acc     <= '0;  // Clear for next neuron instantly
+      end else begin
+        // Just accumulate
+        acc     <= acc + tree_sum;
+        y_valid <= 1'b0;
+      end
+    end
+  end
 
 endmodule

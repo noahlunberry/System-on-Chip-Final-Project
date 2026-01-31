@@ -27,4 +27,12 @@ These features are only supported in Questasim.
 Top level modules:
 	--none--
 
+} {} {}} C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/verification/bnn_fcc_tb.sv {1 {vlog -work work -sv -stats=none C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/verification/bnn_fcc_tb.sv
+Model Technology ModelSim - Intel FPGA Edition vlog 10.5b Compiler 2016.10 Oct  5 2016
+-- Compiling module bnn_fcc_tb
+-- Importing package bnn_fcc_tb_pkg
+
+Top level modules:
+	bnn_fcc_tb
+
 } {} {}}
