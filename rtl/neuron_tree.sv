@@ -19,8 +19,7 @@ module neuron_tree #(
 
     if (NUM_INPUTS == 1) begin : l_leaf
       assign sum = ~(x ^ w);
-    end  
-    else begin : l_recurse
+    end else begin : l_recurse
       localparam int LEFT_INPUTS = int'($ceil(NUM_INPUTS / 2.0));
       localparam int RIGHT_INPUTS = NUM_INPUTS - LEFT_INPUTS;
 
