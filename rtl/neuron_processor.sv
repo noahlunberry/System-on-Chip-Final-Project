@@ -1,4 +1,4 @@
-module neuron_processor_top #(
+module neuron_processor #(
     parameter int P_WIDTH      = 64,   // Parallel inputs per cycle
     parameter int TOTAL_INPUTS = 788,  // Total inputs per neuron
     parameter int ACC_WIDTH    = 16    // Width of final accumulator
