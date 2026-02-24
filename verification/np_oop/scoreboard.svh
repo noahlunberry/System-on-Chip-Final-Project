@@ -21,15 +21,16 @@ class scoreboard #(
     failed                         = 0;
   endfunction  // new
 
-  function int model(int data, int width);
-    automatic int diff = 0;
-
-    for (int i = 0; i < width; i++) begin
-      diff = data[0] ? diff + 1 : diff - 1;
-      data = data >> 1;
+  // Reference Model: Match the xnors/adds being computed by the tree
+  function int model_popcount(bit [TOTAL_INPUTS-1:0] x, bit [TOTAL_INPUTS-1:0] w);
+    // signals
+    int acc = 0;
+    acc = 0;
+    // xnor and accumulate all inputs
+    for (int i = 0; i < TOTAL_INPUTS; i++) begin
+      acc += (x[i] == w[i]);
     end
-
-    return diff;
+    return acc;
   endfunction
 
   task run(int num_tests);

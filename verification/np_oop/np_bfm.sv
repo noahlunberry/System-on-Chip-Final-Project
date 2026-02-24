@@ -21,19 +21,20 @@ interface np_bfm #(
   endtask
 
   task automatic reset(int cycles);
-    rst <= 1'b1;
-    go  <= 1'b0;
+    rst      <= 1'b1;
+    valid_in <= 1'b1;
+    x        <= '0;
+    w        <= '0;
     for (int i = 0; i < cycles; i++) @(posedge clk);
     @(negedge clk);
     rst <= 1'b0;
     @(posedge clk);
   endtask
 
-  task automatic start(input logic [TOTAL_INPUTS-1:0] x,input logic[TOTAL_INPUTS-1:0] w);
-    data <= data_;
-    go   <= 1'b1;
-    @(posedge clk);
-    go <= 1'b0;
+  task automatic start(input logic [TOTAL_INPUTS-1:0] x, input logic [TOTAL_INPUTS-1:0] w);
+    x        <= x_;
+    w        <= w_;
+    valid_in <= 1'b1;
   endtask  // start
 
   // Helper code to detect when the DUT starts executing. This task internally
