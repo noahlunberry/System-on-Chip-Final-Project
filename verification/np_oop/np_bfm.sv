@@ -63,4 +63,33 @@ interface np_bfm #(
       end
     end
   endtask  // monitor
+
+  localparam int NUM_BEATS = (TOTAL_INPUTS + P_WIDTH - 1) / P_WIDTH;
+  int valid_beat_count = 0;
+
+  task automatic drive_beat(input logic [P_WIDTH-1:0] x_in, input logic [P_WIDTH-1:0] w_in,
+                            input logic valid_in);
+    x        <= x_in;
+    w        <= w_in;
+    valid_in <= valid_in;
+
+    // We only count this cycle as a "beat" if valid_in is actually high.
+    if (valid_in == 1'b1) begin
+      valid_beat_count++;
+
+      // If we hit the final valid beat, assert 'last' and reset our counter
+      if (valid_beat_count == NUM_BEATS) begin
+        last <= 1'b1;
+        valid_beat_count = 0;
+      end else begin
+        last <= 1'b0;
+      end
+
+    end else begin
+      last <= 1'b0;
+    end
+
+    // Consume time so the generator loop can call this sequentially
+    @(posedge clk);
+  endtask
 endinterface
