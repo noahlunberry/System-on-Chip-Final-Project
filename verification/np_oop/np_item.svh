@@ -4,17 +4,19 @@
 `ifndef _NP_ITEM_SVH_
 `define _NP_ITEM_SVH_
 
-// The transaction 'item' for this class is the data inputs, x and w
+// The transaction 'item' for this class is the data inputs, x and w and the threshold
 class np_item #(
-    TOTAL_INPUTS,
+    P_WIDTH,
     ACC_WIDTH
 );
-  rand bit [TOTAL_INPUTS-1:0] x, w;
+  // inputs
+  rand bit [P_WIDTH-1:0] x, w;
   rand bit valid_in;
   rand bit [ACC_WIDTH-1:0] threshold;
+  bit last;
 
   // Output
-  rand bit [ACC_WIDTH-1:0] y;
+  bit y, y_valid;
 
   // A uniform distribution of go values probably isn't what we want, so
   // we'll make sure go is 1'b1 90% of the time.

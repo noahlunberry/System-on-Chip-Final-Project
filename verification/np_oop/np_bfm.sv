@@ -11,7 +11,7 @@ interface np_bfm #(
     input logic clk
 );
   logic rst, valid_in, last, y_valid;
-  logic [TOTAL_INPUTS-1:0] x, w;
+  logic [P_WIDTH-1:0] x, w;
   logic signed [ACC_WIDTH-1:0] y;
 
   // signal when valid output is ready
@@ -31,7 +31,7 @@ interface np_bfm #(
     @(posedge clk);
   endtask
 
-  task automatic start(input logic [TOTAL_INPUTS-1:0] x, input logic [TOTAL_INPUTS-1:0] w);
+  task automatic start(input logic [P_WIDTH-1:0] x, input logic [P_WIDTH-1:0] w);
     x        <= x_;
     w        <= w_;
     valid_in <= 1'b1;

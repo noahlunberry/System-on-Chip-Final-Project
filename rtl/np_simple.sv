@@ -7,7 +7,7 @@
 //  - "const_w"   : ignores input w and uses W_CONST
 
 module np_xnor_neuron #(
-    parameter int    P_WIDTH      = 8,
+    parameter int    P_WIDTH      = 64,
     parameter int    TOTAL_INPUTS = 8,
     parameter int    PC_WIDTH     = $clog2(P_WIDTH + 1),
     parameter int    ACC_WIDTH    = PC_WIDTH,

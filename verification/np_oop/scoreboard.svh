@@ -7,11 +7,14 @@
 `include "np_item.svh"
 
 class scoreboard #(
-    int WIDTH
+    int P_WIDTH,
+    int TOTAL_INPUTS,
+    int ACC_WIDTH
 );
   mailbox scoreboard_result_mailbox;
   mailbox scoreboard_data_mailbox;
-  int     passed,                    failed, reference;
+  int     passed,                    failed;
+  bit     reference;
 
   function new(mailbox scoreboard_data_mailbox, mailbox scoreboard_result_mailbox);
     this.scoreboard_data_mailbox   = scoreboard_data_mailbox;
@@ -19,23 +22,26 @@ class scoreboard #(
 
     passed                         = 0;
     failed                         = 0;
-  endfunction  // new
+  endfunction
 
   // Reference Model: Match the xnors/adds being computed by the tree
-  function int model_popcount(bit [TOTAL_INPUTS-1:0] x, bit [TOTAL_INPUTS-1:0] w);
-    // signals
+  function bit model(bit [TOTAL_INPUTS-1:0] x, bit [TOTAL_INPUTS-1:0] w,
+                     bit [ACC_WIDTH-1:0] threshold);
     int acc = 0;
-    acc = 0;
-    // xnor and accumulate all inputs
+
+    // 1. XNOR and accumulate all inputs
     for (int i = 0; i < TOTAL_INPUTS; i++) begin
       acc += (x[i] == w[i]);
     end
-    return acc;
+
+    // 2. Compare against threshold. 
+    // If acc is greater than or equal to threshold, output 1, else 0.
+    return (acc >= threshold);
   endfunction
 
   task run(int num_tests);
-    np_item #(.WIDTH(WIDTH)) in_item;
-    np_item #(.WIDTH(WIDTH)) out_item;
+    np_item #(.TOTAL_INPUTS(TOTAL_INPUTS), .P_WIDTH(P_WIDTH), .ACC_WIDTH(ACC_WIDTH)) in_item;
+    np_item #(.TOTAL_INPUTS(TOTAL_INPUTS), .P_WIDTH(P_WIDTH), .ACC_WIDTH(ACC_WIDTH)) out_item;
 
     for (int i = 0; i < num_tests; i++) begin
 
