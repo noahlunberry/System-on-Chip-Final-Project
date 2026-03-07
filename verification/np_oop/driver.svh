@@ -60,11 +60,12 @@ class nonblocking_driver #(
         .P_WIDTH(P_WIDTH),
         .ACC_WIDTH(ACC_WIDTH)
     ) item;
+    logic frame_done;
     $display("Time %0t [Driver]: Driver starting.", $time);
 
     forever begin
       driver_mailbox.get(item);
-      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, item.last);
+      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, frame_done);
       ->driver_done_event;
     end
   endtask
@@ -96,12 +97,13 @@ class blocking_driver #(
         .P_WIDTH(P_WIDTH),
         .ACC_WIDTH(ACC_WIDTH)
     ) item;
+    logic frame_done;
     $display("Time %0t [Driver]: Driver starting.", $time);
 
     forever begin
       driver_mailbox.get(item);
-      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, item.last);
-      if (item.valid_in && item.last) begin
+      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, frame_done);
+      if (frame_done) begin
         bfm.wait_for_done();
         $display("Time %0t [Driver]: Detected done.", $time);
       end

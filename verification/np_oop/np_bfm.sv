@@ -72,14 +72,31 @@ interface np_bfm #(
     end
   endtask  // monitor
 
+  localparam int NUM_BEATS = (TOTAL_INPUTS + P_WIDTH - 1) / P_WIDTH;
+  int valid_beat_count = 0;
+
   task automatic drive_beat(input logic [P_WIDTH-1:0] x_in, input logic [P_WIDTH-1:0] w_in,
                             input logic [ACC_WIDTH-1:0] threshold_in, input logic valid_in_in,
-                            input logic last_in);
+                            output logic frame_done);
     x        <= x_in;
     w        <= w_in;
     threshold <= threshold_in;
     valid_in <= valid_in_in;
-    last <= last_in;
+
+    frame_done = 1'b0;
+    if (valid_in_in) begin
+      valid_beat_count++;
+      if (valid_beat_count == NUM_BEATS) begin
+        last <= 1'b1;
+        valid_beat_count = 0;
+        frame_done = 1'b1;
+      end else begin
+        last <= 1'b0;
+      end
+    end else begin
+      last <= 1'b0;
+    end
+
     @(posedge clk);
   endtask
 endinterface
