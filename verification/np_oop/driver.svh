@@ -64,7 +64,12 @@ class nonblocking_driver #(
 
     forever begin
       driver_mailbox.get(item);
-      bfm.start(item.x, item.w, item.threshold, item.valid_in, item.last);
+      bfm.x = item.x_in;
+      bfm.x = item.w_in;
+      bfm.x = item.threshold;
+      bfm.x = item.valid_in;
+      bfm.x = item.last_in;
+       @(posedge bfm.clk);
       ->driver_done_event;
     end
   endtask
@@ -100,11 +105,16 @@ class blocking_driver #(
 
     forever begin
       driver_mailbox.get(item);
-      bfm.start(item.x, item.w, item.threshold, item.valid_in, item.last);
-      if (item.valid_in && item.last) begin
-        bfm.wait_for_done();
-        $display("Time %0t [Driver]: Detected done.", $time);
-      end
+      driver_mailbox.get(item);
+      bfm.x = item.x_in;
+      bfm.x = item.w_in;
+      bfm.x = item.threshold;
+      bfm.x = item.valid_in;
+      bfm.x = item.last_in;
+       @(posedge bfm.clk);
+      ->driver_done_event;
+      bfm.wait_for_done();
+      $display("Time %0t [Driver]: Detected done.", $time);
       ->driver_done_event;
     end
   endtask
