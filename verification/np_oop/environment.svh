@@ -10,34 +10,67 @@
 `include "scoreboard.svh"
 
 class environment #(
-    int WIDTH
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 );
 
   // The environment doesn't know what type of generator and driver it will
   // use, so it contains a handle to the base class for each. Use of virtual
   // methods then allows us to use any class derived from the base version
   // without requiring knowledge of the specific class here.
-  base_generator #(.WIDTH(WIDTH)) genarator_h;
-  base_driver #(.WIDTH(WIDTH)) driver_h;
-  done_monitor #(.WIDTH(WIDTH)) done_monitor_h;
-  start_monitor #(.WIDTH(WIDTH)) start_monitor_h;
-  scoreboard #(.WIDTH(WIDTH)) scoreboard_h;
+  base_generator #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) generator_h;
+  base_driver #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) driver_h;
+  done_monitor #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) done_monitor_h;
+  start_monitor #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) start_monitor_h;
+  scoreboard #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) scoreboard_h;
 
   mailbox scoreboard_data_mailbox;
   mailbox scoreboard_result_mailbox;
-  mailbox driver_mailbox;
 
-  event driver_done_event;
-
-  function new(virtual np_bfm #(.WIDTH(WIDTH)) bfm, base_generator#(.WIDTH(WIDTH)) gen_h,
-               base_driver#(.WIDTH(WIDTH)) drv_h);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm,
+      base_generator #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) gen_h,
+      base_driver #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) drv_h
+  );
     scoreboard_data_mailbox   = new;
     scoreboard_result_mailbox = new;
-    driver_mailbox            = new;
 
     // We no longer instantiate these here because they are created in the
     // test class and passed in to this constructor.
-    genarator_h               = gen_h;
+    generator_h               = gen_h;
     driver_h                  = drv_h;
     done_monitor_h            = new(bfm, scoreboard_result_mailbox);
     start_monitor_h           = new(bfm, scoreboard_data_mailbox);
@@ -50,7 +83,7 @@ class environment #(
 
   virtual task run(int num_tests);
     fork
-      genarator_h.run();
+      generator_h.run();
       driver_h.run();
       done_monitor_h.run();
       start_monitor_h.run();

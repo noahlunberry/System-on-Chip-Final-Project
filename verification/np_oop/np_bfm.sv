@@ -12,6 +12,7 @@ interface np_bfm #(
 );
   logic rst, valid_in, last, y_valid;
   logic [P_WIDTH-1:0] x, w;
+  logic [ACC_WIDTH-1:0] threshold;
   logic signed [ACC_WIDTH-1:0] y;
 
   // signal when valid output is ready
@@ -22,19 +23,26 @@ interface np_bfm #(
 
   task automatic reset(int cycles);
     rst      <= 1'b1;
-    valid_in <= 1'b1;
+    valid_in <= 1'b0;
+    last     <= 1'b0;
     x        <= '0;
     w        <= '0;
+    threshold <= '0;
     for (int i = 0; i < cycles; i++) @(posedge clk);
     @(negedge clk);
     rst <= 1'b0;
     @(posedge clk);
   endtask
 
-  task automatic start(input logic [P_WIDTH-1:0] x, input logic [P_WIDTH-1:0] w);
-    x        <= x_;
-    w        <= w_;
+  task automatic start(input logic [P_WIDTH-1:0] x_in, input logic [P_WIDTH-1:0] w_in,
+                       input logic [ACC_WIDTH-1:0] threshold_in, input logic last_in);
+    x        <= x_in;
+    w        <= w_in;
+    threshold <= threshold_in;
+    last     <= last_in;
     valid_in <= 1'b1;
+    @(posedge clk);
+    valid_in <= 1'b0;
   endtask  // start
 
   // Helper code to detect when the DUT starts executing. This task internally
@@ -64,32 +72,14 @@ interface np_bfm #(
     end
   endtask  // monitor
 
-  localparam int NUM_BEATS = (TOTAL_INPUTS + P_WIDTH - 1) / P_WIDTH;
-  int valid_beat_count = 0;
-
   task automatic drive_beat(input logic [P_WIDTH-1:0] x_in, input logic [P_WIDTH-1:0] w_in,
-                            input logic valid_in);
+                            input logic [ACC_WIDTH-1:0] threshold_in, input logic valid_in_in,
+                            input logic last_in);
     x        <= x_in;
     w        <= w_in;
-    valid_in <= valid_in;
-
-    // We only count this cycle as a "beat" if valid_in is actually high.
-    if (valid_in == 1'b1) begin
-      valid_beat_count++;
-
-      // If we hit the final valid beat, assert 'last' and reset our counter
-      if (valid_beat_count == NUM_BEATS) begin
-        last <= 1'b1;
-        valid_beat_count = 0;
-      end else begin
-        last <= 1'b0;
-      end
-
-    end else begin
-      last <= 1'b0;
-    end
-
-    // Consume time so the generator loop can call this sequentially
+    threshold <= threshold_in;
+    valid_in <= valid_in_in;
+    last <= last_in;
     @(posedge clk);
   endtask
 endinterface

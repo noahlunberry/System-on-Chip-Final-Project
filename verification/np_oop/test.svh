@@ -7,14 +7,31 @@
 `include "environment.svh"
 
 virtual class base_test #(
-    int WIDTH
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 );
 
-  virtual np_bfm #(.WIDTH(WIDTH)) bfm;
+  virtual np_bfm #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) bfm;
   string name;
-  environment #(.WIDTH(WIDTH)) env_h;
+  environment #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) env_h;
 
-  function new(virtual np_bfm #(.WIDTH(WIDTH)) bfm, string name = "default_test_name");
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm,
+      string name = "default_test_name"
+  );
 
     // Ideally we would also create the environment here, but we don't
     // have all the parameters we need for the constructor yet.
@@ -43,15 +60,34 @@ endclass
 
 
 class random_test #(
-    int WIDTH
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 ) extends base_test #(
-    .WIDTH(WIDTH)
+    .TOTAL_INPUTS(TOTAL_INPUTS),
+    .P_WIDTH(P_WIDTH),
+    .ACC_WIDTH(ACC_WIDTH)
 );
 
-  nonblocking_driver #(.WIDTH(WIDTH)) drv_h;
-  random_generator #(.WIDTH(WIDTH))   gen_h;
+  nonblocking_driver #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) drv_h;
+  random_generator #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) gen_h;
 
-  function new(virtual np_bfm #(.WIDTH(WIDTH)) bfm, string name);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm,
+      string name
+  );
     super.new(bfm, name);
 
     // These should really be passed to the base constructor, but super.new
@@ -66,15 +102,34 @@ class random_test #(
 endclass
 
 class consecutive_test #(
-    int WIDTH
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 ) extends base_test #(
-    .WIDTH(WIDTH)
+    .TOTAL_INPUTS(TOTAL_INPUTS),
+    .P_WIDTH(P_WIDTH),
+    .ACC_WIDTH(ACC_WIDTH)
 );
 
-  blocking_driver #(.WIDTH(WIDTH)) drv_h;
-  consecutive_generator #(.WIDTH(WIDTH)) gen_h;
+  blocking_driver #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) drv_h;
+  consecutive_generator #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) gen_h;
 
-  function new(virtual np_bfm #(.WIDTH(WIDTH)) bfm, string name);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm,
+      string name
+  );
     super.new(bfm, name);
 
     // These should really be passed to the base constructor, but super.new

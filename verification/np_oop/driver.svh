@@ -8,13 +8,25 @@
 
 // virtual is a template
 virtual class base_driver #(
-    int TOTAL_INPUTS
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 );
-  virtual np_bfm #(.TOTAL_INPUTS(TOTAL_INPUTS)) bfm;
+  virtual np_bfm #(
+      .TOTAL_INPUTS(TOTAL_INPUTS),
+      .P_WIDTH(P_WIDTH),
+      .ACC_WIDTH(ACC_WIDTH)
+  ) bfm;
   mailbox driver_mailbox;
   event driver_done_event;
 
-  function new(virtual np_bfm #(.TOTAL_INPUTS(TOTAL_INPUTS)) bfm);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm
+  );
     this.bfm       = bfm;
     driver_mailbox = new;
   endfunction  // new
@@ -24,25 +36,35 @@ endclass  // base_driver
 
 
 class nonblocking_driver #(
-    int TOTAL_INPUTS
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 ) extends base_driver #(
-    .TOTAL_INPUTS(TOTAL_INPUTS)
+    .TOTAL_INPUTS(TOTAL_INPUTS),
+    .P_WIDTH(P_WIDTH),
+    .ACC_WIDTH(ACC_WIDTH)
 );
 
-  function new(virtual np_bfm #(.TOTAL_INPUTS(TOTAL_INPUTS)) bfm);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm
+  );
     super.new(bfm);
   endfunction  // new
 
   virtual task run();
-    np_item #(.TOTAL_INPUTS(TOTAL_INPUTS)) item;
+    np_item #(
+        .P_WIDTH(P_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH)
+    ) item;
     $display("Time %0t [Driver]: Driver starting.", $time);
 
     forever begin
       driver_mailbox.get(item);
-      //$display("Time %0t [Driver]: Driving data=h%h, go=%0b.", $time, item.data, item.go);  
-      bfm.data = item.data;
-      bfm.go   = item.go;
-      @(posedge bfm.clk);
+      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, item.last);
       ->driver_done_event;
     end
   endtask
@@ -50,24 +72,39 @@ endclass
 
 
 class blocking_driver #(
-    int TOTAL_INPUTS
+    int TOTAL_INPUTS,
+    int P_WIDTH,
+    int ACC_WIDTH
 ) extends base_driver #(
-    .TOTAL_INPUTS(TOTAL_INPUTS)
+    .TOTAL_INPUTS(TOTAL_INPUTS),
+    .P_WIDTH(P_WIDTH),
+    .ACC_WIDTH(ACC_WIDTH)
 );
 
-  function new(virtual np_bfm #(.TOTAL_INPUTS(TOTAL_INPUTS)) bfm);
+  function new(
+      virtual np_bfm #(
+          .TOTAL_INPUTS(TOTAL_INPUTS),
+          .P_WIDTH(P_WIDTH),
+          .ACC_WIDTH(ACC_WIDTH)
+      ) bfm
+  );
     super.new(bfm);
   endfunction  // new
 
   task run();
-    np_item #(.TOTAL_INPUTS(TOTAL_INPUTS)) item;
+    np_item #(
+        .P_WIDTH(P_WIDTH),
+        .ACC_WIDTH(ACC_WIDTH)
+    ) item;
     $display("Time %0t [Driver]: Driver starting.", $time);
 
     forever begin
       driver_mailbox.get(item);
-      bfm.start(item.data);
-      bfm.wait_for_done();
-      $display("Time %0t [Driver]: Detected done.", $time);
+      bfm.drive_beat(item.x, item.w, item.threshold, item.valid_in, item.last);
+      if (item.valid_in && item.last) begin
+        bfm.wait_for_done();
+        $display("Time %0t [Driver]: Detected done.", $time);
+      end
       ->driver_done_event;
     end
   endtask
