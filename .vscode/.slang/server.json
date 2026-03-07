@@ -1,0 +1,11 @@
+{
+  "index": [
+    {
+      "dirs": ["./rtl", "./verification"],
+      "excludeDirs": ["sim", "python", ".git", ".vscode", "doc", "docs"]
+    }
+  ],
+  "flags": "-f ./.slang/builds/np_oop.f",
+  "build": "./.slang/builds/np_oop.f",
+  "buildRelativePaths": true
+}
