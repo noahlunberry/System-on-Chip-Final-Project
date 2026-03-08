@@ -21,9 +21,9 @@ virtual class base_generator #(
   function new(
   base_driver#(
   .TOTAL_INPUTS(TOTAL_INPUTS),
-  .P_WIDTH(P_WIDTH),
-  .ACC_WIDTH(ACC_WIDTH)
-               ) driver_h);
+  .P_WIDTH     (P_WIDTH),
+  .ACC_WIDTH   (ACC_WIDTH)
+  ) driver_h);
     this.driver_mailbox    = driver_h.driver_mailbox;
     this.driver_done_event = driver_h.driver_done_event;
   endfunction  // new
@@ -38,16 +38,16 @@ class random_generator #(
     int ACC_WIDTH
 ) extends base_generator #(
     .TOTAL_INPUTS(TOTAL_INPUTS),
-    .P_WIDTH(P_WIDTH),
-    .ACC_WIDTH(ACC_WIDTH)
+    .P_WIDTH     (P_WIDTH),
+    .ACC_WIDTH   (ACC_WIDTH)
 );
 
   function new(
   base_driver#(
   .TOTAL_INPUTS(TOTAL_INPUTS),
-  .P_WIDTH(P_WIDTH),
-  .ACC_WIDTH(ACC_WIDTH)
-               ) driver_h);
+  .P_WIDTH     (P_WIDTH),
+  .ACC_WIDTH   (ACC_WIDTH)
+  ) driver_h);
     super.new(driver_h);
   endfunction  // new
 
@@ -56,6 +56,8 @@ class random_generator #(
         .P_WIDTH  (P_WIDTH),
         .ACC_WIDTH(ACC_WIDTH)
     ) item;
+
+    bit [P_WIDTH-1:0] x,w = '0;
 
     forever begin
       item = new;
@@ -73,16 +75,16 @@ class consecutive_generator #(
     int ACC_WIDTH    = 16
 ) extends base_generator #(
     .TOTAL_INPUTS(TOTAL_INPUTS),
-    .P_WIDTH(P_WIDTH),
-    .ACC_WIDTH(ACC_WIDTH)
+    .P_WIDTH     (P_WIDTH),
+    .ACC_WIDTH   (ACC_WIDTH)
 );
 
   function new(
   base_driver#(
   .TOTAL_INPUTS(TOTAL_INPUTS),
-  .P_WIDTH(P_WIDTH),
-  .ACC_WIDTH(ACC_WIDTH)
-               ) driver_h);
+  .P_WIDTH     (P_WIDTH),
+  .ACC_WIDTH   (ACC_WIDTH)
+  ) driver_h);
     super.new(driver_h);
   endfunction  // new
 
@@ -91,11 +93,12 @@ class consecutive_generator #(
         .P_WIDTH  (P_WIDTH),
         .ACC_WIDTH(ACC_WIDTH)
     ) item;
+    bit [P_WIDTH-1:0] x,w = '0;
 
     forever begin
-      item      = new;
-      item.data = data;
-      data++;
+      item   = new;
+      item.x = x;
+      data+;
       driver_mailbox.put(item);
       @(driver_done_event);
     end
