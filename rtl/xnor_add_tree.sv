@@ -6,7 +6,8 @@
 // The inputs should be two arrays of num_inputs elements, where each element
 // is in_width bits wide.
 
-// INSTRUCTIONS: The latency of the entity is clog2(num_inputs)+1
+// The latency of the entity for an INPUT_WIDTH of 1 is clog2(num_inputs)+1
+// For INPUT_WIDTH>1, this becomes clog2(num_inputs)+2
 
 module xnor_add_tree #(
     parameter int NUM_INPUTS  = 64,
