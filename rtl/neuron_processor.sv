@@ -33,7 +33,6 @@ module neuron_processor #(
       .sum(tree_sum)
   );
 
-  // --- 3. Temporal Accumulator ---
   logic [ACC_WIDTH-1:0] acc;
 
   always_ff @(posedge clk) begin
