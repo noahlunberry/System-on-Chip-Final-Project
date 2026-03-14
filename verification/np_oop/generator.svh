@@ -98,7 +98,9 @@ class consecutive_generator #(
     forever begin
       item   = new;
       item.x = x;
-      data+;
+      item.w = w;
+      x++;
+      w++;
       driver_mailbox.put(item);
       @(driver_done_event);
     end

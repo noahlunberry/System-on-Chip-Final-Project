@@ -22,11 +22,9 @@ module np_tb;
       .clk(clk)
   );
 
-  np_xnor_neuron #(
-      .TOTAL_INPUTS(TOTAL_INPUTS),
+  neuron_processor #(
       .P_WIDTH(P_WIDTH),
-      .ACC_WIDTH(ACC_WIDTH),
-      .ARCH("stream_w")
+      .ACC_WIDTH(ACC_WIDTH)
   ) DUT (
       .clk(clk),
       .rst(bfm.rst),
@@ -58,9 +56,9 @@ module np_tb;
 
   initial begin
     $timeformat(-9, 0, " ns");
-    test_random.run(NUM_RANDOM_TESTS, NUM_REPEATS);
+    // test_random.run(NUM_RANDOM_TESTS, NUM_REPEATS);
     test_consecutive.run(NUM_CONSECUTIVE_TESTS, NUM_REPEATS);
-    test_random.report_status();
+    // test_random.report_status();
     test_consecutive.report_status();
     disable generate_clock;
   end

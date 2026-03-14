@@ -13,7 +13,11 @@ interface np_bfm #(
   logic rst, valid_in, last, y_valid;
   logic [P_WIDTH-1:0] x, w;
   logic [ACC_WIDTH-1:0] threshold;
-  logic signed [ACC_WIDTH-1:0] y;
+  logic  y;
+  localparam int BEATS_PER_TEST = (TOTAL_INPUTS + P_WIDTH - 1) / P_WIDTH;
+
+  int policy_beat_idx;
+  int policy_frame_idx;
 
   // signal when valid output is ready
   task automatic wait_for_done();
@@ -28,6 +32,8 @@ interface np_bfm #(
     x        <= '0;
     w        <= '0;
     threshold <= '0;
+    policy_beat_idx = 0;
+    policy_frame_idx = 0;
     for (int i = 0; i < cycles; i++) @(posedge clk);
     @(negedge clk);
     rst <= 1'b0;
@@ -46,6 +52,34 @@ interface np_bfm #(
     valid_in <= 1'b0;
     last     <= 1'b0;
   endtask  // start
+
+  function automatic logic [ACC_WIDTH-1:0] threshold_for_frame(input int frame_idx);
+    case (frame_idx % 3)
+      0: return ACC_WIDTH'(TOTAL_INPUTS / 4);
+      1: return ACC_WIDTH'((TOTAL_INPUTS + 1) / 2);
+      default: return ACC_WIDTH'((3 * TOTAL_INPUTS) / 4);
+    endcase
+  endfunction
+
+  // Drives one beat using a deterministic control policy:
+  // valid_in=1 every beat, last asserted on final beat of each frame,
+  // threshold held constant for all beats in a frame and cycled by frame.
+  task automatic start_with_policy(input logic [P_WIDTH-1:0] x_in, input logic [P_WIDTH-1:0] w_in);
+    logic [ACC_WIDTH-1:0] threshold_in;
+    logic last_in;
+
+    threshold_in = threshold_for_frame(policy_frame_idx);
+    last_in      = (policy_beat_idx == BEATS_PER_TEST - 1);
+
+    start(x_in, w_in, threshold_in, 1'b1, last_in);
+
+    if (last_in) begin
+      policy_beat_idx = 0;
+      policy_frame_idx++;
+    end else begin
+      policy_beat_idx++;
+    end
+  endtask
 
   // Helper code to detect when the DUT starts executing. This task internally
   // tracks the active status of the DUT and sends an event every time it

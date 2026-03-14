@@ -62,11 +62,11 @@ class nonblocking_driver #(
 
         forever begin
             driver_mailbox.get(item);
-            bfm.x = item.x_in;
-            bfm.x = item.w_in;
-            bfm.x = item.threshold;
-            bfm.x = item.valid_in;
-            bfm.x = item.last_in;
+            bfm.x = item.x;
+            bfm.w = item.w;
+            bfm.threshold = item.threshold;
+            bfm.valid_in = item.valid_in;
+            bfm.last = item.last;
             @(posedge bfm.clk);
             ->driver_done_event;
         end
@@ -102,11 +102,11 @@ class blocking_driver #(
 
         forever begin
             driver_mailbox.get(item);
-            bfm.x = item.x_in;
-            bfm.x = item.w_in;
-            bfm.x = item.threshold;
-            bfm.x = item.valid_in;
-            bfm.x = item.last_in;
+            bfm.x = item.x;
+            bfm.w = item.w;
+            bfm.threshold = item.threshold;
+            bfm.valid_in = item.valid_in;
+            bfm.last = item.last;
             @(posedge bfm.clk);
             ->driver_done_event;
             bfm.wait_for_done();
