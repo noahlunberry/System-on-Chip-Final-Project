@@ -12,8 +12,7 @@ module config_manager #(
     },  // 0: input, TOTAL_LAYERS-1: output
 
     parameter bit PARALLELIZE_LAYERS = 1'b0,
-    parameter int PARALLEL_NEURONS   = 1,
-    parameter int PARALLEL_INPUTS    = 32
+    parameter int PARALLEL_NEURONS   = 1
 ) (
     input logic clk,
     input logic rst,

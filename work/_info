@@ -1,0 +1,226 @@
+m255
+K4
+z2
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest
+vadd_tree
+Z1 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z2 !s110 1773527582
+!i10b 1
+!s100 zOL>US7eYC5MgJD7haBAk2
+I@51f78J?m[1eP35ZCGi<A1
+Z3 VDg1SIo80bB@j0V0VzS_@n1
+!s105 add_tree_sv_unit
+S1
+R0
+w1772929014
+8rtl/add_tree.sv
+Frtl/add_tree.sv
+L0 4
+Z4 OV;L;10.5b;63
+r1
+!s85 0
+31
+Z5 !s108 1773527582.000000
+Z6 !s107 rtl/bnn_layer.sv|rtl/bnn_layer_config_controller.sv|rtl/neuron_controller.sv|rtl/ram_sdp.sv|rtl/neuron_processor.sv|rtl/xnor_add_tree.sv|rtl/delay.sv|rtl/add_tree.sv|
+Z7 !s90 -sv|rtl/add_tree.sv|rtl/delay.sv|rtl/xnor_add_tree.sv|rtl/neuron_processor.sv|rtl/ram_sdp.sv|rtl/neuron_controller.sv|rtl/bnn_layer_config_controller.sv|rtl/bnn_layer.sv|
+!i113 1
+o-sv
+Z8 tCvgOpt 0
+vbnn_layer
+R1
+R2
+!i10b 1
+!s100 7hg82om<N8Aoo5HJ>7GA:0
+IaF4bJ=gW;F=<lO0D6f;BA1
+R3
+!s105 bnn_layer_sv_unit
+S1
+R0
+w1773527564
+8rtl/bnn_layer.sv
+Frtl/bnn_layer.sv
+L0 13
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vbnn_layer_config_controller
+R1
+R2
+!i10b 1
+!s100 ?0ec2FXKf8SN:b2AJej9V0
+IlP96KMTKbkfM5>fLYij9l1
+R3
+!s105 bnn_layer_config_controller_sv_unit
+S1
+R0
+w1773527578
+8rtl/bnn_layer_config_controller.sv
+Frtl/bnn_layer_config_controller.sv
+L0 7
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vdelay
+R1
+R2
+!i10b 1
+!s100 T^<o`>kXII[5Dd;TcUBDO1
+I?L;N;6`NDho5WO?BhAbb>2
+R3
+Z9 !s105 delay_sv_unit
+S1
+R0
+Z10 w1772933088
+Z11 8rtl/delay.sv
+Z12 Frtl/delay.sv
+L0 37
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vneuron_controller
+R1
+R2
+!i10b 1
+!s100 S1]B6d805A5K?UmLfB<To3
+IK7n;6Jkf]f[znXi>o2h`=3
+R3
+!s105 neuron_controller_sv_unit
+S1
+R0
+w1773526641
+8rtl/neuron_controller.sv
+Frtl/neuron_controller.sv
+L0 1
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vneuron_processor
+R1
+R2
+!i10b 1
+!s100 OCB2Pg`ncO7oTSh@@N:cc3
+IRhYaW:[VfE:X00a^iW1z02
+R3
+!s105 neuron_processor_sv_unit
+S1
+R0
+w1772934674
+8rtl/neuron_processor.sv
+Frtl/neuron_processor.sv
+L0 1
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vram_sdp
+R1
+R2
+!i10b 1
+!s100 DZ<0?YJL1NAdfN_FbeD3c0
+IaQdzbEmIBbVl1lahzDgP10
+R3
+!s105 ram_sdp_sv_unit
+S1
+R0
+w1769647448
+8rtl/ram_sdp.sv
+Frtl/ram_sdp.sv
+L0 4
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vregister
+R1
+R2
+!i10b 1
+!s100 _Z[Z>2AUdUzSaelHlXf<A1
+IF]=kXSVR3><o4F]oJ_]1B1
+R3
+R9
+S1
+R0
+R10
+R11
+R12
+L0 11
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8
+vxnor_add_tree
+R1
+R2
+!i10b 1
+!s100 KW?WhD3G7<JhKoQBJWI^82
+IEW1HLhYAk^B5eHCSTkERJ1
+R3
+!s105 xnor_add_tree_sv_unit
+S1
+R0
+R10
+8rtl/xnor_add_tree.sv
+Frtl/xnor_add_tree.sv
+L0 12
+R4
+r1
+!s85 0
+31
+R5
+R6
+R7
+!i113 1
+o-sv
+R8

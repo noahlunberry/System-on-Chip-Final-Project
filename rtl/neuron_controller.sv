@@ -87,6 +87,7 @@ module neuron_controller #(
       RUN: begin
         weight_rd_en    = 1'b1;
         threshold_rd_en = 1'b1;
+        // modify valid in to be asserted from the RAM's
         next_valid_in   = 1'b1;
 
         // Check if this is the last input for the current neuron set
