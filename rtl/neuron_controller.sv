@@ -29,8 +29,7 @@ module neuron_controller #(
 
   typedef enum logic [1:0] {
     START,
-    RUN,
-    DONE
+    RUN
   } state_t;
   state_t state_r, next_state;
 
@@ -130,7 +129,10 @@ module neuron_controller #(
 
             // Check if we've done all neuron batches
             if (batch_count_r == NEURON_BATCHES - 1) begin
-              next_state = DONE;
+              delay_layer_done_r = 1'b1;
+              next_word_count = '0;
+              next_batch_count = '0;
+              next_addr_count = '0;
             end else begin
               next_batch_count = batch_count_r + 1'b1;
             end
@@ -141,14 +143,6 @@ module neuron_controller #(
           // Address always increments to pull next weight/input chunk
           next_addr_count = addr_count_r + 1'b1;
         end
-      end
-
-      DONE: begin
-        delay_layer_done_r = 1'b1;
-        next_word_count = '0;
-        next_batch_count = '0;
-        next_addr_count = '0;
-        if (go) next_state = RUN;
       end
 
       default: next_state = START;

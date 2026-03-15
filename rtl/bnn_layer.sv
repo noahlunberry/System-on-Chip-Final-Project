@@ -4,7 +4,6 @@ module bnn_layer #(
     parameter int PARALLEL_NEURONS = 32,
     parameter int MANAGER_BUS_WIDTH = 8,
     parameter int TOTAL_INPUTS = 256,
-    parameter int OUTPUT_BUS_WIDTH,
     localparam int ACC_WIDTH    = 1 + $clog2(PARALLEL_INPUTS)
 
 ) (
@@ -21,6 +20,7 @@ module bnn_layer #(
     input  logic                        config_rd_en,
     input  logic [                15:0] total_bytes,
     input  logic [                 7:0] bytes_per_neuron,
+    input  logic                        msg_type,
     output logic                        payload_done,
 
     // Communication with output side layer
@@ -39,11 +39,9 @@ module bnn_layer #(
   // Each BRAM has its own write enable and write address, since data is entering serially.
   logic                    w_wr_en     [PARALLEL_NEURONS];
   logic [W_RAM_ADDR_W-1:0] w_wr_addr   [PARALLEL_NEURONS];
-  logic [W_RAM_DATA_W-1:0] w_wr_data;
 
   logic                    t_wr_en     [PARALLEL_NEURONS];
   logic [T_RAM_ADDR_W-1:0] t_wr_addr   [PARALLEL_NEURONS];
-  logic [T_RAM_DATA_W-1:0] t_wr_data;
 
   // The rd address and enable can be combined into one array, since data is read in parallel
   // They each have their own rd data and rd addresses, since data will be read in parallel
@@ -89,7 +87,9 @@ module bnn_layer #(
   logic np_valid;
   logic np_last;
   logic valid_data;
-  assign valid_data = config_done && valid_in;
+  // Only read data from buffer/addresses if all interfaces are ready
+  assign valid_data = config_done && valid_in && ready_out;
+  assign ready_in = w_rd_en;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
@@ -100,13 +100,13 @@ module bnn_layer #(
   ) u_nc (
       .clk       (clk),
       .rst       (rst),
-      .go        (nc_go),
+      .go        (config_done),
       .valid_data(valid_data),
 
       // from the brams delayed rd_en, signifies when valid data is ready to enter the NPs
       .valid_in  (np_valid),
-      .last(np_last),
-      .layer_done(),  // to the buffer
+      .last      (np_last),
+      .layer_done(),          // to the buffer
 
       // fanout read lanes
       .weight_rd_en  (w_rd_en),
@@ -162,8 +162,9 @@ module bnn_layer #(
 
   logic [PARALLEL_NEURONS-1:0] np_y;
   logic [PARALLEL_NEURONS-1:0] y_valid;
+  assign data_out = np_y;
+  assign valid_out = y_valid[0];
 
-  logic [ PARALLEL_INPUTS-1:0] x_chunk;  // Pw bits per cycle, broadcast to all NPs
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_nps
       neuron_processor #(
@@ -173,7 +174,7 @@ module bnn_layer #(
           .rst      (rst),
           .valid_in (np_valid),
           .last     (np_last),
-          .x        (x_chunk),
+          .x        (data_in),
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
@@ -182,44 +183,5 @@ module bnn_layer #(
     end
 
   endgenerate
-
-  // Control for input buffer: take data
-
-  // Control for output buffer: build np output batches to send to next layer
-  localparam int OUT_BATCHES = OUTPUT_BUS_WIDTH / PARALLEL_NEURONS;
-  localparam int OUT_COUNT_W = (OUT_BATCHES <= 1) ? 1 : $clog2(OUT_BATCHES + 1);
-
-
-  logic [OUTPUT_BUS_WIDTH-1:0] out_vec_r;
-  logic [     OUT_COUNT_W-1:0] out_count_r;
-  logic                        valid_out_r;
-  logic                        rst_buffer;
-
-  assign valid_out  = valid_out_r && ready_out;
-  assign rst_buffer = valid_out_r && ready_out;
-
-  always_ff @(posedge clk or posedge rst) begin
-    if (rst) begin
-      out_vec_r   <= '0;
-      out_count_r <= '0;
-      valid_out_r <= 1'b0;
-    end else begin
-      if (y_valid[0]) begin
-        // Batch 0 goes in the LSBs, batch 1 above it, etc.
-        out_vec_r[out_count_r*PARALLEL_NEURONS+:PARALLEL_NEURONS] <= np_y;
-
-        // done logic
-        if (out_count_r == OUT_BATCHES - 1) begin
-          valid_out_r <= 1'b1;
-          out_count_r <= '0;
-        end else begin
-          out_count_r <= out_count_r + 1'b1;
-        end
-      end
-      if (rst_buffer) out_vec_r <= '0;
-    end
-  end
-
-
 endmodule
-;
+
