@@ -13,7 +13,13 @@ module parser_controller #(
     input logic [CONFIG_BUS_WIDTH-1:0] data,
     input logic done,
     output logic ready,
-    output logic header_done
+    output logic header_done,
+    output logic msg_type,
+    output logic [7:0] layer_id,
+    output logic [15:0] layer_inputs,
+    output logic [15:0] num_neurons,
+    output logic [15:0] bytes_per_neuron,
+    output logic [31:0] total_bytes
 );
 
   localparam int PARALLEL_BITS = $clog2(PARALLEL_INPUTS);  // bits needed for batch count
@@ -35,7 +41,7 @@ module parser_controller #(
   state_t state_r, next_state;
   logic [$bits(data)-1:0] data_r, next_data;
   bit msg_type_r, next_msg_type;
-  logic [1:0] layer_id_r, next_layer_id;
+  logic [7:0] layer_id_r, next_layer_id;
   logic [15:0] layer_inputs_r, next_layer_inputs;
   logic [15:0] num_neurons_r, next_num_neurons;
   logic [15:0] bytes_per_neuron_r, next_bytes_per_neuron;
@@ -50,6 +56,12 @@ module parser_controller #(
   // Concurrent Assignments
   assign ready       = ready_r;
   assign header_done = header_done_r;
+  assign msg_type = msg_type_r;
+  assign layer_id = layer_id_r;
+  assign layer_inputs = layer_inputs_r;
+  assign num_neurons = num_neurons_r;
+  assign bytes_per_neuron = bytes_per_neuron_r;
+  assign total_bytes = total_bytes_r;
 
   always_ff @(posedge clk) begin
     // Control Signals
@@ -60,6 +72,7 @@ module parser_controller #(
     data_r             <= next_data;
     msg_type_r         <= next_msg_type;
     layer_id_r         <= next_layer_id;
+    layer_inputs_r     <= next_layer_inputs;
     num_neurons_r      <= next_num_neurons;
     bytes_per_neuron_r <= next_bytes_per_neuron;
     total_bytes_r      <= next_total_bytes;
@@ -74,6 +87,7 @@ module parser_controller #(
       data_r             <= '0;
       msg_type_r         <= 1'b0;
       layer_id_r         <= '0;
+      layer_inputs_r     <= '0;
       num_neurons_r      <= '0;
       bytes_per_neuron_r <= '0;
       total_bytes_r      <= '0;
@@ -83,12 +97,13 @@ module parser_controller #(
   always_comb begin
     // Control
     next_ready            = ready_r;
-    next_header_done      = header_done_r;
+    next_header_done      = 1'b0;
 
     next_state            = state_r;
     next_data             = data_r;
     next_msg_type         = msg_type_r;
     next_layer_id         = layer_id_r;
+    next_layer_inputs     = layer_inputs_r;
     next_num_neurons      = num_neurons_r;
     next_bytes_per_neuron = bytes_per_neuron_r;
     next_total_bytes      = total_bytes_r;
@@ -107,7 +122,7 @@ module parser_controller #(
         if (en == 1) begin
 
           next_msg_type         = data[0];
-          next_layer_id         = data[9:8];
+          next_layer_id         = data[15:8];
           next_layer_inputs     = data[31:16];
           next_num_neurons      = data[47:32];
           next_bytes_per_neuron = data[63:48];
@@ -121,6 +136,7 @@ module parser_controller #(
 
       HEADER: begin
         next_state        = PAYLOAD;
+        next_total_bytes  = data[31:0];
         next_global_count = (data[31:0] + rd_count_r - 1) / rd_count_r;
         next_header_done  = 1'b1;
 
