@@ -12,7 +12,7 @@ module bnn_layer #(
     input logic rst,
 
     // Communicate with input side layer
-    input  logic [TOTAL_INPUTS-1:0] data_in,
+    input  logic [PARALLEL_INPUTS-1:0] data_in,
     input  logic                    valid_in,
     output logic                    ready_in,
 
@@ -25,7 +25,7 @@ module bnn_layer #(
 
     // Communication with output side layer
     output  logic                        valid_out,
-    output logic [OUTPUT_BUS_WIDTH-1:0] data_out,
+    output logic [PARALLEL_NEURONS-1:0] data_out,
     input logic                        ready_out
 
 
@@ -56,6 +56,7 @@ module bnn_layer #(
   logic [T_RAM_DATA_W-1:0] t_rd_data [PARALLEL_NEURONS];
 
   logic [T_RAM_ADDR_W-1:0] addr_out;
+
   // inputs from binarization module
 
   // config controller : communicates with config manager and streams data into the rams
@@ -154,6 +155,7 @@ module bnn_layer #(
   // neuron processors : instantiates and streams data into the neuron processors
 
   logic [PARALLEL_NEURONS-1:0] np_y;
+  logic [PARALLEL_NEURONS-1:0] y_valid;
 
   logic [ PARALLEL_INPUTS-1:0] x_chunk;  // Pw bits per cycle, broadcast to all NPs
   generate
@@ -169,23 +171,26 @@ module bnn_layer #(
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
-          .y_valid        (y_valid)
+          .y_valid        (y_valid[gi])
       );
     end
 
   endgenerate
 
-  // Control
+  // Control for input buffer: take data
+
+  // Control for output buffer: build np output batches to send to next layer
   localparam int OUT_BATCHES = OUTPUT_BUS_WIDTH / PARALLEL_NEURONS;
   localparam int OUT_COUNT_W = (OUT_BATCHES <= 1) ? 1 : $clog2(OUT_BATCHES + 1);
 
-  logic y_valid;
 
   logic [OUTPUT_BUS_WIDTH-1:0] out_vec_r;
   logic [     OUT_COUNT_W-1:0] out_count_r;
   logic valid_out_r;
+  logic rst_buffer;
 
-  assign valid_out = valid_out_r;
+  assign valid_out = valid_out_r && ready_out;
+  assign rst_buffer = valid_out_r && ready_out;
 
   always_ff @(posedge clk or posedge rst) begin
   if (rst) begin
@@ -193,7 +198,7 @@ module bnn_layer #(
     out_count_r <= '0;
     valid_out_r <= 1'b0;
   end else begin
-    if (y_valid) begin
+    if (y_valid[0]) begin
       // Batch 0 goes in the LSBs, batch 1 above it, etc.
       out_vec_r[out_count_r*PARALLEL_NEURONS +: PARALLEL_NEURONS] <= np_y;
 
@@ -205,6 +210,7 @@ module bnn_layer #(
         out_count_r <= out_count_r + 1'b1;
       end
     end
+    if (rst_buffer) out_vec_r <= '0;
   end
 end
 
