@@ -24,9 +24,9 @@ module bnn_layer #(
     output logic                        payload_done,
 
     // Communication with output side layer
-    input  logic                        valid_out,
+    output  logic                        valid_out,
     output logic [OUTPUT_BUS_WIDTH-1:0] data_out,
-    output logic                        ready_out
+    input logic                        ready_out
 
 
 );
@@ -63,43 +63,43 @@ module bnn_layer #(
   // outputs the enables to write into the BRAMS
   config_controller #(
       .MANAGER_BUS_WIDTH(MANAGER_BUS_WIDTH),
-      .PARALLEL_NEURONS(PARALLEL_NEURONS),
-      .W_RAM_DATA_W(W_RAM_DATA_W),
-      .W_RAM_ADDR_W(W_RAM_ADDR_W),
-      .T_RAM_ADDR_W(T_RAM_ADDR_W)
+      .PARALLEL_NEURONS (PARALLEL_NEURONS),
+      .W_RAM_DATA_W     (W_RAM_DATA_W),
+      .W_RAM_ADDR_W     (W_RAM_ADDR_W),
+      .T_RAM_ADDR_W     (T_RAM_ADDR_W)
   ) u_cfc (
       .clk(clk),
       .rst(rst),
 
-      .config_rd_en(config_rd_en),
-      .msg_type(msg_type),
-      .total_bytes(total_bytes),
+      .config_rd_en    (config_rd_en),
+      .msg_type        (msg_type),
+      .total_bytes     (total_bytes),
       .bytes_per_neuron(bytes_per_neuron),
-      .payload_done(payload_done),
+      .payload_done    (payload_done),
 
       // fanout write lanes
-      .weight_wr_en(w_wr_en),
+      .weight_wr_en   (w_wr_en),
       .threshold_wr_en(t_wr_en),
-      .addr_out(addr_out)
+      .addr_out       (addr_out)
   );
 
   logic np_valid;
   logic np_last;
 
   neuron_controller #(
-      .PARALLEL_INPUTS(PARALLEL_INPUTS),
+      .PARALLEL_INPUTS (PARALLEL_INPUTS),
       .PARALLEL_NEURONS(PARALLEL_NEURONS),
-      .TOTAL_INPUTS(TOTAL_INPUTS),
-      .W_RAM_ADDR_W(W_RAM_ADDR_W),
-      .T_RAM_ADDR_W(T_RAM_ADDR_W)
+      .TOTAL_INPUTS    (TOTAL_INPUTS),
+      .W_RAM_ADDR_W    (W_RAM_ADDR_W),
+      .T_RAM_ADDR_W    (T_RAM_ADDR_W)
   ) u_nc (
       .clk(clk),
       .rst(rst),
       .go (nc_go),
 
-      .valid_in(np_valid), // from the brams delayed rd_en
-      .last(np_last), 
-      .layer_done(), // to the buffer
+      .valid_in  (np_valid),  // from the brams delayed rd_en
+      .last      (np_last),
+      .layer_done(),          // to the buffer
 
       // fanout read lanes
       .weight_rd_en  (w_rd_en),
@@ -116,11 +116,11 @@ module bnn_layer #(
 
       // Weights RAM (one per NP)
       ram_sdp #(
-          .DATA_WIDTH(W_RAM_DATA_W),
-          .ADDR_WIDTH(W_RAM_ADDR_W),
+          .DATA_WIDTH (W_RAM_DATA_W),
+          .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
-          .STYLE("block")
+          .STYLE      ("block")
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (w_rd_en),
@@ -133,11 +133,11 @@ module bnn_layer #(
 
       // Threshold RAM (one per NP)
       ram_sdp #(
-          .DATA_WIDTH(ACC_WIDTH),
-          .ADDR_WIDTH(T_RAM_ADDR_W),
+          .DATA_WIDTH (ACC_WIDTH),
+          .ADDR_WIDTH (T_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
-          .STYLE("block")
+          .STYLE      ("block")
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (t_rd_en),
@@ -161,22 +161,52 @@ module bnn_layer #(
       neuron_processor #(
           .P_WIDTH(PARALLEL_INPUTS)
       ) u_np (
-          .clk     (clk),
-          .rst     (rst),
-          .valid_in(np_valid),
-          .last    (np_last),
-          .x       (x_chunk),
-          .w       (w_rd_data[gi]),
-          .threshold  (t_rd_data[gi]),
-          .y       (np_y[gi])
+          .clk      (clk),
+          .rst      (rst),
+          .valid_in (np_valid),
+          .last     (np_last),
+          .x        (x_chunk),
+          .w        (w_rd_data[gi]),
+          .threshold(t_rd_data[gi]),
+          .y        (np_y[gi]),
+          .y_valid        (y_valid)
       );
     end
 
   endgenerate
 
-  // parallel to serial shift register to buffer the outputs
+  // Control
+  localparam int OUT_BATCHES = OUTPUT_BUS_WIDTH / PARALLEL_NEURONS;
+  localparam int OUT_COUNT_W = (OUT_BATCHES <= 1) ? 1 : $clog2(OUT_BATCHES + 1);
 
-  // outputs the results for next module
+  logic y_valid;
+
+  logic [OUTPUT_BUS_WIDTH-1:0] out_vec_r;
+  logic [     OUT_COUNT_W-1:0] out_count_r;
+  logic valid_out_r;
+
+  assign valid_out = valid_out_r;
+
+  always_ff @(posedge clk or posedge rst) begin
+  if (rst) begin
+    out_vec_r   <= '0;
+    out_count_r <= '0;
+    valid_out_r <= 1'b0;
+  end else begin
+    if (y_valid) begin
+      // Batch 0 goes in the LSBs, batch 1 above it, etc.
+      out_vec_r[out_count_r*PARALLEL_NEURONS +: PARALLEL_NEURONS] <= np_y;
+
+      // done logic
+      if (out_count_r == OUT_BATCHES - 1) begin
+        valid_out_r <= 1'b1;
+        out_count_r <= '0;
+      end else begin
+        out_count_r <= out_count_r + 1'b1;
+      end
+    end
+  end
+end
 
 
 endmodule
