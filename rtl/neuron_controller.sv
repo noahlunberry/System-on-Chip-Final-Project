@@ -2,7 +2,6 @@ module neuron_controller #(
     parameter int PARALLEL_INPUTS  = 8,
     parameter int PARALLEL_NEURONS = 8,
     parameter int TOTAL_INPUTS     = 32,
-    parameter int TOTAL_NEURONS    = 32,
     parameter int W_RAM_ADDR_W     = 12,
     parameter int T_RAM_ADDR_W     = 8
 ) (
@@ -24,7 +23,8 @@ module neuron_controller #(
 
   // Constants
   localparam int WORDS_PER_NEURON = TOTAL_INPUTS / PARALLEL_INPUTS;
-  localparam int NEURON_BATCHES = TOTAL_NEURONS / PARALLEL_NEURONS;
+  localparam int NEURON_BATCHES = TOTAL_INPUTS / PARALLEL_NEURONS;
+  localparam int RAM_RD_LATENCY = 1;
 
   typedef enum logic [1:0] {
     START,
@@ -39,21 +39,52 @@ module neuron_controller #(
   logic [W_RAM_ADDR_W-1:0] addr_count_r, next_addr_count;
 
   // Registered Outputs
-  logic valid_in_r, next_valid_in;
-  logic last_r, next_last;
+  logic delay_valid_r;
+  logic delay_last_r;
+  logic delay_layer_done_r;
 
-  assign valid_in          = valid_in_r;
-  assign last              = last_r;
   assign weight_rd_addr    = addr_count_r;
   assign threshold_rd_addr = batch_count_r;
+
+  // delay valid in and last signals
+  delay #(
+      .CYCLES(RAM_RD_LATENCY),
+      .WIDTH (1)
+  ) u_valid_delay (
+      .clk(clk),
+      .rst(rst),
+      .en (1'b1),
+      .in (delay_valid_r),
+      .out(valid_in)
+  );
+
+  delay #(
+      .CYCLES(RAM_RD_LATENCY),
+      .WIDTH (1)
+  ) u_last_delay (
+      .clk(clk),
+      .rst(rst),
+      .en (1'b1),
+      .in (delay_last_r),
+      .out(last)
+  );
+
+  delay #(
+      .CYCLES(RAM_RD_LATENCY),
+      .WIDTH (1)
+  ) u_last_layer (
+      .clk(clk),
+      .rst(rst),
+      .en (1'b1),
+      .in (delay_layer_done_r),
+      .out(layer_done)
+  );
 
   always_ff @(posedge clk) begin
     state_r       <= next_state;
     word_count_r  <= next_word_count;
     batch_count_r <= next_batch_count;
     addr_count_r  <= next_addr_count;
-    valid_in_r    <= next_valid_in;
-    last_r        <= next_last;
 
     if (rst) begin
       state_r       <= START;
@@ -69,12 +100,12 @@ module neuron_controller #(
     next_word_count  = word_count_r;
     next_batch_count = batch_count_r;
     next_addr_count  = addr_count_r;
-    next_valid_in    = 1'b0;
-    next_last        = 1'b0;
 
     weight_rd_en     = 1'b0;
     threshold_rd_en  = 1'b0;
-    layer_done       = 1'b0;
+    delay_valid_r    = 1'b0;
+    delay_last_r     = 1'b0;
+    delay_layer_done_r     = 1'b0;
 
     case (state_r)
       START: begin
@@ -87,12 +118,12 @@ module neuron_controller #(
       RUN: begin
         weight_rd_en    = 1'b1;
         threshold_rd_en = 1'b1;
-        // modify valid in to be asserted from the RAM's
-        next_valid_in   = 1'b1;
+        // valid in is delayed 1 cycle after the weight/threshold rd en's
+        delay_valid_r   = 1'b1;
 
         // Check if this is the last input for the current neuron set
         if (word_count_r == WORDS_PER_NEURON - 1) begin
-          next_last       = 1'b1;
+          delay_last_r    = 1'b1;
           next_word_count = '0;
 
           // Check if we've done all neuron batches
@@ -110,7 +141,7 @@ module neuron_controller #(
       end
 
       DONE: begin
-        layer_done       = 1'b1;
+        delay_layer_done_r = 1'b1;
         next_word_count  = '0;
         next_batch_count = '0;
         next_addr_count  = '0;
@@ -120,4 +151,5 @@ module neuron_controller #(
       default: next_state = START;
     endcase
   end
+
 endmodule

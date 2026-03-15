@@ -1,6 +1,6 @@
 module neuron_processor #(
     parameter int P_WIDTH      = 64,   // Parallel inputs per cycle
-    parameter int ACC_WIDTH    = 1 + $clog2(P_WIDTH),    // Width of final accumulator
+    localparam int ACC_WIDTH    = 1 + $clog2(P_WIDTH),    // Width of final accumulator
     parameter int INPUT_WIDTH = 1
 ) (
     input  logic                 clk,
