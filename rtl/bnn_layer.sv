@@ -13,8 +13,8 @@ module bnn_layer #(
 
     // Communicate with input side layer
     input  logic [PARALLEL_INPUTS-1:0] data_in,
-    input  logic                    valid_in,
-    output logic                    ready_in,
+    input  logic                       valid_in,  // comes from the input buffers not empty signal
+    output logic                       ready_in,  // read enable to the input buffer
 
     // Config Manager Interface
     input  logic [PARALLEL_NEURONS-1:0] config_data,
@@ -24,9 +24,9 @@ module bnn_layer #(
     output logic                        payload_done,
 
     // Communication with output side layer
-    output  logic                        valid_out,
+    output logic                        valid_out,  // write enable to the output buffer
     output logic [PARALLEL_NEURONS-1:0] data_out,
-    input logic                        ready_out
+    input  logic                        ready_out   // comes from the output buffers not full signal
 
 
 );
@@ -37,23 +37,23 @@ module bnn_layer #(
   localparam int T_RAM_ADDR_W = 8;  // example
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
-  logic                    w_wr_en   [PARALLEL_NEURONS];
-  logic [W_RAM_ADDR_W-1:0] w_wr_addr [PARALLEL_NEURONS];
+  logic                    w_wr_en     [PARALLEL_NEURONS];
+  logic [W_RAM_ADDR_W-1:0] w_wr_addr   [PARALLEL_NEURONS];
   logic [W_RAM_DATA_W-1:0] w_wr_data;
 
-  logic                    t_wr_en   [PARALLEL_NEURONS];
-  logic [T_RAM_ADDR_W-1:0] t_wr_addr [PARALLEL_NEURONS];
+  logic                    t_wr_en     [PARALLEL_NEURONS];
+  logic [T_RAM_ADDR_W-1:0] t_wr_addr   [PARALLEL_NEURONS];
   logic [T_RAM_DATA_W-1:0] t_wr_data;
 
   // The rd address and enable can be combined into one array, since data is read in parallel
   // They each have their own rd data and rd addresses, since data will be read in parallel
   logic                    w_rd_en;
   logic [W_RAM_ADDR_W-1:0] w_rd_addr;
-  logic [W_RAM_DATA_W-1:0] w_rd_data [PARALLEL_NEURONS];
+  logic [W_RAM_DATA_W-1:0] w_rd_data   [PARALLEL_NEURONS];
 
   logic                    t_rd_en;
   logic [T_RAM_ADDR_W-1:0] t_rd_addr;
-  logic [T_RAM_DATA_W-1:0] t_rd_data [PARALLEL_NEURONS];
+  logic [T_RAM_DATA_W-1:0] t_rd_data   [PARALLEL_NEURONS];
 
   logic [T_RAM_ADDR_W-1:0] addr_out;
 
@@ -62,6 +62,7 @@ module bnn_layer #(
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
+  logic                    config_done;
   config_controller #(
       .MANAGER_BUS_WIDTH(MANAGER_BUS_WIDTH),
       .PARALLEL_NEURONS (PARALLEL_NEURONS),
@@ -77,6 +78,7 @@ module bnn_layer #(
       .total_bytes     (total_bytes),
       .bytes_per_neuron(bytes_per_neuron),
       .payload_done    (payload_done),
+      .config_done     (config_done),
 
       // fanout write lanes
       .weight_wr_en   (w_wr_en),
@@ -86,6 +88,8 @@ module bnn_layer #(
 
   logic np_valid;
   logic np_last;
+  logic valid_data;
+  assign valid_data = config_done && valid_in;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
@@ -94,13 +98,15 @@ module bnn_layer #(
       .W_RAM_ADDR_W    (W_RAM_ADDR_W),
       .T_RAM_ADDR_W    (T_RAM_ADDR_W)
   ) u_nc (
-      .clk(clk),
-      .rst(rst),
-      .go (nc_go),
+      .clk       (clk),
+      .rst       (rst),
+      .go        (nc_go),
+      .valid_data(valid_data),
 
-      .valid_in  (np_valid),  // from the brams delayed rd_en
-      .last      (np_last),
-      .layer_done(),          // to the buffer
+      // from the brams delayed rd_en, signifies when valid data is ready to enter the NPs
+      .valid_in  (np_valid),
+      .last(np_last),
+      .layer_done(),  // to the buffer
 
       // fanout read lanes
       .weight_rd_en  (w_rd_en),
@@ -171,7 +177,7 @@ module bnn_layer #(
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
-          .y_valid        (y_valid[gi])
+          .y_valid  (y_valid[gi])
       );
     end
 
@@ -186,33 +192,33 @@ module bnn_layer #(
 
   logic [OUTPUT_BUS_WIDTH-1:0] out_vec_r;
   logic [     OUT_COUNT_W-1:0] out_count_r;
-  logic valid_out_r;
-  logic rst_buffer;
+  logic                        valid_out_r;
+  logic                        rst_buffer;
 
-  assign valid_out = valid_out_r && ready_out;
+  assign valid_out  = valid_out_r && ready_out;
   assign rst_buffer = valid_out_r && ready_out;
 
   always_ff @(posedge clk or posedge rst) begin
-  if (rst) begin
-    out_vec_r   <= '0;
-    out_count_r <= '0;
-    valid_out_r <= 1'b0;
-  end else begin
-    if (y_valid[0]) begin
-      // Batch 0 goes in the LSBs, batch 1 above it, etc.
-      out_vec_r[out_count_r*PARALLEL_NEURONS +: PARALLEL_NEURONS] <= np_y;
+    if (rst) begin
+      out_vec_r   <= '0;
+      out_count_r <= '0;
+      valid_out_r <= 1'b0;
+    end else begin
+      if (y_valid[0]) begin
+        // Batch 0 goes in the LSBs, batch 1 above it, etc.
+        out_vec_r[out_count_r*PARALLEL_NEURONS+:PARALLEL_NEURONS] <= np_y;
 
-      // done logic
-      if (out_count_r == OUT_BATCHES - 1) begin
-        valid_out_r <= 1'b1;
-        out_count_r <= '0;
-      end else begin
-        out_count_r <= out_count_r + 1'b1;
+        // done logic
+        if (out_count_r == OUT_BATCHES - 1) begin
+          valid_out_r <= 1'b1;
+          out_count_r <= '0;
+        end else begin
+          out_count_r <= out_count_r + 1'b1;
+        end
       end
+      if (rst_buffer) out_vec_r <= '0;
     end
-    if (rst_buffer) out_vec_r <= '0;
   end
-end
 
 
 endmodule

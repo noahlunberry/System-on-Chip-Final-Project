@@ -15,6 +15,7 @@ module config_controller #(
     input  logic [15:0] total_bytes,
     input  logic [ 7:0] bytes_per_neuron,
     output logic        payload_done,
+    output logic        config_done,
 
     // RAM write interfaces
     output logic                    weight_wr_en   [PARALLEL_NEURONS],
@@ -35,7 +36,7 @@ module config_controller #(
 
   // Registers
   state_t state_r, next_state;
-  logic payload_done_r, next_payload_done;
+  logic [1:0] done_counter_r, next_done_counter;
   logic [BATCH_COUNT_W-1:0] batch_count_r, next_batch_count;
   logic [GLOBAL_COUNT_W-1:0] global_count_r, next_global_count;
   logic [NEURON_IDX_W-1:0] neuron_idx_r, next_neuron_idx;
@@ -47,13 +48,20 @@ module config_controller #(
   logic [W_RAM_ADDR_W-1:0] next_addr_pointers[PARALLEL_NEURONS];
 
   // Added registers for Write Enables
-  logic weight_wr_en_r, next_weight_wr_en[PARALLEL_NEURONS];
-  logic threshold_wr_en_r, next_threshold_wr_en[PARALLEL_NEURONS];
+  logic weight_wr_en_r[PARALLEL_NEURONS];
+  logic next_weight_wr_en[PARALLEL_NEURONS];
+  logic threshold_wr_en_r[PARALLEL_NEURONS];
+  logic next_threshold_wr_en[PARALLEL_NEURONS];
+
+  logic [1:0] payload_counter;
 
   // Assignments
   assign addr_out        = addr_pointers_r[neuron_idx_r];
   assign weight_wr_en    = weight_wr_en_r;
   assign threshold_wr_en = threshold_wr_en_r;
+  assign config_done     = done_counter_r[1];
+  // for this use case, the configuration manager is done when the 2nd payload(threshold) is complete
+
 
   always_ff @(posedge clk) begin
     state_r            <= next_state;
@@ -65,6 +73,7 @@ module config_controller #(
     addr_pointers_r    <= next_addr_pointers;
     weight_wr_en_r     <= next_weight_wr_en;
     threshold_wr_en_r  <= next_threshold_wr_en;
+    done_counter_r     <= next_done_counter;
 
     if (rst) begin
       state_r <= START;
@@ -74,20 +83,25 @@ module config_controller #(
 
   always_comb begin
     // Default Assignments
-    next_state              = state_r;
-    next_batch_count        = batch_count_r;
-    next_global_count       = global_count_r;
-    next_neuron_idx         = neuron_idx_r;
-    next_beats_per_neuron   = beats_per_neuron_r;
-    next_total_beats        = total_beats_r;
-    next_addr_pointers      = addr_pointers_r;
+    next_state            = state_r;
+    next_batch_count      = batch_count_r;
+    next_global_count     = global_count_r;
+    next_neuron_idx       = neuron_idx_r;
+    next_beats_per_neuron = beats_per_neuron_r;
+    next_total_beats      = total_beats_r;
+    next_addr_pointers    = addr_pointers_r;
+    next_done_counter     = done_counter_r;
+    payload_done          = 1'b0;
 
-    next_weight_wr_en[i]    = 1'b0;
-    next_threshold_wr_en[i] = 1'b0;
+
+    for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+      next_weight_wr_en[i]    = '0;
+      next_threshold_wr_en[i] = '0;
+    end
 
     case (state_r)
       START: begin
-        payload_done = 0;
+        next_done_counter = '0;
         if (config_rd_en) begin
           next_state            = RUN;
           next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
@@ -116,6 +130,7 @@ module config_controller #(
 
           if (global_count_r == total_beats_r - 1'b1) begin
             next_state = DONE;
+            next_done_counter = done_counter_r + 1;
           end else if (batch_count_r == beats_per_neuron_r - 1'b1) begin
             next_batch_count = '0;
             next_neuron_idx  = (neuron_idx_r == PARALLEL_NEURONS - 1) ? '0 : neuron_idx_r + 1'b1;
@@ -124,7 +139,7 @@ module config_controller #(
       end
 
       DONE: begin
-        payload_done = 1;
+        payload_done = 1'b1;
         if (config_rd_en) begin
           next_state            = RUN;
           next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);

@@ -8,6 +8,7 @@ module neuron_controller #(
     input logic clk,
     input logic rst,
     input logic go,
+    input logic valid_data, // enable when the input is valid
 
     // Control signals to Neuron Processors
     output logic valid_in,
@@ -96,16 +97,16 @@ module neuron_controller #(
 
   always_comb begin
     // Defaults
-    next_state       = state_r;
-    next_word_count  = word_count_r;
-    next_batch_count = batch_count_r;
-    next_addr_count  = addr_count_r;
+    next_state         = state_r;
+    next_word_count    = word_count_r;
+    next_batch_count   = batch_count_r;
+    next_addr_count    = addr_count_r;
 
-    weight_rd_en     = 1'b0;
-    threshold_rd_en  = 1'b0;
-    delay_valid_r    = 1'b0;
-    delay_last_r     = 1'b0;
-    delay_layer_done_r     = 1'b0;
+    weight_rd_en       = 1'b0;
+    threshold_rd_en    = 1'b0;
+    delay_valid_r      = 1'b0;
+    delay_last_r       = 1'b0;
+    delay_layer_done_r = 1'b0;
 
     case (state_r)
       START: begin
@@ -116,35 +117,37 @@ module neuron_controller #(
       end
 
       RUN: begin
-        weight_rd_en    = 1'b1;
-        threshold_rd_en = 1'b1;
-        // valid in is delayed 1 cycle after the weight/threshold rd en's
-        delay_valid_r   = 1'b1;
+        if (valid_data) begin
+          weight_rd_en    = 1'b1;
+          threshold_rd_en = 1'b1;
+          // valid in is delayed 1 cycle after the weight/threshold rd en's
+          delay_valid_r   = 1'b1;
 
-        // Check if this is the last input for the current neuron set
-        if (word_count_r == WORDS_PER_NEURON - 1) begin
-          delay_last_r    = 1'b1;
-          next_word_count = '0;
+          // Check if this is the last input for the current neuron set
+          if (word_count_r == WORDS_PER_NEURON - 1) begin
+            delay_last_r    = 1'b1;
+            next_word_count = '0;
 
-          // Check if we've done all neuron batches
-          if (batch_count_r == NEURON_BATCHES - 1) begin
-            next_state = DONE;
+            // Check if we've done all neuron batches
+            if (batch_count_r == NEURON_BATCHES - 1) begin
+              next_state = DONE;
+            end else begin
+              next_batch_count = batch_count_r + 1'b1;
+            end
           end else begin
-            next_batch_count = batch_count_r + 1'b1;
+            next_word_count = word_count_r + 1'b1;
           end
-        end else begin
-          next_word_count = word_count_r + 1'b1;
-        end
 
-        // Address always increments to pull next weight/input chunk
-        next_addr_count = addr_count_r + 1'b1;
+          // Address always increments to pull next weight/input chunk
+          next_addr_count = addr_count_r + 1'b1;
+        end
       end
 
       DONE: begin
         delay_layer_done_r = 1'b1;
-        next_word_count  = '0;
+        next_word_count = '0;
         next_batch_count = '0;
-        next_addr_count  = '0;
+        next_addr_count = '0;
         if (go) next_state = RUN;
       end
 
