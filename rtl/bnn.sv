@@ -56,12 +56,6 @@ module bnn #(
           .data_in         (layer_data_in[gi][LAYER_PARALLEL_INPUTS-1:0]),
           .valid_in        (layer_data_in_valid[gi]),
           .ready_in        (layer_ready_in[gi]),
-          .config_data     (layer_config_data[gi][PARALLEL_NEURONS[gi]-1:0]),
-          .config_rd_en    (layer_config_rd_en[gi]),
-          .total_bytes     (layer_total_bytes[gi]),
-          .bytes_per_neuron(layer_bytes_per_neuron[gi]),
-          .msg_type        (layer_msg_type[gi]),
-          .payload_done    (layer_payload_done[gi]),
           .valid_out       (layer_valid_out[gi]),
           .data_out        (layer_data_out[gi][PARALLEL_NEURONS[gi]-1:0]),
           .ready_out       (layer_ready_out[gi])
