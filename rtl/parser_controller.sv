@@ -3,8 +3,7 @@
 // address generators. It will assert done
 
 module parser_controller #(
-    parameter int CONFIG_BUS_WIDTH = 64,
-    parameter int FIFO_RD_WIDTH = 64
+    parameter int CONFIG_BUS_WIDTH = 64
 ) (
     input  logic                        clk,
     input  logic                        valid,
@@ -18,7 +17,7 @@ module parser_controller #(
     output logic [                31:0] total_bytes
 );
 
-  localparam logic FIFO_RD_BYTES = (FIFO_RD_WIDTH) / 8;
+  localparam logic FIFO_RD_BYTES = (CONFIG_BUS_WIDTH) / 8;
 
 
   typedef enum logic [1:0] {
@@ -61,6 +60,8 @@ module parser_controller #(
       msg_type_r    <= 1'b0;
       layer_id_r    <= '0;
       total_bytes_r <= '0;
+      count_r       <= '0;
+      wr_count_r    <= '0;
     end
   end
 
