@@ -22,10 +22,10 @@ module config_manager #(
 
 );
 
-  localparam logic INPUT_RD_BYTES = (MAX_PARALLEL_INPUTS) / 8;
-  localparam logic THRESH_RD_BYTES = (THRESHOLD_DATA_WIDTH) / 8;
-  localparam logic LAYER1_BYTES = (PARALLEL_NEURONS[0]) / 8;
-  localparam logic LAYER2_BYTES = (PARALLEL_NEURONS[1]) / 8;
+  localparam int INPUT_RD_BYTES = (MAX_PARALLEL_INPUTS) / 8;
+  localparam int THRESH_RD_BYTES = (THRESHOLD_DATA_WIDTH) / 8;
+  localparam int LAYER1_BYTES = (PARALLEL_NEURONS[0]) / 8;
+  localparam int LAYER2_BYTES = (PARALLEL_NEURONS[1]) / 8;
 
   logic empty;
   logic w_empty;
@@ -139,12 +139,20 @@ module config_manager #(
   logic t_rd_en;
   logic t_wr_en;
 
-  assign w_rd_en = ram_wr_en_r && !msg_type_r;
-  assign t_rd_en = ram_wr_en_r && msg_type_r;
+  assign w_rd_en = fifo_rd_en_r && !msg_type_r;
+  assign t_rd_en = fifo_rd_en_r && msg_type_r;
   assign w_wr_en = fifo_wr_en_r && !msg_type_r;
   assign t_wr_en = fifo_wr_en_r && msg_type_r;
 
-  assign weight_ram_wr_en[0] = msg_type_r &&
+  always_comb begin
+    weight_ram_wr_en    = '0;
+    threshold_ram_wr_en = '0;
+
+    if (ram_wr_en_r && (layer_id_r < LAYERS)) begin
+      if (msg_type_r) threshold_ram_wr_en[layer_id_r] = 1'b1;
+      else weight_ram_wr_en[layer_id_r] = 1'b1;
+    end
+  end
 
 
   fifo_vr #(

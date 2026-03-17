@@ -17,7 +17,7 @@ module parser_controller #(
     output logic [                31:0] total_bytes
 );
 
-  localparam logic FIFO_RD_BYTES = (CONFIG_BUS_WIDTH) / 8;
+  localparam int FIFO_RD_BYTES = (CONFIG_BUS_WIDTH) / 8;
 
 
   typedef enum logic [1:0] {
@@ -77,6 +77,8 @@ module parser_controller #(
     // Counters
     next_wr_count    = wr_count_r;
     next_count       = count_r;
+
+    wr_en = 0;
 
 
 
