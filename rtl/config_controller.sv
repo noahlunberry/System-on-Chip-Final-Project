@@ -1,161 +1,119 @@
 module config_controller #(
     parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int TOTAL_NEURONS  = 8,
-    parameter int W_RAM_DATA_W      = 32,
-    parameter int W_RAM_ADDR_W      = 10,
-    parameter int T_RAM_DATA_W      = 32,
-    parameter int T_RAM_ADDR_W      = 10
+    parameter int PARALLEL_NEURONS    = 8,
+    parameter int TOTAL_NEURONS       = 256,
+    parameter int TOTAL_INPUTS        = 256,
+    parameter int W_RAM_DATA_W        = 32,
+    parameter int W_RAM_ADDR_W        = 10,
+    parameter int T_RAM_DATA_W        = 32,
+    parameter int T_RAM_ADDR_W        = 10
 ) (
-    input logic clk,
-    input logic rst,
-    input logic [MAX_PARALLEL_INPUTS-1:0] data_in,
-    input logic  weight_wr_en,
-    input logic  threshold_wr_en,
-    output logic [W_RAM_DATA_W-1:0] weight_wr_data,
-    output logic [T_RAM_DATA_W-1:0] threshold_wr_data,
+    input  logic                           clk,
+    input  logic                           rst,
+    input  logic                           weight_wr_en,
+    input  logic                           threshold_wr_en,
 
     // RAM write interfaces
-    output logic                    ram_weight_wr_en   [PARALLEL_NEURONS],
-    output logic                    ram_threshold_wr_en,
-    output logic [W_RAM_ADDR_W-1:0] weight_addr_out,
-    output logic [T_RAM_ADDR_W-1:0] threshold_addr_out
+    output logic [PARALLEL_NEURONS-1:0] ram_weight_wr_en,
+    output logic [PARALLEL_NEURONS-1:0] ram_threshold_wr_en,
+    output logic [    W_RAM_ADDR_W-1:0] weight_addr_out,
+    output logic [    T_RAM_ADDR_W-1:0] threshold_addr_out,
+    output logic done
 );
 
-  localparam int BYTES_PER_BEAT = MAX_PARALLEL_INPUTS / 8;
-  localparam int GLOBAL_COUNT_W = 16;  // Simplified for clarity, matches total_bytes
-  localparam int BATCH_COUNT_W = 8;
-  localparam int NEURON_IDX_W = $clog2(PARALLEL_NEURONS);
+  // add assertion to make sure this is true
+  localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
+  localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / MAX_PARALLEL_INPUTS);
+  localparam int T_ADDR_PER_CYCLE = (TOTAL_INPUTS / T_RAM_DATA_W);
 
-  typedef enum logic [1:0] {
-    START,
-    RUN,
-    DONE
-  } state_t;
 
   // Registers
-  state_t state_r, next_state;
-  logic [1:0] done_counter_r, next_done_counter;
-  logic [BATCH_COUNT_W-1:0] batch_count_r, next_batch_count;
-  logic [GLOBAL_COUNT_W-1:0] global_count_r, next_global_count;
-  logic [NEURON_IDX_W-1:0] neuron_idx_r, next_neuron_idx;
-  logic [BATCH_COUNT_W-1:0] beats_per_neuron_r, next_beats_per_neuron;
-  logic [GLOBAL_COUNT_W-1:0] total_beats_r, next_total_beats;
+  logic [W_RAM_ADDR_W-1:0] w_addr_r, next_w_addr;
+  logic [W_RAM_ADDR_W-1:0] w_addr_out_r, next_w_addr_out;
+  logic [PARALLEL_NEURONS-1:0] w_neuron_r, next_w_neuron;  // one hot bram wr_en
+  logic [W_RAM_ADDR_W-1:0] w_total_cycles_r, next_w_total_cycles;
 
-  // Pointer Array
-  logic [W_RAM_ADDR_W-1:0] addr_pointers_r[PARALLEL_NEURONS];
-  logic [W_RAM_ADDR_W-1:0] next_addr_pointers[PARALLEL_NEURONS];
+  logic [T_RAM_ADDR_W-1:0] t_addr_r, next_t_addr;
+  logic [T_RAM_ADDR_W-1:0] t_addr_out_r, next_t_addr_out;
+  logic [PARALLEL_NEURONS-1:0] t_neuron_r, next_t_neuron;
+  logic [T_RAM_ADDR_W-1:0] t_total_cycles_r, next_t_total_cycles;
 
-  // Added registers for Write Enables
-  logic weight_wr_en_r[PARALLEL_NEURONS];
-  logic next_weight_wr_en[PARALLEL_NEURONS];
-  logic threshold_wr_en_r[PARALLEL_NEURONS];
-  logic next_threshold_wr_en[PARALLEL_NEURONS];
-
-  logic [1:0] payload_counter;
 
   // Assignments
-  assign addr_out        = addr_pointers_r[neuron_idx_r];
-  assign weight_wr_en    = weight_wr_en_r;
-  assign threshold_wr_en = threshold_wr_en_r;
-  assign config_done     = done_counter_r[1];
-  // for this use case, the configuration manager is done when the 2nd payload(threshold) is complete
-
+  assign weight_addr_out     = w_addr_out_r;
+  assign ram_weight_wr_en    = w_neuron_r;
+  assign threshold_addr_out  = t_addr_out_r;
+  assign ram_threshold_wr_en = t_neuron_r;
 
   always_ff @(posedge clk) begin
-    state_r            <= next_state;
-    batch_count_r      <= next_batch_count;
-    global_count_r     <= next_global_count;
-    neuron_idx_r       <= next_neuron_idx;
-    beats_per_neuron_r <= next_beats_per_neuron;
-    total_beats_r      <= next_total_beats;
-    addr_pointers_r    <= next_addr_pointers;
-    weight_wr_en_r     <= next_weight_wr_en;
-    threshold_wr_en_r  <= next_threshold_wr_en;
-    done_counter_r     <= next_done_counter;
+    w_addr_r         <= next_w_addr;
+    w_addr_out_r     <= next_w_addr_out;
+    w_neuron_r       <= next_w_neuron;
+    w_total_cycles_r <= next_w_total_cycles;
+    t_addr_r         <= next_t_addr;
+    t_addr_out_r     <= next_t_addr_out;
+    t_neuron_r       <= next_t_neuron;
+    t_total_cycles_r <= next_t_total_cycles;
 
     if (rst) begin
-      state_r <= START;
-
+      w_addr_r         <= '0;
+      w_addr_out_r     <= '0;
+      w_neuron_r       <= 8'b00000001;  // start at 1 to get rid of init state
+      w_total_cycles_r <= '0;
+      t_addr_r         <= '0;
+      t_addr_out_r     <= '0;
+      t_neuron_r       <= 8'b00000001;
+      t_total_cycles_r <= '0;
     end
   end
 
   always_comb begin
     // Default Assignments
-    next_state            = state_r;
-    next_batch_count      = batch_count_r;
-    next_global_count     = global_count_r;
-    next_neuron_idx       = neuron_idx_r;
-    next_beats_per_neuron = beats_per_neuron_r;
-    next_total_beats      = total_beats_r;
-    next_addr_pointers    = addr_pointers_r;
-    next_done_counter     = done_counter_r;
-    payload_done          = 1'b0;
+    next_w_addr         = w_addr_r;
+    next_w_addr_out     = w_addr_out_r;
+    next_w_neuron       = w_neuron_r;
+    next_w_total_cycles = w_total_cycles_r;
 
+    next_t_addr         = t_addr_r;
+    next_t_addr_out     = t_addr_out_r;
+    next_t_neuron       = t_neuron_r;
+    next_t_total_cycles = t_total_cycles_r;
 
-    for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-      next_weight_wr_en[i]    = '0;
-      next_threshold_wr_en[i] = '0;
+    done = 0;
+
+    if (weight_wr_en) begin
+      // multiplex true address out using total cycles
+      next_w_addr_out = next_w_addr + (next_w_total_cycles * PARALLEL_NEURONS);
+      // if last address for neuron, move to address 0 for next neuron
+      if (w_addr_r == W_ADDR_PER_CYCLE - 1) begin
+        next_w_addr = 0;
+        // if last neuron, move to neuron 0
+        if (w_neuron_r[PARALLEL_NEURONS-1] == 1) begin
+          next_w_neuron[0] = 1;
+          next_w_total_cycles = next_w_total_cycles + 1;
+        end else begin
+          next_w_neuron = next_w_neuron << 1;  // shift left bc represents one hot enable
+        end
+      end else next_w_addr = next_w_addr + 1;
     end
 
-    case (state_r)
-      START: begin
-        next_done_counter = '0;
-        if (config_rd_en) begin
-          next_state            = RUN;
-          next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
-          next_total_beats      = total_bytes >> $clog2(BYTES_PER_BEAT);
+    if (threshold_wr_en) begin
+      // multiplex true address out using total cycles
+      next_t_addr_out = next_t_addr + (next_t_total_cycles * PARALLEL_NEURONS);
+      // if last address for neuron, move to address 0 for next neuron
+      if (t_addr_r == T_ADDR_PER_CYCLE - 1) begin
+        next_t_addr = 0;
+        // if last neuron, move to neuron 0
+        if (t_neuron_r[PARALLEL_NEURONS-1] == 1) begin
+          next_t_neuron[0] = 1;
+          next_t_total_cycles = next_t_total_cycles + 1;
+        end else begin
+          next_t_neuron = next_t_neuron << 1;  // shift left bc represents one hot enable
         end
+      end else next_t_addr = next_t_addr + 1;
+    end
 
-        next_batch_count  = '0;
-        next_global_count = '0;
-        next_neuron_idx   = '0;
-
-        for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-          next_addr_pointers[i]   = '0;
-          next_weight_wr_en[i]    = '0;
-          next_threshold_wr_en[i] = '0;
-        end
-      end
-
-      RUN: begin
-        if (config_rd_en) begin
-          if (msg_type == 1'b0) next_weight_wr_en[neuron_idx_r] = 1'b1;
-          else next_threshold_wr_en[neuron_idx_r] = 1'b1;
-
-          next_addr_pointers[neuron_idx_r] = addr_pointers_r[neuron_idx_r] + 1'b1;
-          next_batch_count                 = batch_count_r + 1'b1;
-          next_global_count                = global_count_r + 1'b1;
-
-          if (global_count_r == total_beats_r - 1'b1) begin
-            next_state = DONE;
-            next_done_counter = done_counter_r + 1;
-          end else if (batch_count_r == beats_per_neuron_r - 1'b1) begin
-            next_batch_count = '0;
-            next_neuron_idx  = (neuron_idx_r == PARALLEL_NEURONS - 1) ? '0 : neuron_idx_r + 1'b1;
-          end
-        end
-      end
-
-      DONE: begin
-        payload_done = 1'b1;
-        if (config_rd_en) begin
-          next_state            = RUN;
-          next_beats_per_neuron = bytes_per_neuron >> $clog2(BYTES_PER_BEAT);
-          next_total_beats      = total_bytes >> $clog2(BYTES_PER_BEAT);
-        end
-
-        next_batch_count  = '0;
-        next_global_count = '0;
-        next_neuron_idx   = '0;
-
-        for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-          next_addr_pointers[i]   = '0;
-          next_weight_wr_en[i]    = '0;
-          next_threshold_wr_en[i] = '0;
-        end
-      end
-
-      default: next_state = START;
-    endcase
+    // assert done and enable data in stream
+    if (t_total_cycles_r == w_total_cycles_r == TOTAL_CYCLES) done = 1;
   end
 endmodule
