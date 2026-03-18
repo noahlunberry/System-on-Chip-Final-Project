@@ -1,6 +1,6 @@
-// The parser Controller is an FSM that stores the HDR1 data in registers, it
-// will decode this into registers to control the enable signals of the FIFO, BRAM and
-// address generators. It will assert done
+// Parser controller module is responsible for writing vlaid datato the FIFO and communicating with the AXI stream.
+// The FSM parses valid header/payload data from the config stream. Once the entire payload is written, it
+// deasserts valid pausing data until the buffers are empty(all read from the config manager FSM)
 
 module parser_controller #(
     parameter int CONFIG_BUS_WIDTH = 64

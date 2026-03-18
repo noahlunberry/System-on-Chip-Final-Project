@@ -1,29 +1,27 @@
 module config_controller #(
-    parameter int MANAGER_BUS_WIDTH = 8,
-    parameter int PARALLEL_NEURONS  = 8,
-    parameter int PARALLEL_INPUTS   = 8,   // MANAGER BUS WIDTH MUST MATCH PARALLEL INPUTS
+    parameter int MAX_PARALLEL_INPUTS = 8,
+    parameter int TOTAL_NEURONS  = 8,
     parameter int W_RAM_DATA_W      = 32,
     parameter int W_RAM_ADDR_W      = 10,
+    parameter int T_RAM_DATA_W      = 32,
     parameter int T_RAM_ADDR_W      = 10
 ) (
     input logic clk,
     input logic rst,
-
-    // Config stream interface
-    input  logic        config_rd_en,
-    input  logic        msg_type,          // 0 for weights, 1 for thresholds
-    input  logic [15:0] total_bytes,
-    input  logic [ 7:0] bytes_per_neuron,
-    output logic        payload_done,
-    output logic        config_done,
+    input logic [MAX_PARALLEL_INPUTS-1:0] data_in,
+    input logic  weight_wr_en,
+    input logic  threshold_wr_en,
+    output logic [W_RAM_DATA_W-1:0] weight_wr_data,
+    output logic [T_RAM_DATA_W-1:0] threshold_wr_data,
 
     // RAM write interfaces
-    output logic                    weight_wr_en   [PARALLEL_NEURONS],
-    output logic                    threshold_wr_en[PARALLEL_NEURONS],
-    output logic [W_RAM_ADDR_W-1:0] addr_out
+    output logic                    ram_weight_wr_en   [PARALLEL_NEURONS],
+    output logic                    ram_threshold_wr_en,
+    output logic [W_RAM_ADDR_W-1:0] weight_addr_out,
+    output logic [T_RAM_ADDR_W-1:0] threshold_addr_out
 );
 
-  localparam int BYTES_PER_BEAT = MANAGER_BUS_WIDTH / 8;
+  localparam int BYTES_PER_BEAT = MAX_PARALLEL_INPUTS / 8;
   localparam int GLOBAL_COUNT_W = 16;  // Simplified for clarity, matches total_bytes
   localparam int BATCH_COUNT_W = 8;
   localparam int NEURON_IDX_W = $clog2(PARALLEL_NEURONS);
