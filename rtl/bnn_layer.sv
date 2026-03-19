@@ -34,9 +34,6 @@ module bnn_layer #(
 );
 
   localparam int W_RAM_DATA_W = PARALLEL_INPUTS;  // example: store Pw weights per write
-  localparam int W_RAM_ADDR_W = 12;  // example
-  localparam int T_RAM_DATA_W = ACC_WIDTH;
-  localparam int T_RAM_ADDR_W = 8;  // example
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
   logic [PARALLEL_NEURONS-1:0] w_wr_en;
