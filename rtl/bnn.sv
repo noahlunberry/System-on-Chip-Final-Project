@@ -10,7 +10,7 @@ module bnn #(
     input  logic clk,
     input  logic rst,
     input  logic en,
-    output logic ready,
+    output logic ready, // last layer config done
 
     input logic [ MAX_PARALLEL_INPUTS-1:0] weight_wr_data,
     input logic [              LAYERS-1:0] weight_wr_en,
@@ -39,28 +39,68 @@ module bnn #(
   logic                           layer_msg_type        [LAYERS];
   logic                           layer_payload_done    [LAYERS];
 
-  genvar gi;
-  generate
-    for (gi = 0; gi < LAYERS; gi++) begin : gen_layers
-      localparam int LAYER_PARALLEL_INPUTS = (gi == 0) ? PARALLEL_INPUTS : PARALLEL_NEURONS[gi-1];
-      localparam int LAYER_TOTAL_INPUTS = (gi == 0) ? NUM_INPUTS : NUM_NEURONS[gi-1];
 
-      bnn_layer #(
-          .PARALLEL_INPUTS  (LAYER_PARALLEL_INPUTS),
-          .PARALLEL_NEURONS (PARALLEL_NEURONS[gi]),
-          .MANAGER_BUS_WIDTH(MAX_PARALLEL_INPUTS),
-          .TOTAL_INPUTS     (LAYER_TOTAL_INPUTS)
-      ) u_bnn_layer (
-          .clk             (clk),
-          .rst             (rst),
-          .data_in         (layer_data_in[gi][LAYER_PARALLEL_INPUTS-1:0]),
-          .valid_in        (layer_data_in_valid[gi]),
-          .ready_in        (layer_ready_in[gi]),
-          .valid_out       (layer_valid_out[gi]),
-          .data_out        (layer_data_out[gi][PARALLEL_NEURONS[gi]-1:0]),
-          .ready_out       (layer_ready_out[gi])
-      );
-    end
-  endgenerate
+  bnn_layer #(
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .PARALLEL_INPUTS  (MAX_PARALLEL_INPUTS),
+      .PARALLEL_NEURONS (PARALLEL_NEURONS[0]),
+      .TOTAL_NEURONS (NUM_NEURONS[0]),
+      .TOTAL_INPUTS     (NUM_INPUTS)
+  ) u_layer_1 (
+      .clk      (clk),
+      .rst      (rst),
+      .data_in  (data_in),
+      .valid_in (data_in_valid),
+      .ready_in (ready),
+      .weight_wr_en(weight_wr_en[0]),
+      .threshold_wr_en(threshold_wr_en[0]),
+      .weight_wr_data(weight_wr_data),
+      .threshold_wr_data(threshold_wr_data),
+      .valid_out(layer_1_valid_out),
+      .data_out(layer_1_data_out),
+      .ready_out(layer_1_ready_out)
+  );
+
+  bnn_layer #(
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .PARALLEL_INPUTS  (PARALLEL_NEURONS[0]),
+      .PARALLEL_NEURONS (PARALLEL_NEURONS[1]),
+      .TOTAL_NEURONS (NUM_NEURONS[1]),
+      .TOTAL_INPUTS     (NUM_NEURONS[0])
+  ) u_layer_2 (
+      .clk      (clk),
+      .rst      (rst),
+      .data_in  (layer_1_data_out),
+      .valid_in (layer_1_valid_out),
+      .ready_in (layer_1_ready_out),
+      .weight_wr_en(weight_wr_en[1]),
+      .threshold_wr_en(threshold_wr_en[1]),
+      .weight_wr_data(weight_wr_data),
+      .threshold_wr_data(threshold_wr_data),
+      .valid_out(layer_2_valid_out),
+      .data_out(layer_2_data_out),
+      .ready_out(layer_2_ready_out)
+  );
+
+  bnn_layer #(
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .PARALLEL_INPUTS  (PARALLEL_NEURONS[1]),
+      .PARALLEL_NEURONS (PARALLEL_NEURONS[2]),
+      .TOTAL_NEURONS (NUM_NEURONS[2]),
+      .TOTAL_INPUTS     (NUM_NEURONS[1])
+  ) u_layer_1 (
+      .clk      (clk),
+      .rst      (rst),
+      .data_in  (layer_2_data_out),
+      .valid_in (layer_2_valid_out),
+      .ready_in (layer_2_ready_out),
+      .weight_wr_en(weight_wr_en[2]),
+      .threshold_wr_en(threshold_wr_en[2]),
+      .weight_wr_data(weight_wr_data),
+      .threshold_wr_data(threshold_wr_data),
+      .valid_out(data_out_valid),
+      .data_out(data_out),
+      .ready_out(1)
+  );
 
 endmodule

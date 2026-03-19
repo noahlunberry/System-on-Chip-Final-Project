@@ -3,28 +3,27 @@ module config_controller #(
     parameter int PARALLEL_NEURONS    = 8,
     parameter int TOTAL_NEURONS       = 256,
     parameter int TOTAL_INPUTS        = 256,
-    parameter int W_RAM_DATA_W        = 32,
     parameter int W_RAM_ADDR_W        = 10,
     parameter int T_RAM_DATA_W        = 32,
     parameter int T_RAM_ADDR_W        = 10
 ) (
-    input  logic                           clk,
-    input  logic                           rst,
-    input  logic                           weight_wr_en,
-    input  logic                           threshold_wr_en,
+    input logic clk,
+    input logic rst,
+    input logic weight_wr_en,
+    input logic threshold_wr_en,
 
     // RAM write interfaces
     output logic [PARALLEL_NEURONS-1:0] ram_weight_wr_en,
     output logic [PARALLEL_NEURONS-1:0] ram_threshold_wr_en,
     output logic [    W_RAM_ADDR_W-1:0] weight_addr_out,
     output logic [    T_RAM_ADDR_W-1:0] threshold_addr_out,
-    output logic done
+    output logic                        done
 );
 
   // add assertion to make sure this is true
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / MAX_PARALLEL_INPUTS);
-  localparam int T_ADDR_PER_CYCLE = (TOTAL_INPUTS / T_RAM_DATA_W);
+  localparam int T_ADDR_PER_CYCLE = (TOTAL_NEURONS / T_RAM_DATA_W);
 
 
   // Registers
@@ -58,11 +57,11 @@ module config_controller #(
     if (rst) begin
       w_addr_r         <= '0;
       w_addr_out_r     <= '0;
-      w_neuron_r       <= 8'b00000001;  // start at 1 to get rid of init state
+      w_neuron_r       <= {{(PARALLEL_NEURONS - 1) {1'b0}}, 1'b1};  // start at 1 to get rid of init state
       w_total_cycles_r <= '0;
       t_addr_r         <= '0;
       t_addr_out_r     <= '0;
-      t_neuron_r       <= 8'b00000001;
+      t_neuron_r       <= {{(PARALLEL_NEURONS - 1) {1'b0}}, 1'b1};
       t_total_cycles_r <= '0;
     end
   end
@@ -79,7 +78,7 @@ module config_controller #(
     next_t_neuron       = t_neuron_r;
     next_t_total_cycles = t_total_cycles_r;
 
-    done = 0;
+    done                = 0;
 
     if (weight_wr_en) begin
       // multiplex true address out using total cycles
@@ -89,7 +88,8 @@ module config_controller #(
         next_w_addr = 0;
         // if last neuron, move to neuron 0
         if (w_neuron_r[PARALLEL_NEURONS-1] == 1) begin
-          next_w_neuron[0] = 1;
+          next_w_neuron = '0;
+          next_w_neuron[0] = 1'b1;
           next_w_total_cycles = next_w_total_cycles + 1;
         end else begin
           next_w_neuron = next_w_neuron << 1;  // shift left bc represents one hot enable
@@ -105,7 +105,8 @@ module config_controller #(
         next_t_addr = 0;
         // if last neuron, move to neuron 0
         if (t_neuron_r[PARALLEL_NEURONS-1] == 1) begin
-          next_t_neuron[0] = 1;
+          next_t_neuron = '0;
+          next_t_neuron[0] = 1'b1;
           next_t_total_cycles = next_t_total_cycles + 1;
         end else begin
           next_t_neuron = next_t_neuron << 1;  // shift left bc represents one hot enable
@@ -114,6 +115,6 @@ module config_controller #(
     end
 
     // assert done and enable data in stream
-    if (t_total_cycles_r == w_total_cycles_r == TOTAL_CYCLES) done = 1;
+    if ((t_total_cycles_r == TOTAL_CYCLES-1) && (w_total_cycles_r == TOTAL_CYCLES-1)) done = 1;
   end
 endmodule

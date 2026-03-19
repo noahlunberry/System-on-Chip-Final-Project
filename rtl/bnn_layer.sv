@@ -1,10 +1,14 @@
 // This is the top level compute block for the binary neural net.
 module bnn_layer #(
-    parameter int PARALLEL_INPUTS = 32,
-    parameter int PARALLEL_NEURONS = 32,
-    parameter int MANAGER_BUS_WIDTH = 8,
-    parameter int TOTAL_INPUTS = 256,
-    localparam int ACC_WIDTH    = 1 + $clog2(PARALLEL_INPUTS)
+    parameter  int MAX_PARALLEL_INPUTS = 8,
+    parameter  int PARALLEL_INPUTS     = 32,
+    parameter  int PARALLEL_NEURONS    = 32,
+    parameter  int TOTAL_NEURONS       = 256,
+    parameter  int TOTAL_INPUTS        = 256,
+    parameter  int W_RAM_ADDR_W        = 10,
+    parameter  int T_RAM_DATA_W        = 32,
+    parameter  int T_RAM_ADDR_W        = 10,
+    localparam int ACC_WIDTH           = 1 + $clog2(PARALLEL_INPUTS)
 
 ) (
     input logic clk,
@@ -16,12 +20,10 @@ module bnn_layer #(
     output logic                       ready_in,  // read enable to the input buffer
 
     // Config Manager Interface
-    input  logic [PARALLEL_NEURONS-1:0] config_data,
-    input  logic                        config_rd_en,
-    input  logic [                15:0] total_bytes,
-    input  logic [                 7:0] bytes_per_neuron,
-    input  logic                        msg_type,
-    output logic                        payload_done,
+    input logic                           weight_wr_en,
+    input logic                           threshold_wr_en,
+    input logic [MAX_PARALLEL_INPUTS-1:0] weight_wr_data,
+    input logic [       T_RAM_DATA_W-1:0] threshold_wr_data,
 
     // Communication with output side layer
     output logic                        valid_out,  // write enable to the output buffer
@@ -37,51 +39,51 @@ module bnn_layer #(
   localparam int T_RAM_ADDR_W = 8;  // example
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
-  logic                    w_wr_en     [PARALLEL_NEURONS];
-  logic [W_RAM_ADDR_W-1:0] w_wr_addr   [PARALLEL_NEURONS];
+  logic [PARALLEL_NEURONS-1:0] w_wr_en;
+  logic [    W_RAM_ADDR_W-1:0] w_wr_addr;
 
-  logic                    t_wr_en     [PARALLEL_NEURONS];
-  logic [T_RAM_ADDR_W-1:0] t_wr_addr   [PARALLEL_NEURONS];
+  logic [PARALLEL_NEURONS-1:0] t_wr_en;
+  logic [    T_RAM_ADDR_W-1:0] t_wr_addr;
 
   // The rd address and enable can be combined into one array, since data is read in parallel
   // They each have their own rd data and rd addresses, since data will be read in parallel
-  logic                    w_rd_en;
-  logic [W_RAM_ADDR_W-1:0] w_rd_addr;
-  logic [W_RAM_DATA_W-1:0] w_rd_data   [PARALLEL_NEURONS];
+  logic                        w_rd_en;
+  logic [    W_RAM_ADDR_W-1:0] w_rd_addr;
+  logic [    W_RAM_DATA_W-1:0] w_rd_data   [PARALLEL_NEURONS];
 
-  logic                    t_rd_en;
-  logic [T_RAM_ADDR_W-1:0] t_rd_addr;
-  logic [T_RAM_DATA_W-1:0] t_rd_data   [PARALLEL_NEURONS];
+  logic                        t_rd_en;
+  logic [    T_RAM_ADDR_W-1:0] t_rd_addr;
+  logic [    T_RAM_DATA_W-1:0] t_rd_data   [PARALLEL_NEURONS];
 
-  logic [T_RAM_ADDR_W-1:0] addr_out;
+  logic [    T_RAM_ADDR_W-1:0] addr_out;
+
 
   // inputs from binarization module
 
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
-  logic                    config_done;
+  logic                        config_done;
   config_controller #(
-      .MANAGER_BUS_WIDTH(MANAGER_BUS_WIDTH),
-      .PARALLEL_NEURONS (PARALLEL_NEURONS),
-      .W_RAM_DATA_W     (W_RAM_DATA_W),
-      .W_RAM_ADDR_W     (W_RAM_ADDR_W),
-      .T_RAM_ADDR_W     (T_RAM_ADDR_W)
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .PARALLEL_NEURONS   (PARALLEL_NEURONS),
+      .TOTAL_NEURONS      (TOTAL_NEURONS),
+      .TOTAL_INPUTS       (TOTAL_INPUTS),
+      .T_RAM_DATA_W       (T_RAM_DATA_W),
+      .W_RAM_ADDR_W       (W_RAM_ADDR_W),
+      .T_RAM_ADDR_W       (T_RAM_ADDR_W)
   ) u_cfc (
       .clk(clk),
       .rst(rst),
 
-      .config_rd_en    (config_rd_en),
-      .msg_type        (msg_type),
-      .total_bytes     (total_bytes),
-      .bytes_per_neuron(bytes_per_neuron),
-      .payload_done    (payload_done),
-      .config_done     (config_done),
+      .weight_wr_en   (weight_wr_en),
+      .threshold_wr_en(threshold_wr_en),
 
-      // fanout write lanes
-      .weight_wr_en   (w_wr_en),
-      .threshold_wr_en(t_wr_en),
-      .addr_out       (addr_out)
+      .ram_weight_wr_en   (w_wr_en),
+      .ram_threshold_wr_en(t_wr_en),
+      .weight_addr_out    (w_wr_addr),
+      .threshold_addr_out (t_wr_addr),
+      .done               (config_done)
   );
 
   logic np_valid;
@@ -89,7 +91,7 @@ module bnn_layer #(
   logic valid_data;
   // Only read data from buffer/addresses if all interfaces are ready
   assign valid_data = config_done && valid_in && ready_out;
-  assign ready_in = w_rd_en;
+  assign ready_in   = w_rd_en;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
@@ -123,7 +125,7 @@ module bnn_layer #(
 
       // Weights RAM (one per NP)
       ram_sdp #(
-          .DATA_WIDTH (W_RAM_DATA_W),
+          .DATA_WIDTH (MAX_PARALLEL_INPUTS),
           .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
@@ -134,8 +136,8 @@ module bnn_layer #(
           .rd_addr(w_rd_addr),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
-          .wr_addr(addr_out),
-          .wr_data(config_data)
+          .wr_addr(w_wr_addr),
+          .wr_data(weight_wr_data)
       );
 
       // Threshold RAM (one per NP)
@@ -152,7 +154,7 @@ module bnn_layer #(
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
           .wr_addr(addr_out),
-          .wr_data(config_data)
+          .wr_data(threshold_wr_data)
       );
 
     end
@@ -162,7 +164,7 @@ module bnn_layer #(
 
   logic [PARALLEL_NEURONS-1:0] np_y;
   logic [PARALLEL_NEURONS-1:0] y_valid;
-  assign data_out = np_y;
+  assign data_out  = np_y;
   assign valid_out = y_valid[0];
 
   generate
