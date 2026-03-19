@@ -1,14 +1,14 @@
 // This is the top level compute block for the binary neural net.
 module bnn_layer #(
-    parameter  int MAX_PARALLEL_INPUTS = 8,
-    parameter  int PARALLEL_INPUTS     = 8,
-    parameter  int PARALLEL_NEURONS    = 8,
-    parameter  int TOTAL_NEURONS       = 256,
-    parameter  int TOTAL_INPUTS        = 256,
-    parameter  int W_RAM_ADDR_W        = 10,
-    parameter  int T_RAM_ADDR_W        = 10,
-    localparam int ACC_WIDTH           = 1 + $clog2(PARALLEL_INPUTS),
-    localparam  int THRESHOLD_WIDTH     = $clog2(MAX_PARALLEL_INPUTS + 1)
+    parameter  int MAX_PARALLEL_INPUTS  = 8,
+    parameter  int PARALLEL_INPUTS      = 8,
+    parameter  int PARALLEL_NEURONS     = 8,
+    parameter  int TOTAL_NEURONS        = 256,
+    parameter  int TOTAL_INPUTS         = 256,
+    parameter  int W_RAM_ADDR_W         = 10,
+    parameter  int T_RAM_ADDR_W         = 10,
+    parameter  int THRESHOLD_DATA_WIDTH = $clog2(TOTAL_INPUTS + 1),
+    localparam int ACC_WIDTH            = 1 + $clog2(PARALLEL_INPUTS)
 
 ) (
     input logic clk,
@@ -20,43 +20,45 @@ module bnn_layer #(
     output logic                       ready_in,
 
     // Config Manager Interface
-    input  logic                           weight_wr_en,
-    input  logic                           threshold_wr_en,
-    input  logic [MAX_PARALLEL_INPUTS-1:0] weight_wr_data,
-    input  logic [    THRESHOLD_WIDTH-1:0] threshold_wr_data,
+    input logic                            weight_wr_en,
+    input logic                            threshold_wr_en,
+    input logic [ MAX_PARALLEL_INPUTS-1:0] weight_wr_data,
+    input logic [THRESHOLD_DATA_WIDTH-1:0] threshold_wr_data,
 
     // Communication with output side layer
-    output logic                        valid_out,  // write enable to the output buffer
-    output logic [PARALLEL_NEURONS-1:0] data_out,
-    input  logic                        ready_out   // comes from the output buffers not full signal
+    output logic                            valid_out,                   // write enable to the output buffer
+    output logic [    PARALLEL_NEURONS-1:0] data_out,
+    output logic [THRESHOLD_DATA_WIDTH-1:0] count_out[PARALLEL_NEURONS],
+
+    input logic ready_out  // comes from the output buffers not full signal
 
 
 );
 
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
-  logic [PARALLEL_NEURONS-1:0] w_wr_en;
-  logic [    W_RAM_ADDR_W-1:0] w_wr_addr;
+  logic [    PARALLEL_NEURONS-1:0] w_wr_en;
+  logic [        W_RAM_ADDR_W-1:0] w_wr_addr;
 
-  logic [PARALLEL_NEURONS-1:0] t_wr_en;
-  logic [    T_RAM_ADDR_W-1:0] t_wr_addr;
+  logic [    PARALLEL_NEURONS-1:0] t_wr_en;
+  logic [        T_RAM_ADDR_W-1:0] t_wr_addr;
 
   // The rd address and enable can be combined into one array, since data is read in parallel
   // They each have their own rd data and rd addresses, since data will be read in parallel
-  logic                        w_rd_en;
-  logic [    W_RAM_ADDR_W-1:0] w_rd_addr;
-  logic [ PARALLEL_INPUTS-1:0] w_rd_data [PARALLEL_NEURONS];
+  logic                            w_rd_en;
+  logic [        W_RAM_ADDR_W-1:0] w_rd_addr;
+  logic [     PARALLEL_INPUTS-1:0] w_rd_data      [PARALLEL_NEURONS];
 
-  logic                        t_rd_en;
-  logic [    T_RAM_ADDR_W-1:0] t_rd_addr;
-  logic [ THRESHOLD_WIDTH-1:0] t_rd_data [PARALLEL_NEURONS];
+  logic                            t_rd_en;
+  logic [        T_RAM_ADDR_W-1:0] t_rd_addr;
+  logic [THRESHOLD_DATA_WIDTH-1:0] t_rd_data      [PARALLEL_NEURONS];
 
   // Input buffer signals
-  logic [PARALLEL_INPUTS-1:0] buffer_rd_data;
-  logic buffer_empty;
-  logic buffer_full;
+  logic [     PARALLEL_INPUTS-1:0] buffer_rd_data;
+  logic                            buffer_empty;
+  logic                            buffer_full;
 
-  logic config_done;
+  logic                            config_done;
 
   assign ready_in = config_done && !buffer_full;
 
@@ -65,22 +67,22 @@ module bnn_layer #(
   // LOOKAHEAD MUST be set to 0 to match the BRAM one cycle delay
 
   sync_fifo #(
-    .DATA_WIDTH  (PARALLEL_INPUTS /* default 32 */),
-    .ADDR_WIDTH  ( /* default 8 */),
-    .LOOKAHEAD   (0)
-   ) sync_fifo (
-    .clk     (clk),
-    .rst     (rst),
-    .sclr    (),
-    .data_in (data_in),
-    .rd_en   (w_rd_en),
-    .wr_en   (valid_in),
-    .data_out(buffer_rd_data),
-    .empty   (buffer_empty),
-    .full    (buffer_full),
-    .afull   (),
-    .aempty  (),
-    .uw      ()
+      .DATA_WIDTH(PARALLEL_INPUTS  /* default 32 */),
+      .ADDR_WIDTH(  /* default 8 */),
+      .LOOKAHEAD (0)
+  ) sync_fifo (
+      .clk     (clk),
+      .rst     (rst),
+      .sclr    (),
+      .data_in (data_in),
+      .rd_en   (w_rd_en),
+      .wr_en   (valid_in),
+      .data_out(buffer_rd_data),
+      .empty   (buffer_empty),
+      .full    (buffer_full),
+      .afull   (),
+      .aempty  (),
+      .uw      ()
   );
 
 
@@ -92,7 +94,7 @@ module bnn_layer #(
       .PARALLEL_NEURONS   (PARALLEL_NEURONS),
       .TOTAL_NEURONS      (TOTAL_NEURONS),
       .TOTAL_INPUTS       (TOTAL_INPUTS),
-      .T_RAM_DATA_W       (THRESHOLD_WIDTH),
+      .T_RAM_DATA_W       (THRESHOLD_DATA_WIDTH),
       .W_RAM_ADDR_W       (W_RAM_ADDR_W),
       .T_RAM_ADDR_W       (T_RAM_ADDR_W)
   ) u_cfc (
@@ -112,13 +114,14 @@ module bnn_layer #(
   logic np_valid;
   logic np_last;
   logic valid_data;
-  // Only read data from buffer/addresses if all interfaces are ready
+  // Only begin producing new data if downstream interface is ready
   assign valid_data = !buffer_empty && ready_out;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
       .PARALLEL_NEURONS(PARALLEL_NEURONS),
       .TOTAL_INPUTS    (TOTAL_INPUTS),
+      .TOTAL_NEURONS   (TOTAL_NEURONS),
       .W_RAM_ADDR_W    (W_RAM_ADDR_W),
       .T_RAM_ADDR_W    (T_RAM_ADDR_W)
   ) u_nc (
@@ -164,7 +167,7 @@ module bnn_layer #(
 
       // Threshold RAM (one per NP)
       ram_sdp #(
-          .DATA_WIDTH (THRESHOLD_WIDTH),
+          .DATA_WIDTH (THRESHOLD_DATA_WIDTH),
           .ADDR_WIDTH (T_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
@@ -192,8 +195,8 @@ module bnn_layer #(
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_nps
       neuron_processor #(
-          .P_WIDTH        (PARALLEL_INPUTS),
-          .THRESHOLD_WIDTH(THRESHOLD_WIDTH)
+          .P_WIDTH             (PARALLEL_INPUTS),
+          .THRESHOLD_WIDTH(THRESHOLD_DATA_WIDTH)
       ) u_np (
           .clk      (clk),
           .rst      (rst),
@@ -203,6 +206,7 @@ module bnn_layer #(
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
+          .count_out(count_out[gi]),
           .y_valid  (y_valid[gi])
       );
     end

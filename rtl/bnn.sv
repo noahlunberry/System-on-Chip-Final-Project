@@ -7,19 +7,19 @@ module bnn #(
     parameter int PARALLEL_INPUTS = 8,
     parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
     parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int THRESHOLD_DATA_WIDTH = 32
+    parameter int THRESHOLD_DATA_WIDTH = $clog2(NUM_INPUTS + 1)
 ) (
     input  logic clk,
     input  logic rst,
     input  logic en,
-    output logic ready, // last layer config done
+    output logic ready, // config done
 
     input logic [ MAX_PARALLEL_INPUTS-1:0] weight_wr_data,
     input logic [              LAYERS-1:0] weight_wr_en,
     input logic [THRESHOLD_DATA_WIDTH-1:0] threshold_wr_data,
     input logic [              LAYERS-1:0] threshold_wr_en,
 
-    input  logic [       MAX_PARALLEL_INPUTS-1:0] data_in,
+    input  logic [           PARALLEL_INPUTS-1:0] data_in,
     input  logic                                  data_in_valid,
     output logic [PARALLEL_NEURONS[LAYERS-1]-1:0] data_out,
     output logic [      THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
@@ -30,14 +30,15 @@ module bnn #(
   logic [PARALLEL_NEURONS[0]-1:0] layer_1_data_out;
   logic                           layer_1_valid_out;
   logic                           layer_1_ready_out;
+  logic                           layer_1_ready_in;
 
   // layer 2 -> layer 3 boundary
   logic [PARALLEL_NEURONS[1]-1:0] layer_2_data_out;
   logic                           layer_2_valid_out;
   logic                           layer_2_ready_out;
 
-  logic config_done;
-  assign ready = config_done;
+
+  assign ready = en && layer_1_ready_in;
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
@@ -50,7 +51,7 @@ module bnn #(
       .rst              (rst),
       .data_in          (data_in),
       .valid_in         (data_in_valid),
-      .ready_in         (),
+      .ready_in         (layer_1_ready_in),
       .weight_wr_en     (weight_wr_en[0]),
       .threshold_wr_en  (threshold_wr_en[0]),
       .weight_wr_data   (weight_wr_data),
@@ -82,11 +83,12 @@ module bnn #(
   );
 
   bnn_layer #(
-      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
-      .PARALLEL_INPUTS    (PARALLEL_NEURONS[1]),
-      .PARALLEL_NEURONS   (PARALLEL_NEURONS[2]),
-      .TOTAL_NEURONS      (NUM_NEURONS[2]),
-      .TOTAL_INPUTS       (NUM_NEURONS[1])
+      .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
+      .PARALLEL_INPUTS     (PARALLEL_NEURONS[1]),
+      .PARALLEL_NEURONS    (PARALLEL_NEURONS[2]),
+      .TOTAL_NEURONS       (NUM_NEURONS[2]),
+      .TOTAL_INPUTS        (NUM_NEURONS[1]),
+      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
   ) u_layer_3 (
       .clk              (clk),
       .rst              (rst),
@@ -100,7 +102,7 @@ module bnn #(
       .valid_out        (data_out_valid),
       .data_out         (data_out),
       .ready_out        (1'b1),
-      .config_done (config_done)
+      .count_out        (count_out)
   );
 
 endmodule

@@ -2,6 +2,7 @@ module neuron_controller #(
     parameter int PARALLEL_INPUTS  = 8,
     parameter int PARALLEL_NEURONS = 8,
     parameter int TOTAL_INPUTS     = 32,
+    parameter int TOTAL_NEURONS     = 32,
     parameter int W_RAM_ADDR_W     = 12,
     parameter int T_RAM_ADDR_W     = 8
 ) (
@@ -24,7 +25,7 @@ module neuron_controller #(
 
   // Constants
   localparam int WORDS_PER_NEURON = TOTAL_INPUTS / PARALLEL_INPUTS;
-  localparam int NEURON_BATCHES = TOTAL_INPUTS / PARALLEL_NEURONS;
+  localparam int NEURON_BATCHES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam int RAM_RD_LATENCY = 1;
 
   typedef enum logic [1:0] {
