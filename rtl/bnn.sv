@@ -90,7 +90,7 @@ module bnn #(
       .PARALLEL_INPUTS     (PARALLEL_NEURONS[1]),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS[2]),
       .TOTAL_NEURONS       (NUM_NEURONS[2]),
-      .TOTAL_INPUTS        (NUM_NEURONS[1]),
+      .TOTAL_INPUTS        (NUM_NEURONS[1])
   ) u_layer_3 (
       .clk              (clk),
       .rst              (rst),

@@ -81,8 +81,7 @@ module config_controller #(
     done                = 0;
 
     if (weight_wr_en) begin
-      // multiplex true address out using total cycles
-      next_w_addr_out = next_w_addr + (next_w_total_cycles * PARALLEL_NEURONS);
+
       // if last address for neuron, move to address 0 for next neuron
       if (w_addr_r == W_ADDR_PER_CYCLE - 1) begin
         next_w_addr = 0;
@@ -95,11 +94,12 @@ module config_controller #(
           next_w_neuron = next_w_neuron << 1;  // shift left bc represents one hot enable
         end
       end else next_w_addr = next_w_addr + 1;
+
+      // multiplex true address out using total cycles
+      next_w_addr_out = next_w_addr + (next_w_total_cycles * W_ADDR_PER_CYCLE);
     end
 
     if (threshold_wr_en) begin
-      // multiplex true address out using total cycles
-      next_t_addr_out = next_t_addr + (next_t_total_cycles * PARALLEL_NEURONS);
       // if last address for neuron, move to address 0 for next neuron
       if (t_addr_r == T_ADDR_PER_CYCLE - 1) begin
         next_t_addr = 0;
@@ -113,8 +113,10 @@ module config_controller #(
         end
       end else next_t_addr = next_t_addr + 1;
     end
+    // multiplex true address out using total cycles
+    next_t_addr_out = next_t_addr + (next_t_total_cycles * T_ADDR_PER_CYCLE);
 
     // assert done and enable data in stream
-    if ((t_total_cycles_r == TOTAL_CYCLES-1) && (w_total_cycles_r == TOTAL_CYCLES-1)) done = 1;
+    if ((t_total_cycles_r == TOTAL_CYCLES - 1) && (w_total_cycles_r == TOTAL_CYCLES - 1)) done = 1;
   end
 endmodule

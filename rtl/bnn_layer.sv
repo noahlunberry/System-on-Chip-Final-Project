@@ -1,7 +1,7 @@
 // This is the top level compute block for the binary neural net.
 module bnn_layer #(
     parameter  int MAX_PARALLEL_INPUTS  = 8,
-    parameter  int MAX_INPUTS  = 756,
+    parameter  int MAX_INPUTS  = 784,
     parameter  int PARALLEL_INPUTS      = 8,
     parameter  int PARALLEL_NEURONS     = 8,
     parameter  int TOTAL_NEURONS        = 256,
@@ -69,7 +69,7 @@ module bnn_layer #(
 
   sync_fifo #(
       .DATA_WIDTH(PARALLEL_INPUTS  /* default 32 */),
-      .ADDR_WIDTH(  /* default 8 */),
+      .ADDR_WIDTH(7),
       .LOOKAHEAD (0)
   ) sync_fifo (
       .clk     (clk),

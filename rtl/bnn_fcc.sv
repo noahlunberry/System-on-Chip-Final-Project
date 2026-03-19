@@ -28,7 +28,7 @@ module bnn_fcc #(
     parameter int PARALLEL_INPUTS = 8,
     parameter int PARALLEL_NEURONS[TOTAL_LAYERS-1] = '{default: 8},
 
-    localparam int THRESHOLD_DATA_WIDTH = 32
+    localparam int THRESHOLD_DATA_WIDTH = $clog2(TOPOLOGY[0] + 1)
 ) (
 
     input logic clk,
