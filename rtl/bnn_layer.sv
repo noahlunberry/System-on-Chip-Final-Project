@@ -1,13 +1,14 @@
 // This is the top level compute block for the binary neural net.
 module bnn_layer #(
     parameter  int MAX_PARALLEL_INPUTS  = 8,
+    parameter  int MAX_INPUTS  = 756,
     parameter  int PARALLEL_INPUTS      = 8,
     parameter  int PARALLEL_NEURONS     = 8,
     parameter  int TOTAL_NEURONS        = 256,
     parameter  int TOTAL_INPUTS         = 256,
     parameter  int W_RAM_ADDR_W         = 10,
     parameter  int T_RAM_ADDR_W         = 10,
-    parameter  int THRESHOLD_DATA_WIDTH = $clog2(TOTAL_INPUTS + 1),
+    localparam  int THRESHOLD_DATA_WIDTH = $clog2(MAX_INPUTS + 1),
     localparam int ACC_WIDTH            = 1 + $clog2(PARALLEL_INPUTS)
 
 ) (

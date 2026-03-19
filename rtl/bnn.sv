@@ -42,6 +42,7 @@ module bnn #(
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .MAX_INPUTS         (NUM_INPUTS),
       .PARALLEL_INPUTS    (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[0]),
       .TOTAL_NEURONS      (NUM_NEURONS[0]),
@@ -63,6 +64,7 @@ module bnn #(
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .MAX_INPUTS         (NUM_INPUTS),
       .PARALLEL_INPUTS    (PARALLEL_NEURONS[0]),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[1]),
       .TOTAL_NEURONS      (NUM_NEURONS[1]),
@@ -84,11 +86,11 @@ module bnn #(
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
+      .MAX_INPUTS          (NUM_INPUTS),
       .PARALLEL_INPUTS     (PARALLEL_NEURONS[1]),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS[2]),
       .TOTAL_NEURONS       (NUM_NEURONS[2]),
       .TOTAL_INPUTS        (NUM_NEURONS[1]),
-      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
   ) u_layer_3 (
       .clk              (clk),
       .rst              (rst),
