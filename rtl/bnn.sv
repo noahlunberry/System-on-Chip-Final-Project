@@ -36,6 +36,8 @@ module bnn #(
   logic                           layer_2_valid_out;
   logic                           layer_2_ready_out;
 
+  logic config_done;
+  assign ready = config_done;
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
@@ -48,7 +50,7 @@ module bnn #(
       .rst              (rst),
       .data_in          (data_in),
       .valid_in         (data_in_valid),
-      .ready_in         (ready),
+      .ready_in         (),
       .weight_wr_en     (weight_wr_en[0]),
       .threshold_wr_en  (threshold_wr_en[0]),
       .weight_wr_data   (weight_wr_data),
@@ -97,7 +99,8 @@ module bnn #(
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
       .data_out         (data_out),
-      .ready_out        (1'b1)
+      .ready_out        (1'b1),
+      .config_done (config_done)
   );
 
 endmodule

@@ -158,7 +158,7 @@ module config_manager #(
   fifo_vr #(
       .N(BUS_WIDTH),            // write config_data_in
       .M(MAX_PARALLEL_INPUTS),  // READ config_data_in
-      .P(32)                  // DEPTH (calculate later)
+      .P(12)                  // DEPTH (calculate later)
   ) fifo_weights (
       .clk            (clk),
       .rst            (rst),
@@ -175,7 +175,7 @@ module config_manager #(
   fifo_vr #(
       .N(BUS_WIDTH),            // write config_data_in
       .M(THRESHOLD_DATA_WIDTH),  // READ config_data_in
-      .P(32)                  // DEPTH: size of addresses (calculate later)
+      .P(12)                  // DEPTH: size of addresses (calculate later)
   ) fifo_thresholds (
       .clk            (clk),
       .rst            (rst),

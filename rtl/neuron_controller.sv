@@ -8,7 +8,7 @@ module neuron_controller #(
     input logic clk,
     input logic rst,
     input logic go,
-    input logic valid_data, // enable when the input is valid
+    input logic valid_data, // enable when the input is valid(buffer not empty)
 
     // Control signals to Neuron Processors
     output logic valid_in,
