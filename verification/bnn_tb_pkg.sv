@@ -4,7 +4,7 @@
 package bnn_tb_pkg;
 
   // Provides a reference model and testing/debugging methods for a BNN
-  class BNN_FCC_Model #(
+  class BNN_Model #(
       int WEIGHT_WIDTH = 8,
       int THRESHOLD_WIDTH = 32
   );
@@ -215,7 +215,7 @@ package bnn_tb_pkg;
 
     // Everything else can be directly copied from the original tb
     /////////////////////////////////////////////////////////////
-    
+
     // Creates a randomized model (weights/thresholds) for the specified topology)
     function void create_random(int user_topology[]);
       this.topology = user_topology;
