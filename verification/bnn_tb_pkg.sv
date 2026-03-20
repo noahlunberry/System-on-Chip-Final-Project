@@ -578,4 +578,35 @@ package bnn_tb_pkg;
     endfunction
 
   endclass
+
+
+    class ThroughputTracker;
+        local realtime first_start_time;
+        local realtime last_end_time;
+        real           clock_period_ns;
+
+        function new(real period);
+            this.clock_period_ns = period;
+            this.first_start_time = 0;
+            this.last_end_time    = 0;
+        endfunction
+
+        function void start_test();
+            if (first_start_time == 0) first_start_time = $realtime;
+        endfunction
+
+        function void sample_end();
+            last_end_time = $realtime;
+        endfunction
+
+        function real get_outputs_per_sec(int total_count);
+            realtime total_window = last_end_time - first_start_time;
+            return (total_window > 0) ? (total_count / (total_window * 1e-9)) : 0;
+        endfunction
+
+        function real get_avg_cycles_per_output(int total_count);
+            realtime total_window = last_end_time - first_start_time;
+            return (total_count > 0) ? (real'(total_window) / (clock_period_ns * total_count)) : 0;
+        endfunction
+    endclass
 endpackage

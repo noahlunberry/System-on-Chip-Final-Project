@@ -19,11 +19,11 @@ module bnn #(
     input logic [THRESHOLD_DATA_WIDTH-1:0] threshold_wr_data,
     input logic [              LAYERS-1:0] threshold_wr_en,
 
-    input  logic [           PARALLEL_INPUTS-1:0] data_in,
-    input  logic                                  data_in_valid,
-    output logic [PARALLEL_NEURONS[LAYERS-1]-1:0] data_out,
-    output logic [      THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
-    output logic                                  data_out_valid
+    input  logic [     PARALLEL_INPUTS-1:0] data_in,
+    input  logic                            data_in_valid,
+    output logic [THRESHOLD_DATA_WIDTH-1:0] data_out,
+    output logic [THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
+    output logic                            data_out_valid
 );
 
   // layer 1 -> layer 2 boundary
@@ -85,12 +85,12 @@ module bnn #(
   );
 
   bnn_layer #(
-      .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
-      .MAX_INPUTS          (NUM_INPUTS),
-      .PARALLEL_INPUTS     (PARALLEL_NEURONS[1]),
-      .PARALLEL_NEURONS    (PARALLEL_NEURONS[2]),
-      .TOTAL_NEURONS       (NUM_NEURONS[2]),
-      .TOTAL_INPUTS        (NUM_NEURONS[1])
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .MAX_INPUTS         (NUM_INPUTS),
+      .PARALLEL_INPUTS    (PARALLEL_NEURONS[1]),
+      .PARALLEL_NEURONS   (PARALLEL_NEURONS[2]),
+      .TOTAL_NEURONS      (NUM_NEURONS[2]),
+      .TOTAL_INPUTS       (NUM_NEURONS[1])
   ) u_layer_3 (
       .clk              (clk),
       .rst              (rst),

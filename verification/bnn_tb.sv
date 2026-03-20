@@ -124,6 +124,8 @@ module bnn_tb #(
 
   BNN_Model #(WEIGHT_WIDTH) model;
   BNN_FCC_Stimulus #(INPUT_DATA_WIDTH) stim;
+  ThroughputTracker throughput;
+
 
   typedef bit [WEIGHT_WIDTH-1:0] weight_data_t;
   typedef weight_data_t weight_data_stream_t[];
@@ -274,6 +276,7 @@ module bnn_tb #(
 
       weight_wr_en <= '0;  // Turn off weight enable before switching to thresholds
 
+
       // Stream Thresholds for Layer 'l' (Skip final layer)
       if (l < LAYERS - 1) begin
         // Fetch just the thresholds (is_threshold = 1)
@@ -299,10 +302,9 @@ module bnn_tb #(
       end
     end
 
-    
+
 
     $display("[%0t] Configuration complete. Waiting for bnn_ready...", $realtime);
-
     wait (bnn_ready);
     repeat (5) @(posedge clk);
 
@@ -328,11 +330,9 @@ module bnn_tb #(
         // Pack multiple pixels into a single AXI beat.
         for (int k = 0; k < INPUTS_PER_CYCLE; k++) begin
           if (j + k < current_img.size()) begin
-            data_in.tdata[k*INPUT_DATA_WIDTH+:INPUT_DATA_WIDTH] <= current_img[j+k];
-            data_in.tkeep[k*BYTES_PER_INPUT+:BYTES_PER_INPUT]   <= '1;
+            data_in[k*INPUT_DATA_WIDTH+:INPUT_DATA_WIDTH] <= current_img[j+k];
           end else begin
-            data_in.tdata[k*INPUT_DATA_WIDTH+:INPUT_DATA_WIDTH] <= '0;
-            data_in.tkeep[k*BYTES_PER_INPUT+:BYTES_PER_INPUT]   <= '0;
+            data_in[k*INPUT_DATA_WIDTH+:INPUT_DATA_WIDTH] <= '0;
           end
         end
 
@@ -340,23 +340,17 @@ module bnn_tb #(
         while (!chance(
             DATA_IN_VALID_PROBABILITY
         )) begin
-          data_in.tvalid <= 1'b0;
-          @(posedge clk iff data_in.tready);
+          data_in_valid <= 1'b0;
+          @(posedge clk iff bnn_ready);
         end
-        data_in.tvalid <= 1'b1;
-        data_in.tlast  <= (j + INPUTS_PER_CYCLE >= current_img.size());
-        @(posedge clk iff data_in.tready);
+        data_in_valid <= 1'b1;
+        @(posedge clk iff bnn_ready);
 
         // Start the throughput timer after the first beat of the first image has been accepted.                
         if (i == 0 && j == 0) throughput.start_test();
-
-        // Start the latency timer after the first beat of each image has been accepted.                
-        if (j == 0) latency.start_event(i);
       end
 
-      data_in.tvalid <= 1'b0;
-      data_in.tlast  <= 1'b0;
-      data_in.tkeep  <= '0;
+      data_in_valid <= 1'b0;
       @(posedge clk);
     end
 
@@ -374,31 +368,30 @@ module bnn_tb #(
   end
 
   initial begin : l_toggle_ready
-    data_out.tready <= 1'b1;
+    data_out_ready <= 1'b1;
     @(posedge clk iff !rst);
     if (TOGGLE_DATA_OUT_READY) begin
       forever begin
-        data_out.tready <= $urandom();
+        data_out_ready <= $urandom();
         @(posedge clk);
       end
-    end else data_out.tready <= 1'b1;
+    end else data_out_ready <= 1'b1;
   end
 
   initial begin : l_output_monitor
     automatic int output_count = 0;
     forever begin
-      @(posedge clk iff data_out.tvalid && data_out.tready);
+      @(posedge clk iff data_out_valid && data_out_ready);
       assert (expected_outputs.size() > 0)
       else $fatal(1, "No expected output for actual output");
-      assert (data_out.tdata == expected_outputs[0]) begin
+      assert (data_out == expected_outputs[0]) begin
         passed++;
       end else begin
         $error("Output incorrect for image %0d: actual = %0d vs expected = %0d", output_count,
-               data_out.tdata, expected_outputs[0]);
+               data_out, expected_outputs[0]);
         failed++;
       end
       void'(expected_outputs.pop_front());
-      latency.end_event(output_count);
       if (output_count == NUM_TEST_IMAGES - 1) throughput.sample_end();
       output_count++;
     end
