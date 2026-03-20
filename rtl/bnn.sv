@@ -107,4 +107,22 @@ module bnn #(
       .count_out        (count_out)
   );
 
+  logic [THRESHOLD_DATA_WIDTH-1:0] max_count;
+
+  always_comb begin : argmax
+    if (PARALLEL_NEURONS[LAYERS-1] != NUM_NEURONS[LAYERS-1])
+      $fatal(1, "bnn_fcc currently requires output layer neurons to match PARALLEL_NEURONS for that layer");
+
+    // This is beyond horrible for synthesis and is solely intended to test the testbench framework.
+    max_count = count_out[0];
+    data_out = '0;
+    for (int i = 1; i < NUM_NEURONS[LAYERS-1]; i++) begin
+      if (count_out[i] > max_count) begin
+        data_out = i;
+        max_count = count_out[i];
+      end
+    end
+  end
+
+
 endmodule

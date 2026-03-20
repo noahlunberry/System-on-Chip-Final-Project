@@ -72,7 +72,7 @@ module bnn_tb #(
     parameter real     DATA_IN_VALID_PROBABILITY                = 0.8,
     parameter realtime TIMEOUT                                  = 10ms,
     parameter realtime CLK_PERIOD                               = 10ns,
-    parameter bit      DEBUG                                    = 1'b0,
+    parameter bit      DEBUG                                    = 1'b1,
 
     // Bus configuratio
     parameter int WEIGHT_WIDTH = 8,
@@ -85,7 +85,7 @@ module bnn_tb #(
     parameter int NUM_INPUTS = 784,
     parameter int NUM_NEURONS[LAYERS] = '{0: 256, 1: 256, 2: 10, default: 0},
     parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int THRESHOLD_DATA_WIDTH = 32,
+    parameter int THRESHOLD_DATA_WIDTH = THRESHOLD_WIDTH,
     //  parameter int THRESHOLD_DATA_WIDTH = $clog2(NUM_INPUTS + 1),
 
     // App configuration
@@ -231,7 +231,6 @@ module bnn_tb #(
 
     $timeformat(-9, 0, " ns", 0);
     rst               <= 1'b1;
-    bnn_ready         <= 1'b0;
     data_out_ready    <= 1'b0;
     weight_wr_data    <= '0;
     weight_wr_en      <= 1'b0;
@@ -239,11 +238,6 @@ module bnn_tb #(
     threshold_wr_en   <= 1'b0;
     data_in           <= '0;
     data_in_valid     <= 1'b0;
-    data_out          <= '0;
-    data_out_valid    <= 1'b0;
-    for (int i = 0; i < PARALLEL_NEURONS[LAYERS-1]; i++) begin
-      count_out[i] <= '0;
-    end
 
 
     repeat (5) @(posedge clk);
