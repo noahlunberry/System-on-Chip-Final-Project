@@ -158,7 +158,7 @@ module config_manager #(
   fifo_vr #(
       .N(BUS_WIDTH),            // write config_data_in
       .M(MAX_PARALLEL_INPUTS),  // READ config_data_in
-      .P(12)                  // DEPTH (calculate later)
+      .P(17)                  // DEPTH (calculate later)
   ) fifo_weights (
       .clk            (clk),
       .rst            (rst),
