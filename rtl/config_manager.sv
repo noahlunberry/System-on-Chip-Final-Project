@@ -21,7 +21,6 @@ module config_manager #(
     output logic [              LAYERS-1:0] threshold_ram_wr_en
 
 );
-
   localparam int INPUT_RD_BYTES = (MAX_PARALLEL_INPUTS) / 8;
   localparam int THRESH_RD_BYTES = (THRESHOLD_DATA_WIDTH) / 8;
   localparam int LAYER1_BYTES = (PARALLEL_NEURONS[0]) / 8;

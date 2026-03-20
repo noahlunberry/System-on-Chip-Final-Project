@@ -181,6 +181,7 @@ module bnn_fcc_tb #(
         .aclk   (clk),
         .aresetn(!rst)
     );
+    
 
     bnn_fcc #(
         .INPUT_DATA_WIDTH (INPUT_DATA_WIDTH),

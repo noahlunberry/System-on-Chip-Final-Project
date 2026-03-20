@@ -38,6 +38,11 @@ module bnn_layer #(
 
 );
 
+    initial begin
+        if (TOTAL_INPUTS % PARALLEL_INPUTS)
+            $fatal(1, "layer requires TOTAL_INPUTS to be a multiple of PARRALEL_INPUTS");
+    end
+
 
     // Each BRAM has its own write enable and write address, since data is entering serially.
     logic [    PARALLEL_NEURONS-1:0] w_wr_en;
