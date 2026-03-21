@@ -108,7 +108,7 @@ module config_manager #(
             end
           endcase
         end else begin
-          next_rd_count = (total_bytes_r + THRESH_RD_BYTES - 1) / THRESH_RD_BYTES;
+          next_rd_count = (total_bytes_r) / 4;
         end
 
         // Continuously read while the buffer is not empty. Also assert enable for the layer side controller
@@ -120,9 +120,11 @@ module config_manager #(
           if (count_r == rd_count_r - 1) begin
             next_state = DRAIN;
             next_count = '0;
+          end
+        end else begin
+            next_fifo_rd_en = 0;
             next_ram_wr_en = 0;
           end
-        end
       end
 
       DRAIN: begin

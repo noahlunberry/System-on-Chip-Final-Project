@@ -68,7 +68,7 @@ module bnn_layer #(
 
     logic                            config_done;
 
-    assign ready_in = config_done && !buffer_full;
+    assign ready_in = config_done && !buffer_full && ready_out;
 
 
     // Input Buffer from previous layer's outputs
