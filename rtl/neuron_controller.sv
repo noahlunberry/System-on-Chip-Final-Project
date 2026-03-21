@@ -2,7 +2,7 @@ module neuron_controller #(
     parameter int PARALLEL_INPUTS  = 8,
     parameter int PARALLEL_NEURONS = 8,
     parameter int TOTAL_INPUTS     = 32,
-    parameter int TOTAL_NEURONS     = 32,
+    parameter int TOTAL_NEURONS    = 32,
     parameter int W_RAM_ADDR_W     = 12,
     parameter int T_RAM_ADDR_W     = 8
 ) (
@@ -123,12 +123,15 @@ module neuron_controller #(
           // valid in is delayed 1 cycle after the weight/threshold rd en's
           delay_valid_r   = 1'b1;
 
+          // Address always increments to pull next weight/input chunk unless only one batch
+          next_addr_count = addr_count_r + 1'b1;
+
           // Check if this is the last input for the current neuron set
           if (word_count_r == WORDS_PER_NEURON - 1) begin
             delay_last_r    = 1'b1;
             next_word_count = '0;
 
-            // Check if we've done all neuron batches
+            // Check if we've done all neuron batches, if so set next address count to 0
             if (batch_count_r == NEURON_BATCHES - 1) begin
               delay_layer_done_r = 1'b1;
               next_word_count = '0;
@@ -140,9 +143,6 @@ module neuron_controller #(
           end else begin
             next_word_count = word_count_r + 1'b1;
           end
-
-          // Address always increments to pull next weight/input chunk unless only one batch
-          if (WORDS_PER_NEURON > 1) next_addr_count = addr_count_r + 1'b1;
         end
       end
 
