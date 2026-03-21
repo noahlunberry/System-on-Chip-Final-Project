@@ -6,6 +6,7 @@ module bnn_layer #(
     parameter int PARALLEL_NEURONS = 8,
     parameter int TOTAL_NEURONS = 256,
     parameter int TOTAL_INPUTS = 256,
+    parameter int LAST_LAYER = 0,
     localparam int W_RAM_ADDR_W = $clog2(
         (TOTAL_NEURONS / PARALLEL_NEURONS) * (TOTAL_INPUTS / PARALLEL_INPUTS) + 1
     ),
@@ -104,7 +105,8 @@ module bnn_layer #(
         .TOTAL_INPUTS       (TOTAL_INPUTS),
         .T_RAM_DATA_W       (THRESHOLD_DATA_WIDTH),
         .W_RAM_ADDR_W       (W_RAM_ADDR_W),
-        .T_RAM_ADDR_W       (T_RAM_ADDR_W)
+        .T_RAM_ADDR_W       (T_RAM_ADDR_W),
+        .LAST_LAYER (LAST_LAYER)
     ) u_cfc (
         .clk(clk),
         .rst(rst),

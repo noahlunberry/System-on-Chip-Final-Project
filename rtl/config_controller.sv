@@ -5,7 +5,8 @@ module config_controller #(
     parameter int TOTAL_INPUTS        = 256,
     parameter int W_RAM_ADDR_W        = 10,
     parameter int T_RAM_DATA_W        = 32,
-    parameter int T_RAM_ADDR_W        = 10
+    parameter int T_RAM_ADDR_W        = 10,
+    parameter int LAST_LAYER          = 0
 ) (
     input logic clk,
     input logic rst,
@@ -117,6 +118,7 @@ module config_controller #(
     next_t_addr_out = next_t_addr + (next_t_total_cycles * T_ADDR_PER_CYCLE);
 
     // assert done and enable data in stream
-    if ((t_total_cycles_r == TOTAL_CYCLES) && (w_total_cycles_r == TOTAL_CYCLES)) done = 1;
+    done = LAST_LAYER ? (w_total_cycles_r == TOTAL_CYCLES) 
+                      : (w_total_cycles_r == TOTAL_CYCLES) && (t_total_cycles_r == TOTAL_CYCLES);
   end
 endmodule

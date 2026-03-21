@@ -46,7 +46,8 @@ module bnn #(
       .PARALLEL_INPUTS    (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[0]),
       .TOTAL_NEURONS      (NUM_NEURONS[0]),
-      .TOTAL_INPUTS       (NUM_INPUTS)
+      .TOTAL_INPUTS       (NUM_INPUTS),
+      .LAST_LAYER         (0)
   ) u_layer_1 (
       .clk              (clk),
       .rst              (rst),
@@ -68,7 +69,8 @@ module bnn #(
       .PARALLEL_INPUTS    (PARALLEL_NEURONS[0]),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[1]),
       .TOTAL_NEURONS      (NUM_NEURONS[1]),
-      .TOTAL_INPUTS       (NUM_NEURONS[0])
+      .TOTAL_INPUTS       (NUM_NEURONS[0]),
+      .LAST_LAYER         (0)
   ) u_layer_2 (
       .clk              (clk),
       .rst              (rst),
@@ -90,7 +92,8 @@ module bnn #(
       .PARALLEL_INPUTS    (PARALLEL_NEURONS[1]),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[2]),
       .TOTAL_NEURONS      (NUM_NEURONS[2]),
-      .TOTAL_INPUTS       (NUM_NEURONS[1])
+      .TOTAL_INPUTS       (NUM_NEURONS[1]),
+      .LAST_LAYER         (1)
   ) u_layer_3 (
       .clk              (clk),
       .rst              (rst),
@@ -102,7 +105,7 @@ module bnn #(
       .weight_wr_data   (weight_wr_data),
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
-      .data_out         (layer_3_data_out), //data_out
+      .data_out         (layer_3_data_out),    //data_out
       .ready_out        (1'b1),
       .count_out        (count_out)
   );
