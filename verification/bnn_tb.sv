@@ -76,14 +76,13 @@ module bnn_tb #(
 
     // Bus configuratio
     parameter int WEIGHT_WIDTH = 8,
-    parameter int THRESHOLD_WIDTH = 32,
+    parameter int THRESHOLD_WIDTH = $clog2(NUM_INPUTS + 1),
     parameter int INPUT_BUS_WIDTH = 64,
     parameter int OUTPUT_BUS_WIDTH = 8,
 
     // BNN configuration
     parameter int LAYERS = 3,
-    parameter int NUM_INPUTS = 784,
-    parameter int NUM_NEURONS[LAYERS] = '{0: 256, 1: 256, 2: 10, default: 0},
+    parameter int NUM_INPUTS = CUSTOM_TOPOLOGY[0],
     parameter int MAX_PARALLEL_INPUTS = 8,
     parameter int THRESHOLD_DATA_WIDTH = THRESHOLD_WIDTH,
     //  parameter int THRESHOLD_DATA_WIDTH = $clog2(NUM_INPUTS + 1),
@@ -122,9 +121,9 @@ module bnn_tb #(
     return ($urandom < (p * (2.0 ** 32)));
   endfunction
 
-  BNN_Model #(WEIGHT_WIDTH) model;
+  BNN_Model #(WEIGHT_WIDTH, THRESHOLD_WIDTH) model;
   BNN_FCC_Stimulus #(INPUT_DATA_WIDTH) stim;
-  ThroughputTracker throughput;
+  // ThroughputTracker throughput;
 
 
   typedef bit [WEIGHT_WIDTH-1:0] weight_data_t;
@@ -160,7 +159,7 @@ module bnn_tb #(
   bnn #(
       .LAYERS              (LAYERS  /* default 3 */),
       .NUM_INPUTS          (NUM_INPUTS  /* default 784 */),
-      .NUM_NEURONS         (  /* default '{0: 256, 1: 256, 2: 10, default: 0} */),
+      .NUM_NEURONS         (  CUSTOM_TOPOLOGY[1:LAYERS]),
       .PARALLEL_INPUTS     (PARALLEL_INPUTS  /* default 8 */),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS  /* default '{default: 8} */),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS  /* default 8 */),
@@ -341,7 +340,7 @@ module bnn_tb #(
         @(posedge clk iff bnn_ready);
 
         // Start the throughput timer after the first beat of the first image has been accepted.                
-        if (i == 0 && j == 0) throughput.start_test();
+        // if (i == 0 && j == 0) throughput.start_test();
       end
 
       data_in_valid <= 1'b0;
@@ -386,7 +385,7 @@ module bnn_tb #(
         failed++;
       end
       void'(expected_outputs.pop_front());
-      if (output_count == NUM_TEST_IMAGES - 1) throughput.sample_end();
+      // if (output_count == NUM_TEST_IMAGES - 1) throughput.sample_end();
       output_count++;
     end
   end

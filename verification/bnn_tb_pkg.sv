@@ -6,7 +6,7 @@ package bnn_tb_pkg;
   // Provides a reference model and testing/debugging methods for a BNN
   class BNN_Model #(
       int WEIGHT_WIDTH = 8,
-      int THRESHOLD_WIDTH = 32
+      int THRESHOLD_WIDTH = 10
   );
     typedef bit weight_row_t[];
     typedef weight_row_t layer_t[];

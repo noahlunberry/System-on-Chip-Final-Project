@@ -19,11 +19,11 @@ module bnn #(
     input logic [THRESHOLD_DATA_WIDTH-1:0] threshold_wr_data,
     input logic [              LAYERS-1:0] threshold_wr_en,
 
-    input  logic [     PARALLEL_INPUTS-1:0] data_in,
-    input  logic                            data_in_valid,
-    output logic [THRESHOLD_DATA_WIDTH-1:0] data_out,
-    output logic [THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
-    output logic                            data_out_valid
+    input  logic [           PARALLEL_INPUTS-1:0] data_in,
+    input  logic                                  data_in_valid,
+    output logic [PARALLEL_NEURONS[LAYERS-1]-1:0] data_out,
+    output logic [      THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
+    output logic                                  data_out_valid
 );
 
   // layer 1 -> layer 2 boundary
@@ -102,27 +102,30 @@ module bnn #(
       .weight_wr_data   (weight_wr_data),
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
-      .data_out         (data_out),
+      .data_out         (layer_3_data_out), //data_out
       .ready_out        (1'b1),
       .count_out        (count_out)
   );
 
   logic [THRESHOLD_DATA_WIDTH-1:0] max_count;
+  logic [PARALLEL_NEURONS[LAYERS-1]-1:0] argmax_idx;
+
 
   always_comb begin : argmax
     if (PARALLEL_NEURONS[LAYERS-1] != NUM_NEURONS[LAYERS-1])
       $fatal(1, "bnn_fcc currently requires output layer neurons to match PARALLEL_NEURONS for that layer");
 
-    // This is beyond horrible for synthesis and is solely intended to test the testbench framework.
-    max_count = count_out[0];
-    data_out = '0;
+    max_count  = count_out[0];
+    argmax_idx = '0;
+
     for (int i = 1; i < NUM_NEURONS[LAYERS-1]; i++) begin
       if (count_out[i] > max_count) begin
-        data_out = i;
-        max_count = count_out[i];
+        argmax_idx = i;
+        max_count  = count_out[i];
       end
     end
   end
 
+  assign data_out = argmax_idx;
 
 endmodule

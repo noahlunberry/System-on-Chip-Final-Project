@@ -304,7 +304,8 @@ module bnn_layer_tb #(
     forever begin
       @(posedge clk);
 
-      if (DUT.u_cfc.ram_weight_wr_en != '0) begin
+      // FIX: Gate the monitor with the master enable, as the one-hot neuron vector is never zero.
+      if (weight_wr_en) begin
         exp_addr_out = exp_addr + exp_total_cycles * W_ADDR_PER_CYCLE;
 
         assert (DUT.u_cfc.ram_weight_wr_en == exp_neuron)
@@ -359,7 +360,8 @@ module bnn_layer_tb #(
     forever begin
       @(posedge clk);
 
-      if (DUT.u_cfc.ram_threshold_wr_en != '0) begin
+      // FIX: Gate the monitor with the master enable
+      if (threshold_wr_en) begin
         exp_addr_out = exp_addr + exp_total_cycles * T_ADDR_PER_CYCLE;
 
         assert (DUT.u_cfc.ram_threshold_wr_en == exp_neuron)
