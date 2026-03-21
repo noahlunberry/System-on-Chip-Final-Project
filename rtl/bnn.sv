@@ -105,30 +105,10 @@ module bnn #(
       .weight_wr_data   (weight_wr_data),
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
-      .data_out         (layer_3_data_out),    //data_out
+      .data_out         (data_out),    //data_out
       .ready_out        (1'b1),
       .count_out        (count_out)
   );
 
-  logic [THRESHOLD_DATA_WIDTH-1:0] max_count;
-  logic [PARALLEL_NEURONS[LAYERS-1]-1:0] argmax_idx;
-
-
-  always_comb begin : argmax
-    if (PARALLEL_NEURONS[LAYERS-1] != NUM_NEURONS[LAYERS-1])
-      $fatal(1, "bnn_fcc currently requires output layer neurons to match PARALLEL_NEURONS for that layer");
-
-    max_count  = count_out[0];
-    argmax_idx = '0;
-
-    for (int i = 1; i < NUM_NEURONS[LAYERS-1]; i++) begin
-      if (count_out[i] > max_count) begin
-        argmax_idx = i;
-        max_count  = count_out[i];
-      end
-    end
-  end
-
-  assign data_out = argmax_idx;
 
 endmodule

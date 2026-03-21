@@ -95,7 +95,7 @@ module bnn_fcc_tb #(
     parameter real     DATA_IN_VALID_PROBABILITY                = 0.8,
     parameter realtime TIMEOUT                                  = 10ms,
     parameter realtime CLK_PERIOD                               = 10ns,
-    parameter bit      DEBUG                                    = 1'b0,
+    parameter bit      DEBUG                                    = 1'b1,
 
     // Bus configuratio
     parameter int CONFIG_BUS_WIDTH = 64,

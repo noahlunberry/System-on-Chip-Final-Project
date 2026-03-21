@@ -80,7 +80,6 @@ module neuron_processor #(
 
   assign y_valid = y_valid_r;
   assign y = y_r;
-  assign count_out = acc_r;
 
   // accumulator control
   always_ff @(posedge clk or posedge rst) begin
@@ -109,6 +108,7 @@ module neuron_processor #(
       if (tree_last_out) begin
         // Compare threshold and set Y and Y_valid
         y_r       <= ((acc_r + tree_sum) >= threshold);
+        count_out <= (acc_r + tree_sum);
         y_valid_r <= 1'b1;
       end
     end
