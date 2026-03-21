@@ -77,7 +77,7 @@ module bnn_layer #(
 
     sync_fifo #(
         .DATA_WIDTH(PARALLEL_INPUTS  /* default 32 */),
-        .ADDR_WIDTH(7),
+        .ADDR_WIDTH(13),
         .LOOKAHEAD (0)
     ) sync_fifo (
         .clk     (clk),

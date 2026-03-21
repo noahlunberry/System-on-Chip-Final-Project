@@ -86,8 +86,8 @@ module bnn_fcc_tb #(
     // Testbench configuration
     parameter int      USE_CUSTOM_TOPOLOGY                      = 1'b1,
     parameter int      CUSTOM_LAYERS                            = 4,
-    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{32, 8, 8, 10},
-    parameter int      NUM_TEST_IMAGES                          = 2,
+    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{16, 16, 16, 10},
+    parameter int      NUM_TEST_IMAGES                          = 4,
     parameter bit      VERIFY_MODEL                             = 1,
     parameter string   BASE_DIR                                 = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python", //C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/python
     parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b0,
