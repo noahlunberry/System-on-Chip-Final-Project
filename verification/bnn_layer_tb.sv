@@ -29,7 +29,7 @@ module bnn_layer_tb #(
   // ─── Derived constants ───────────────────────────────────────────────
   localparam int TOTAL_WEIGHTS = TOTAL_NEURONS * TOTAL_INPUTS;
   localparam int W_ADDR_PER_CYCLE = TOTAL_INPUTS / MAX_PARALLEL_INPUTS;
-  localparam int T_ADDR_PER_CYCLE = TOTAL_NEURONS / THRESHOLD_DATA_WIDTH;
+  localparam int T_ADDR_PER_CYCLE = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam realtime HALF_CLK_PERIOD = CLK_PERIOD / 2.0;
 

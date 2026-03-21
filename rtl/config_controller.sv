@@ -23,7 +23,7 @@ module config_controller #(
   // add assertion to make sure this is true
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / MAX_PARALLEL_INPUTS);
-  localparam int T_ADDR_PER_CYCLE = (TOTAL_NEURONS / T_RAM_DATA_W);
+  localparam int T_ADDR_PER_CYCLE = (TOTAL_NEURONS / PARALLEL_NEURONS);
 
 
   // Registers
