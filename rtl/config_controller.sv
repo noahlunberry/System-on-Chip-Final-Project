@@ -23,7 +23,7 @@ module config_controller #(
   // add assertion to make sure this is true
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / MAX_PARALLEL_INPUTS);
-  localparam int T_ADDR_PER_CYCLE = (TOTAL_NEURONS / PARALLEL_NEURONS);
+  localparam int T_ADDR_PER_CYCLE = 1'b1;
 
 
   // Registers
@@ -117,6 +117,6 @@ module config_controller #(
     next_t_addr_out = next_t_addr + (next_t_total_cycles * T_ADDR_PER_CYCLE);
 
     // assert done and enable data in stream
-    if ((t_total_cycles_r == TOTAL_CYCLES - 1) && (w_total_cycles_r == TOTAL_CYCLES - 1)) done = 1;
+    if ((t_total_cycles_r == TOTAL_CYCLES) && (w_total_cycles_r == TOTAL_CYCLES)) done = 1;
   end
 endmodule

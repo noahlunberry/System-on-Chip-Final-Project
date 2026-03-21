@@ -17,19 +17,19 @@ module bnn_layer_tb #(
 
     // Testbench configuration
     parameter int      NUM_TEST_IMAGES           = 10,
-    parameter bit      TOGGLE_DATA_OUT_READY      = 1'b1,
-    parameter real     CONFIG_VALID_PROBABILITY    = 0.8,
-    parameter real     DATA_IN_VALID_PROBABILITY   = 0.8,
-    parameter realtime TIMEOUT                     = 10ms,
-    parameter realtime CLK_PERIOD                  = 10ns,
-    parameter bit      DEBUG                       = 1'b0
+    parameter bit      TOGGLE_DATA_OUT_READY     = 1'b1,
+    parameter real     CONFIG_VALID_PROBABILITY  = 0.8,
+    parameter real     DATA_IN_VALID_PROBABILITY = 0.8,
+    parameter realtime TIMEOUT                   = 10ms,
+    parameter realtime CLK_PERIOD                = 10ns,
+    parameter bit      DEBUG                     = 1'b0
 );
   import bnn_tb_pkg::*;
 
   // ─── Derived constants ───────────────────────────────────────────────
   localparam int TOTAL_WEIGHTS = TOTAL_NEURONS * TOTAL_INPUTS;
   localparam int W_ADDR_PER_CYCLE = TOTAL_INPUTS / MAX_PARALLEL_INPUTS;
-  localparam int T_ADDR_PER_CYCLE = TOTAL_NEURONS / PARALLEL_NEURONS;
+  localparam int T_ADDR_PER_CYCLE = 1;
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
   localparam realtime HALF_CLK_PERIOD = CLK_PERIOD / 2.0;
 
@@ -142,39 +142,35 @@ module bnn_layer_tb #(
 
   // Given the flat weight word index (0, 1, 2, ...), compute expected
   // one-hot write enable and write address that config_controller should produce.
-  function automatic void expected_weight_addr(
-      input  int flat_idx,
-      output logic [PARALLEL_NEURONS-1:0] exp_wr_en,
-      output logic [W_RAM_ADDR_W-1:0]     exp_addr
-  );
-    int neuron_idx;       // which neuron within the parallel set (0..PARALLEL_NEURONS-1)
-    int word_within;      // address within one neuron's BRAM partition
-    int total_cycle;      // which full pass through all neurons
+  function automatic void expected_weight_addr(input int flat_idx,
+                                               output logic [PARALLEL_NEURONS-1:0] exp_wr_en,
+                                               output logic [W_RAM_ADDR_W-1:0] exp_addr);
+    int neuron_idx;  // which neuron within the parallel set (0..PARALLEL_NEURONS-1)
+    int word_within;  // address within one neuron's BRAM partition
+    int total_cycle;  // which full pass through all neurons
 
     word_within = flat_idx % W_ADDR_PER_CYCLE;
-    neuron_idx  = (flat_idx / W_ADDR_PER_CYCLE) % PARALLEL_NEURONS;
+    neuron_idx = (flat_idx / W_ADDR_PER_CYCLE) % PARALLEL_NEURONS;
     total_cycle = flat_idx / (PARALLEL_NEURONS * W_ADDR_PER_CYCLE);
 
     exp_wr_en = (1 << neuron_idx);
-    exp_addr  = word_within + (total_cycle * W_ADDR_PER_CYCLE);
+    exp_addr = word_within + (total_cycle * W_ADDR_PER_CYCLE);
   endfunction
 
   // Given the flat threshold word index, compute expected one-hot enable and address.
-  function automatic void expected_threshold_addr(
-      input  int flat_idx,
-      output logic [PARALLEL_NEURONS-1:0] exp_wr_en,
-      output logic [T_RAM_ADDR_W-1:0]     exp_addr
-  );
+  function automatic void expected_threshold_addr(input int flat_idx,
+                                                  output logic [PARALLEL_NEURONS-1:0] exp_wr_en,
+                                                  output logic [T_RAM_ADDR_W-1:0] exp_addr);
     int neuron_idx;
     int word_within;
     int total_cycle;
 
     word_within = flat_idx % T_ADDR_PER_CYCLE;
-    neuron_idx  = (flat_idx / T_ADDR_PER_CYCLE) % PARALLEL_NEURONS;
+    neuron_idx = (flat_idx / T_ADDR_PER_CYCLE) % PARALLEL_NEURONS;
     total_cycle = flat_idx / (PARALLEL_NEURONS * T_ADDR_PER_CYCLE);
 
     exp_wr_en = (1 << neuron_idx);
-    exp_addr  = word_within + (total_cycle * T_ADDR_PER_CYCLE);
+    exp_addr = word_within + (total_cycle * T_ADDR_PER_CYCLE);
   endfunction
 
   // ═══════════════════════════════════════════════════════════════════
@@ -200,7 +196,9 @@ module bnn_layer_tb #(
     $display("[%0t] Streaming %0d weight words.", $realtime, weight_stream.size());
     for (int i = 0; i < weight_stream.size(); i++) begin
       // Simulate random gaps on the configuration bus
-      while (!chance(CONFIG_VALID_PROBABILITY)) begin
+      while (!chance(
+          CONFIG_VALID_PROBABILITY
+      )) begin
         weight_wr_en <= 1'b0;
         @(posedge clk);
       end
@@ -214,7 +212,9 @@ module bnn_layer_tb #(
     // ── Stream thresholds ─────────────────────────────────────────
     $display("[%0t] Streaming %0d threshold words.", $realtime, threshold_stream.size());
     for (int i = 0; i < threshold_stream.size(); i++) begin
-      while (!chance(CONFIG_VALID_PROBABILITY)) begin
+      while (!chance(
+          CONFIG_VALID_PROBABILITY
+      )) begin
         threshold_wr_en <= 1'b0;
         @(posedge clk);
       end
@@ -254,14 +254,14 @@ module bnn_layer_tb #(
       for (int j = 0; j < TOTAL_INPUTS; j += PARALLEL_INPUTS) begin
         // Pack PARALLEL_INPUTS bits from the binarized image
         for (int k = 0; k < PARALLEL_INPUTS; k++) begin
-          if (j + k < current_img.size())
-            data_in[k] <= (current_img[j+k] >= 8'd128) ? 1'b1 : 1'b0;
-          else
-            data_in[k] <= 1'b0;
+          if (j + k < current_img.size()) data_in[k] <= (current_img[j+k] >= 8'd128) ? 1'b1 : 1'b0;
+          else data_in[k] <= 1'b0;
         end
 
         // Simulate random gaps on data_in bus
-        while (!chance(DATA_IN_VALID_PROBABILITY)) begin
+        while (!chance(
+            DATA_IN_VALID_PROBABILITY
+        )) begin
           valid_in <= 1'b0;
           @(posedge clk iff ready_in);
         end
@@ -289,28 +289,53 @@ module bnn_layer_tb #(
   // CONFIG ADDRESS MONITOR: verify weight BRAM addresses and enables
   // ═══════════════════════════════════════════════════════════════════
   initial begin : l_weight_config_monitor
-    automatic int w_idx = 0;
-    logic [PARALLEL_NEURONS-1:0] exp_en;
-    logic [W_RAM_ADDR_W-1:0]     exp_addr;
+    logic [PARALLEL_NEURONS-1:0] exp_neuron;
+    int exp_addr;
+    int exp_total_cycles;
+    int exp_addr_out;
 
-    // Wait for reset de-assertion
     @(negedge rst);
+
+    exp_neuron       = '0;
+    exp_neuron[0]    = 1'b1;
+    exp_addr         = 0;
+    exp_total_cycles = 0;
 
     forever begin
       @(posedge clk);
-      // Check whenever the DUT's config controller outputs a nonzero weight enable
+
       if (DUT.u_cfc.ram_weight_wr_en != '0) begin
-        expected_weight_addr(w_idx, exp_en, exp_addr);
+        exp_addr_out = exp_addr + exp_total_cycles * W_ADDR_PER_CYCLE;
 
-        assert (DUT.u_cfc.ram_weight_wr_en == exp_en)
-        else $error("[Weight Monitor] idx=%0d: enable mismatch. Expected=%b, Got=%b",
-                     w_idx, exp_en, DUT.u_cfc.ram_weight_wr_en);
+        assert (DUT.u_cfc.ram_weight_wr_en == exp_neuron)
+        else
+          $error(
+              "[Weight Monitor] enable mismatch. expected=%b got=%b", exp_neuron, DUT.u_cfc.ram_weight_wr_en
+          );
 
-        assert (DUT.u_cfc.weight_addr_out == exp_addr)
-        else $error("[Weight Monitor] idx=%0d: addr mismatch. Expected=%0d, Got=%0d",
-                     w_idx, exp_addr, DUT.u_cfc.weight_addr_out);
+        assert (DUT.u_cfc.weight_addr_out == exp_addr_out)
+        else
+          $error(
+              "[Weight Monitor] addr mismatch. expected=%0d got=%0d (local=%0d total_cycles=%0d)",
+              exp_addr_out,
+              DUT.u_cfc.weight_addr_out,
+              exp_addr,
+              exp_total_cycles
+          );
 
-        w_idx++;
+        // advance expected state exactly like DUT
+        if (exp_addr == W_ADDR_PER_CYCLE - 1) begin
+          exp_addr = 0;
+          if (exp_neuron[PARALLEL_NEURONS-1]) begin
+            exp_neuron = '0;
+            exp_neuron[0] = 1'b1;
+            exp_total_cycles++;
+          end else begin
+            exp_neuron = exp_neuron << 1;
+          end
+        end else begin
+          exp_addr++;
+        end
       end
     end
   end
@@ -319,26 +344,55 @@ module bnn_layer_tb #(
   // CONFIG ADDRESS MONITOR: verify threshold BRAM addresses and enables
   // ═══════════════════════════════════════════════════════════════════
   initial begin : l_threshold_config_monitor
-    automatic int t_idx = 0;
-    logic [PARALLEL_NEURONS-1:0] exp_en;
-    logic [T_RAM_ADDR_W-1:0]     exp_addr;
+    logic [PARALLEL_NEURONS-1:0] exp_neuron;
+    int exp_addr;
+    int exp_total_cycles;
+    int exp_addr_out;
 
     @(negedge rst);
 
+    exp_neuron       = '0;
+    exp_neuron[0]    = 1'b1;
+    exp_addr         = 0;
+    exp_total_cycles = 0;
+
     forever begin
       @(posedge clk);
+
       if (DUT.u_cfc.ram_threshold_wr_en != '0) begin
-        expected_threshold_addr(t_idx, exp_en, exp_addr);
+        exp_addr_out = exp_addr + exp_total_cycles * T_ADDR_PER_CYCLE;
 
-        assert (DUT.u_cfc.ram_threshold_wr_en == exp_en)
-        else $error("[Threshold Monitor] idx=%0d: enable mismatch. Expected=%b, Got=%b",
-                     t_idx, exp_en, DUT.u_cfc.ram_threshold_wr_en);
+        assert (DUT.u_cfc.ram_threshold_wr_en == exp_neuron)
+        else
+          $error(
+              "[Threshold Monitor] enable mismatch. expected=%b got=%b",
+              exp_neuron,
+              DUT.u_cfc.ram_threshold_wr_en
+          );
 
-        assert (DUT.u_cfc.threshold_addr_out == exp_addr)
-        else $error("[Threshold Monitor] idx=%0d: addr mismatch. Expected=%0d, Got=%0d",
-                     t_idx, exp_addr, DUT.u_cfc.threshold_addr_out);
+        assert (DUT.u_cfc.threshold_addr_out == exp_addr_out)
+        else
+          $error(
+              "[Threshold Monitor] addr mismatch. expected=%0d got=%0d (local=%0d total_cycles=%0d)",
+              exp_addr_out,
+              DUT.u_cfc.threshold_addr_out,
+              exp_addr,
+              exp_total_cycles
+          );
 
-        t_idx++;
+        // advance expected state exactly like DUT
+        if (exp_addr == T_ADDR_PER_CYCLE - 1) begin
+          exp_addr = 0;
+          if (exp_neuron[PARALLEL_NEURONS-1]) begin
+            exp_neuron = '0;
+            exp_neuron[0] = 1'b1;
+            exp_total_cycles++;
+          end else begin
+            exp_neuron = exp_neuron << 1;
+          end
+        end else begin
+          exp_addr++;
+        end
       end
     end
   end
@@ -357,8 +411,8 @@ module bnn_layer_tb #(
         passed++;
         $display("[%0t] Output %0d PASSED: data_out=%b", $realtime, output_count, data_out);
       end else begin
-        $error("[Output Monitor] Output %0d FAILED: actual=%b, expected=%b",
-               output_count, data_out, expected_data_out[0]);
+        $error("[Output Monitor] Output %0d FAILED: actual=%b, expected=%b", output_count, data_out,
+               expected_data_out[0]);
         failed++;
       end
 
