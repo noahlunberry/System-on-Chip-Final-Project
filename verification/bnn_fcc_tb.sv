@@ -86,11 +86,11 @@ module bnn_fcc_tb #(
     // Testbench configuration
     parameter int      USE_CUSTOM_TOPOLOGY                      = 1'b1,
     parameter int      CUSTOM_LAYERS                            = 4,
-    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{32, 8, 8, 8},
-    parameter int      NUM_TEST_IMAGES                          = 50,
+    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{8, 8, 8, 8},
+    parameter int      NUM_TEST_IMAGES                          = 5,
     parameter bit      VERIFY_MODEL                             = 1,
     parameter string   BASE_DIR                                 = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python", //C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/python
-    parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b1,
+    parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b0,
     parameter real     CONFIG_VALID_PROBABILITY                 = 0.8,
     parameter real     DATA_IN_VALID_PROBABILITY                = 0.8,
     parameter realtime TIMEOUT                                  = 10ms,

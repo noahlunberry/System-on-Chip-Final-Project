@@ -38,7 +38,8 @@ module bnn #(
   logic                           layer_2_ready_out;
 
 
-  assign ready = en && layer_1_ready_in;
+  // Only apply backpressure to layer before/after
+  assign ready = layer_1_ready_in;
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),

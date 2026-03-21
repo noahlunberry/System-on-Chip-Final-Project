@@ -1,7 +1,7 @@
 module neuron_processor #(
     parameter  int P_WIDTH         = 64,                   // Parallel inputs per cycle
     parameter  int THRESHOLD_WIDTH = $clog2(P_WIDTH + 1),
-    localparam int ACC_WIDTH       = 1 + $clog2(P_WIDTH),  // Width of final accumulator
+    localparam int ACC_WIDTH       = THRESHOLD_WIDTH,      // Width of final accumulator
     parameter  int INPUT_WIDTH     = 1
 ) (
     input logic                       clk,
@@ -75,6 +75,19 @@ module neuron_processor #(
       .out(tree_valid_out)
   );
 
+  logic [THRESHOLD_WIDTH-1:0] threshold_out_r;
+
+  delay #(
+      .CYCLES(TREE_LATENCY),
+      .WIDTH (THRESHOLD_WIDTH)
+  ) u_threshold_delay (
+      .clk(clk),
+      .rst(rst),
+      .en (1'b1),
+      .in (threshold),
+      .out(threshold_out_r)
+  );
+
   logic y_valid_r;
   logic y_r;
 
@@ -107,7 +120,7 @@ module neuron_processor #(
 
       if (tree_last_out) begin
         // Compare threshold and set Y and Y_valid
-        y_r       <= ((acc_r + tree_sum) >= threshold);
+        y_r       <= ((acc_r + tree_sum) >= threshold_out_r);
         count_out <= (acc_r + tree_sum);
         y_valid_r <= 1'b1;
       end

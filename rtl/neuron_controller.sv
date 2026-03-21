@@ -141,8 +141,8 @@ module neuron_controller #(
             next_word_count = word_count_r + 1'b1;
           end
 
-          // Address always increments to pull next weight/input chunk
-          next_addr_count = addr_count_r + 1'b1;
+          // Address always increments to pull next weight/input chunk unless only one batch
+          if (WORDS_PER_NEURON > 1) next_addr_count = addr_count_r + 1'b1;
         end
       end
 
