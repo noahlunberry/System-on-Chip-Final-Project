@@ -117,7 +117,7 @@ module config_manager #(
           next_count = count_r + 1'b1;
           next_fifo_rd_en = 1;
           next_ram_wr_en = 1;
-          if (count_r == rd_count_r - 1) begin
+          if (count_r == rd_count_r) begin
             next_state = DRAIN;
             next_count = '0;
           end
@@ -140,8 +140,9 @@ module config_manager #(
   logic t_rd_en;
   logic t_wr_en;
 
-  assign w_rd_en = fifo_rd_en_r && !msg_type_r;
-  assign t_rd_en = fifo_rd_en_r && msg_type_r;
+ 
+  assign w_rd_en = fifo_rd_en_r && !msg_type_r && !empty;
+  assign t_rd_en = fifo_rd_en_r && msg_type_r && !empty;
   assign w_wr_en = fifo_wr_en_r && !msg_type_r;
   assign t_wr_en = fifo_wr_en_r && msg_type_r;
 
@@ -149,9 +150,10 @@ module config_manager #(
     weight_ram_wr_en    = '0;
     threshold_ram_wr_en = '0;
 
-    if (ram_wr_en_r && (layer_id_r < LAYERS)) begin
+     // !empty signal essential to guard edge case where fifo is emptying, and no valid data is being produced
+    if (ram_wr_en_r && (layer_id_r < LAYERS) && !empty) begin
       if (msg_type_r) threshold_ram_wr_en[layer_id_r] = 1'b1;
-      else weight_ram_wr_en[layer_id_r] = 1'b1;
+      else weight_ram_wr_en[layer_id_r] = 1'b1; 
     end
   end
 
@@ -175,7 +177,7 @@ module config_manager #(
 
   fifo_vr #(
       .N(BUS_WIDTH),            // write config_data_in
-      .M(THRESHOLD_DATA_WIDTH),  // READ config_data_in
+      .M(32),  // READ config_data_in
       .P(12)                  // DEPTH: size of addresses (calculate later)
   ) fifo_thresholds (
       .clk            (clk),
