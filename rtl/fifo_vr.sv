@@ -51,16 +51,17 @@ module fifo_vr #(
         if (!(rst)) begin
             if (wr_en && !full) begin
                 for (int i = 0; i <= N - 1; i++) begin
-                    mem[(i+wraddr*N)%(MEM_SIZE)] <= wr_data[N-1-i];
+                    mem[(i+wraddr*N)%(MEM_SIZE)] <= wr_data[i]; // changed to little-endian (write the LSB first)
                 end
             end
         end
     end
 
+    // also updated read to little-endian
     genvar j;
     generate
         for (j = 0; j <= M - 1; j++) begin
-            assign rd_data[M - 1 - j] = (rst) ? rd_data[M - 1 - j] : ((rd_en && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 'x);
+            assign rd_data[j] = (rst) ? rd_data[M - 1 - j] : ((rd_en && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 'x);
         end
     endgenerate
 
