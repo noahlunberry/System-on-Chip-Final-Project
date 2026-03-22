@@ -37,7 +37,6 @@ module replay_buffer #(
 
   assign rd_data  = rd_data_r;
 
-  // phase-based status
   assign empty    = (state_r == WRITE_ST);
   assign full     = (state_r == READ_ST);
   assign not_full = (state_r == WRITE_ST) && (count_r < NUM_ELEMENTS);

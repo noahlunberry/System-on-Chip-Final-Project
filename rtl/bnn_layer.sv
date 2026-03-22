@@ -73,12 +73,12 @@ module bnn_layer #(
   assign ready_in = config_done && buffer_not_full && ready_out;
 
 
-  localparam int INPUT_BUFFER_DEPTH = TOTAL_INPUTS / PARALLEL_INPUTS;
   localparam int REUSE_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
+  localparam int REPLAY_WIDTH = TOTAL_INPUTS / PARALLEL_INPUTS;
 
   replay_buffer #(
       .ELEMENT_WIDTH(PARALLEL_INPUTS),
-      .NUM_ELEMENTS (INPUT_BUFFER_DEPTH),
+      .NUM_ELEMENTS (REPLAY_WIDTH),
       .REUSE_CYCLES(REUSE_CYCLES)
   ) u_input_buffer (
       .clk     (clk),
