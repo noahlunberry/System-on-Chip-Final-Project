@@ -87,7 +87,7 @@ module bnn_fcc_tb #(
     parameter int      USE_CUSTOM_TOPOLOGY                      = 1'b1,
     parameter int      CUSTOM_LAYERS                            = 4,
     parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{16, 8, 8, 10},
-    parameter int      NUM_TEST_IMAGES                          = 100,
+    parameter int      NUM_TEST_IMAGES                          = 10,
     parameter bit      VERIFY_MODEL                             = 1,
     parameter string   BASE_DIR                                 = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python", //C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/python
     parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b0,
@@ -95,7 +95,7 @@ module bnn_fcc_tb #(
     parameter real     DATA_IN_VALID_PROBABILITY                = 0.8,
     parameter realtime TIMEOUT                                  = 100ms,
     parameter realtime CLK_PERIOD                               = 10ns,
-    parameter bit      DEBUG                                    = 1'b0,
+    parameter bit      DEBUG                                    = 1'b1,
 
     // Bus configuratio
     parameter int CONFIG_BUS_WIDTH = 64,

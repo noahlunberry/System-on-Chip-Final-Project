@@ -37,9 +37,11 @@ module bnn #(
   logic                           layer_2_valid_out;
   logic                           layer_2_ready_out;
 
+  logic valid_in;
 
   // Only apply backpressure to layer before/after
   assign ready = layer_1_ready_in;
+  assign valid_in = data_in_valid && layer_1_ready_in; // don't allow new data when applying backpressure
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
@@ -53,7 +55,7 @@ module bnn #(
       .clk              (clk),
       .rst              (rst),
       .data_in          (data_in),
-      .valid_in         (data_in_valid),
+      .valid_in         (valid_in),
       .ready_in         (layer_1_ready_in),
       .weight_wr_en     (weight_wr_en[0]),
       .threshold_wr_en  (threshold_wr_en[0]),
