@@ -74,10 +74,12 @@ module bnn_layer #(
 
 
   localparam int INPUT_BUFFER_DEPTH = TOTAL_INPUTS / PARALLEL_INPUTS;
+  localparam int REUSE_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
 
-  sliding_window #(
+  replay_buffer #(
       .ELEMENT_WIDTH(PARALLEL_INPUTS),
-      .NUM_ELEMENTS (INPUT_BUFFER_DEPTH)
+      .NUM_ELEMENTS (INPUT_BUFFER_DEPTH),
+      .REUSE_CYCLES(REUSE_CYCLES)
   ) u_input_buffer (
       .clk     (clk),
       .rst     (rst),
@@ -121,7 +123,7 @@ module bnn_layer #(
   logic np_last;
   logic valid_data;
   // Only begin producing new data if downstream interface is ready
-  assign valid_data = !buffer_empty && ready_out;
+  assign valid_data = buffer_full && ready_out;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
