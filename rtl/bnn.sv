@@ -25,6 +25,10 @@ module bnn #(
     output logic [      THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
     output logic                                  data_out_valid
 );
+  // Round up to nearest multiple of MAX_PARALLEL_INPUTS
+  localparam int PADDED_INPUTS = ((NUM_INPUTS + MAX_PARALLEL_INPUTS - 1)
+                                / MAX_PARALLEL_INPUTS) * MAX_PARALLEL_INPUTS;
+
 
   // layer 1 -> layer 2 boundary
   logic [PARALLEL_NEURONS[0]-1:0] layer_1_data_out;
@@ -37,11 +41,11 @@ module bnn #(
   logic                           layer_2_valid_out;
   logic                           layer_2_ready_out;
 
-  logic valid_in;
+  logic                           valid_in;
 
   // Only apply backpressure to layer before/after
   assign ready = layer_1_ready_in;
-  assign valid_in = data_in_valid && layer_1_ready_in; // don't allow new data when applying backpressure
+  assign valid_in = data_in_valid && layer_1_ready_in;  // don't allow new data when applying backpressure
 
   bnn_layer #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
@@ -49,7 +53,7 @@ module bnn #(
       .PARALLEL_INPUTS    (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS[0]),
       .TOTAL_NEURONS      (NUM_NEURONS[0]),
-      .TOTAL_INPUTS       (NUM_INPUTS),
+      .TOTAL_INPUTS       (PADDED_INPUTS),
       .LAST_LAYER         (0)
   ) u_layer_1 (
       .clk              (clk),
@@ -108,7 +112,7 @@ module bnn #(
       .weight_wr_data   (weight_wr_data),
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
-      .data_out         (data_out),    //data_out
+      .data_out         (data_out),            //data_out
       .ready_out        (1'b1),
       .count_out        (count_out)
   );

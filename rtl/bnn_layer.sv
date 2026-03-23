@@ -44,6 +44,12 @@ module bnn_layer #(
       $fatal(1, "layer requires TOTAL_INPUTS to be a multiple of PARRALEL_INPUTS");
   end
 
+  // TOTAL_INPUTS = 832 (padded), but real inputs = MAX_INPUTS (784)
+  localparam int REMAINDER = MAX_INPUTS % PARALLEL_INPUTS;  // 784 % 64 = 16
+  localparam logic [PARALLEL_INPUTS-1:0] W_PAD_MASK = 
+    (REMAINDER == 0) ? '0 : ({PARALLEL_INPUTS{1'b1}} << REMAINDER);
+
+
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
   logic [    PARALLEL_NEURONS-1:0] w_wr_en;
@@ -56,11 +62,11 @@ module bnn_layer #(
   // They each have their own rd data and rd addresses, since data will be read in parallel
   logic                            w_rd_en;
   logic [        W_RAM_ADDR_W-1:0] w_rd_addr;
-  logic [     PARALLEL_INPUTS-1:0] w_rd_data      [PARALLEL_NEURONS];
+  logic [     PARALLEL_INPUTS-1:0] w_rd_data       [PARALLEL_NEURONS];
 
   logic                            t_rd_en;
   logic [        T_RAM_ADDR_W-1:0] t_rd_addr;
-  logic [THRESHOLD_DATA_WIDTH-1:0] t_rd_data      [PARALLEL_NEURONS];
+  logic [THRESHOLD_DATA_WIDTH-1:0] t_rd_data       [PARALLEL_NEURONS];
 
   // Input buffer signals
   logic [     PARALLEL_INPUTS-1:0] buffer_rd_data;
@@ -79,7 +85,7 @@ module bnn_layer #(
   replay_buffer #(
       .ELEMENT_WIDTH(PARALLEL_INPUTS),
       .NUM_ELEMENTS (REPLAY_WIDTH),
-      .REUSE_CYCLES(REUSE_CYCLES)
+      .REUSE_CYCLES (REUSE_CYCLES)
   ) u_input_buffer (
       .clk     (clk),
       .rst     (rst),
@@ -96,6 +102,7 @@ module bnn_layer #(
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
+
   config_controller #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS),
@@ -116,8 +123,15 @@ module bnn_layer #(
       .ram_threshold_wr_en(t_wr_en),
       .weight_addr_out    (w_wr_addr),
       .threshold_addr_out (t_wr_addr),
-      .done               (config_done)
+      .done               (config_done),
+      .w_last_addr        (w_last_addr)
   );
+
+  // Padded weight data - only affects the last word per neuron
+  logic [MAX_PARALLEL_INPUTS-1:0] padded_weight_wr_data;
+  assign padded_weight_wr_data = w_last_addr
+    ? (weight_wr_data[PARALLEL_INPUTS-1:0] | W_PAD_MASK)
+    : weight_wr_data[PARALLEL_INPUTS-1:0];
 
   logic np_valid;
   logic np_last;
@@ -170,7 +184,7 @@ module bnn_layer #(
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
           .wr_addr(w_wr_addr),
-          .wr_data(weight_wr_data)
+          .wr_data(padded_weight_wr_data)
       );
 
       // Threshold RAM (one per NP)

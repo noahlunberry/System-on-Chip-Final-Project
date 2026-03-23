@@ -18,7 +18,8 @@ module config_controller #(
     output logic [PARALLEL_NEURONS-1:0] ram_threshold_wr_en,
     output logic [    W_RAM_ADDR_W-1:0] weight_addr_out,
     output logic [    T_RAM_ADDR_W-1:0] threshold_addr_out,
-    output logic                        done
+    output logic                        done,
+    output logic                        w_last_addr
 );
 
   // add assertion to make sure this is true
@@ -80,11 +81,14 @@ module config_controller #(
     next_t_total_cycles = t_total_cycles_r;
 
     done                = 0;
+    w_last_addr         = 1'b0;
 
     if (weight_wr_en) begin
 
       // if last address for neuron, move to address 0 for next neuron
+      // also add signal to pad the last address with 1's if necessary
       if (w_addr_r == W_ADDR_PER_CYCLE - 1) begin
+        w_last_addr = 1'b1;
         next_w_addr = 0;
         // if last neuron, move to neuron 0
         if (w_neuron_r[PARALLEL_NEURONS-1] == 1) begin
