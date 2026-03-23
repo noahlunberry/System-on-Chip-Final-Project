@@ -14,7 +14,8 @@ module parser_controller #(
     output logic                        wr_en,
     output logic                        msg_type,
     output logic [                 1:0] layer_id,
-    output logic [                31:0] total_bytes
+    output logic [                31:0] total_bytes,
+    output logic [                15:0] bytes_per_neuron
 );
 
   localparam int FIFO_RD_BYTES = (CONFIG_BUS_WIDTH) / 8;
@@ -34,6 +35,7 @@ module parser_controller #(
   bit msg_type_r, next_msg_type;
   logic [1:0] layer_id_r, next_layer_id;
   logic [31:0] total_bytes_r, next_total_bytes;
+  logic [15:0] bytes_per_neuron_r, next_bytes_per_neuron;
 
   // Counter Signals
   logic [31:0] wr_count_r, next_wr_count;
@@ -43,17 +45,19 @@ module parser_controller #(
   assign msg_type = msg_type_r;
   assign total_bytes = total_bytes_r;
   assign layer_id = layer_id_r;
+  assign bytes_per_neuron = bytes_per_neuron_r;
 
   always_ff @(posedge clk) begin
     // Control Signals
-    state_r       <= next_state;
-    ready_r       <= next_ready;
+    state_r            <= next_state;
+    ready_r            <= next_ready;
 
-    msg_type_r    <= next_msg_type;
-    layer_id_r    <= next_layer_id;
-    total_bytes_r <= next_total_bytes;
-    count_r       <= next_count;
-    wr_count_r    <= next_wr_count;
+    msg_type_r         <= next_msg_type;
+    layer_id_r         <= next_layer_id;
+    total_bytes_r      <= next_total_bytes;
+    bytes_per_neuron_r <= next_bytes_per_neuron;
+    count_r            <= next_count;
+    wr_count_r         <= next_wr_count;
 
     if (rst) begin
       state_r       <= HDR0;
@@ -67,18 +71,19 @@ module parser_controller #(
 
   always_comb begin
     // Control
-    next_ready       = ready_r;
+    next_ready            = ready_r;
 
-    next_state       = state_r;
-    next_msg_type    = msg_type_r;
-    next_layer_id    = layer_id_r;
-    next_total_bytes = total_bytes_r;
+    next_state            = state_r;
+    next_msg_type         = msg_type_r;
+    next_layer_id         = layer_id_r;
+    next_total_bytes      = total_bytes_r;
+    next_bytes_per_neuron = bytes_per_neuron_r;
 
     // Counters
-    next_wr_count    = wr_count_r;
-    next_count       = count_r;
+    next_wr_count         = wr_count_r;
+    next_count            = count_r;
 
-    wr_en = 0;
+    wr_en                 = 0;
 
 
 
@@ -90,6 +95,7 @@ module parser_controller #(
 
           next_msg_type = data[0];
           next_layer_id = data[9:8];
+          next_bytes_per_neuron = data[63:48];
           next_state    = HDR1;
 
           next_count    = '0;
