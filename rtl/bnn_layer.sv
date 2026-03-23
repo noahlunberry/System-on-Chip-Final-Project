@@ -11,8 +11,7 @@ module bnn_layer #(
         (TOTAL_NEURONS / PARALLEL_NEURONS) * (TOTAL_INPUTS / PARALLEL_INPUTS) + 1
     ),
     localparam int T_RAM_ADDR_W = $clog2((TOTAL_NEURONS / PARALLEL_NEURONS) + 1),
-    localparam int THRESHOLD_DATA_WIDTH = $clog2(MAX_INPUTS + 1),
-    localparam int ACC_WIDTH = 1 + $clog2(PARALLEL_INPUTS)
+    localparam int THRESHOLD_DATA_WIDTH = $clog2(MAX_INPUTS + 1)
 
 ) (
     input logic clk,
