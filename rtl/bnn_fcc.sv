@@ -73,20 +73,16 @@ module bnn_fcc #(
   logic                            bnn_count_valid;
 
   initial begin
-    if (INPUT_BUS_ELEMENTS != PARALLEL_INPUTS)
-      $fatal(1, "bnn_fcc requires PARALLEL_INPUTS to match the pixels/beat");
     for (int i = 0; i < LAYERS - 1; i++) begin
-      if (PARALLEL_NEURONS[i] != PARALLEL_INPUTS)
-        $fatal(1, "bnn_fcc requires PARALLEL_NEURONS to match PARALLEL_INPUTS in all hidden layers");
+      if (TOPOLOGY[i+1] % PARALLEL_NEURONS[i])
+        $fatal(1, "bnn_fcc requires TOPOLOGY[%0d] to be divisible by PARALLEL_NEURONS[%0d]", i+1, i);
     end
-    if (TOPOLOGY[0] % PARALLEL_INPUTS)
-      $fatal(1, "bnn_fcc requires total inputs to be a multiple of PARALLEL_INPUTS.");
-    if (PARALLEL_INPUTS != 8) $fatal(1, "bnn_fcc currently requires PARALLEL_INPUTS=8");
   end
 
   config_manager #(
       .BUS_WIDTH           (INPUT_BUS_WIDTH),
       .LAYERS              (LAYERS),
+      .PARALLEL_INPUTS     (PARALLEL_INPUTS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
       .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
@@ -104,28 +100,67 @@ module bnn_fcc #(
       .threshold_ram_wr_en  (threshold_wr_en)
   );
 
-  // assign pixels = {<<INPUT_DATA_WIDTH{data_in_data}};
+  // ── Binarization + Serial-to-Parallel FIFO ──────────────────────────────
+  // The AXI bus delivers INPUT_BUS_ELEMENTS pixels per beat. Each pixel is
+  // binarized (>= threshold → 1) and the resulting bits are written into a
+  // fifo_vr that accumulates narrow writes and produces PARALLEL_INPUTS-wide
+  // reads. This decouples the bus width from the BNN's parallelism.
+
+  // Unpack pixels from AXI beat
   always_comb begin
     for (int i = 0; i < INPUT_BUS_ELEMENTS; i++) begin
       pixels[i] = data_in_data[i*INPUT_DATA_WIDTH+:INPUT_DATA_WIDTH];
     end
   end
 
-  assign data_in_ready = bnn_ready && config_ready;
+  // Binarize pixels (registered)
+  logic [INPUT_BUS_ELEMENTS-1:0] bin_data_r;
+  logic                          bin_valid_r;
 
-  always_ff @(posedge clk) begin : binarization
-    if (data_in_ready) begin
-      for (int i = 0; i < INPUT_BUS_ELEMENTS; i++)
-      bnn_data_in[i] <= pixels[i] >= INPUT_BINARIZATION_THRESHOLD;
-      bnn_data_in_valid <= data_in_valid;
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      bin_valid_r <= 1'b0;
+    end else begin
+      bin_valid_r <= data_in_valid && data_in_ready;
+      if (data_in_valid && data_in_ready) begin
+        for (int i = 0; i < INPUT_BUS_ELEMENTS; i++)
+          bin_data_r[i] <= pixels[i] >= INPUT_BINARIZATION_THRESHOLD;
+      end
     end
   end
+
+  // Serial-to-parallel FIFO: writes INPUT_BUS_ELEMENTS bits, reads PARALLEL_INPUTS bits
+  logic bin_fifo_full;
+  logic bin_fifo_empty;
+  logic bin_fifo_alm_full;
+
+  fifo_vr #(
+      .N(INPUT_BUS_ELEMENTS),  // write width (e.g. 8 binary bits per AXI beat)
+      .M(PARALLEL_INPUTS),     // read width  (e.g. 64 bits for BNN)
+      .P(5)                    // depth: 2^5 = 32 entries in M-units
+  ) bin_fifo (
+      .clk             (clk),
+      .rst             (rst),
+      .wr_en           (bin_valid_r),
+      .wr_data         (bin_data_r),
+      .rd_en           (!bin_fifo_empty && bnn_ready),
+      .rd_data         (bnn_data_in),
+      .alm_full_thresh (5'd1),    // assert 1 entry before full
+      .alm_empty_thresh('0),
+      .alm_full        (bin_fifo_alm_full),
+      .alm_empty       (),
+      .full            (bin_fifo_full),
+      .empty           (bin_fifo_empty)
+  );
+
+  assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
+  assign data_in_ready     = config_ready && !bin_fifo_alm_full;
 
   bnn #(
       .LAYERS              (LAYERS),
       .NUM_INPUTS          (TOPOLOGY[0]),
       .NUM_NEURONS         (NUM_NEURONS),
-      .PARALLEL_INPUTS     (INPUT_BUS_WIDTH / 8),
+      .PARALLEL_INPUTS     (PARALLEL_INPUTS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
