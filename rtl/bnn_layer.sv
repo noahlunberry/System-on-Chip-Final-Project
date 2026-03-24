@@ -70,7 +70,7 @@ module bnn_layer #(
 
   logic                            config_done;
 
-  assign ready_in = config_done && buffer_not_full && ready_out;
+  assign ready_in = config_done && buffer_not_full;
 
 
   localparam int REUSE_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;

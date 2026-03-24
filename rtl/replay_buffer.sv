@@ -18,119 +18,95 @@ module replay_buffer #(
   localparam int INDEX_W = (NUM_ELEMENTS <= 1) ? 1 : $clog2(NUM_ELEMENTS);
   localparam int CYCLE_W = (REUSE_CYCLES <= 1) ? 1 : $clog2(REUSE_CYCLES);
 
-  typedef enum logic {
-    WRITE_ST,
-    READ_ST
-  } state_t;
+  // Ping-Pong Memory Banks
+  logic [1:0][NUM_ELEMENTS-1:0][ELEMENT_WIDTH-1:0] d_r, next_d;
 
-  state_t state_r, next_state;
+  // Bank states: 0 = EMPTY (Ready to write), 1 = FULL (Ready to read)
+  logic [1:0] bank_state_r, next_bank_state;
+  
+  // Pointers
+  logic       wr_bank_r, next_wr_bank;
+  logic       rd_bank_r, next_rd_bank;
 
-  logic [NUM_ELEMENTS-1:0][ELEMENT_WIDTH-1:0] d_r, next_d;
-
-  logic [COUNT_W-1:0] count_r, next_count;
+  // Counters
+  logic [COUNT_W-1:0] wr_count_r, next_wr_count;
   logic [INDEX_W-1:0] rd_idx_r, next_rd_idx;
   logic [CYCLE_W-1:0] cycle_r, next_cycle;
 
   logic [ELEMENT_WIDTH-1:0] rd_data_r, next_rd_data;
 
-  logic wr_fire, rd_fire;
-
+  // Status flags
+  assign not_full = (bank_state_r[wr_bank_r] == 1'b0);
+  assign full     = (bank_state_r[rd_bank_r] == 1'b1);
+  assign empty    = !full;
+  
   assign rd_data  = rd_data_r;
 
-  assign empty    = (state_r == WRITE_ST);
-  assign full     = (state_r == READ_ST);
-  assign not_full = (state_r == WRITE_ST) && (count_r < NUM_ELEMENTS);
-
-  assign wr_fire  = (state_r == WRITE_ST) && wr_en && (count_r < NUM_ELEMENTS);
-  assign rd_fire  = (state_r == READ_ST) && rd_en;
-
   always_comb begin
-    next_state   = state_r;
-    next_d       = d_r;
-    next_count   = count_r;
-    next_rd_idx  = rd_idx_r;
-    next_cycle   = cycle_r;
-    next_rd_data = rd_data_r;
+    next_d          = d_r;
+    next_bank_state = bank_state_r;
+    
+    next_wr_bank    = wr_bank_r;
+    next_wr_count   = wr_count_r;
+    
+    next_rd_bank    = rd_bank_r;
+    next_rd_idx     = rd_idx_r;
+    next_cycle      = cycle_r;
+    
+    next_rd_data    = rd_data_r;
 
-    case (state_r)
+    // --- WRITE PROCESS ---
+    if (wr_en && not_full) begin
+      next_d[wr_bank_r][wr_count_r] = wr_data;
+      
+      if (wr_count_r == NUM_ELEMENTS - 1) begin
+        next_bank_state[wr_bank_r] = 1'b1; // Mark Bank as FULL
+        next_wr_bank  = ~wr_bank_r;        // Toggle Bank
+        next_wr_count = '0;
+      end else begin
+        next_wr_count = wr_count_r + 1'b1;
+      end
+    end
 
-      WRITE_ST: begin
-        // while writing, reads are considered invalid / buffer not ready
-        next_rd_data = '0;
-        next_rd_idx  = '0;
-        next_cycle   = '0;
+    // --- READ PROCESS ---
+    if (rd_en && full) begin
+      next_rd_data = d_r[rd_bank_r][rd_idx_r];
 
-        if (wr_fire) begin
-          next_d[count_r] = wr_data;
-          next_count      = count_r + 1'b1;
+      if (rd_idx_r == NUM_ELEMENTS - 1) begin
+        next_rd_idx = '0;
 
-          // once the frame is full, move into READ state
-          if (count_r == NUM_ELEMENTS - 1) begin
-            next_state  = READ_ST;
-            next_rd_idx = '0;
-            next_cycle  = '0;
-          end
+        if (cycle_r == REUSE_CYCLES - 1) begin
+          next_bank_state[rd_bank_r] = 1'b0; // Mark Bank as EMPTY
+          next_rd_bank = ~rd_bank_r;         // Toggle Bank
+          next_cycle   = '0;
+        end else begin
+          next_cycle = cycle_r + 1'b1;
         end
+      end else begin
+        next_rd_idx = rd_idx_r + 1'b1;
       end
-
-      READ_ST: begin
-        if (rd_fire) begin
-          // output current element
-          next_rd_data = d_r[rd_idx_r];
-
-          // end of one pass through the buffer
-          if (rd_idx_r == NUM_ELEMENTS - 1) begin
-            next_rd_idx = '0;
-
-            // done with all requested reuse cycles
-            if (cycle_r == REUSE_CYCLES - 1) begin
-              next_state = WRITE_ST;
-              next_count = '0;
-              next_cycle = '0;
-              next_rd_idx = '0;
-
-              // clear stored data because you asked to reset data registers
-              next_d = '0;
-
-              // note:
-              // next_rd_data is left as the final word for this cycle.
-              // it will clear on the following WRITE cycle.
-            end else begin
-              next_cycle = cycle_r + 1'b1;
-            end
-          end else begin
-            next_rd_idx = rd_idx_r + 1'b1;
-          end
-        end
-      end
-
-      default: begin
-        next_state   = WRITE_ST;
-        next_d       = '0;
-        next_count   = '0;
-        next_rd_idx  = '0;
-        next_cycle   = '0;
-        next_rd_data = '0;
-      end
-
-    endcase
+    end
   end
 
   always_ff @(posedge clk or posedge rst) begin
     if (rst) begin
-      state_r   <= WRITE_ST;
-      d_r       <= '0;
-      count_r   <= '0;
-      rd_idx_r  <= '0;
-      cycle_r   <= '0;
-      rd_data_r <= '0;
+      d_r          <= '0;
+      bank_state_r <= 2'b00;
+      wr_bank_r    <= 1'b0;
+      rd_bank_r    <= 1'b0;
+      wr_count_r   <= '0;
+      rd_idx_r     <= '0;
+      cycle_r      <= '0;
+      rd_data_r    <= '0;
     end else begin
-      state_r   <= next_state;
-      d_r       <= next_d;
-      count_r   <= next_count;
-      rd_idx_r  <= next_rd_idx;
-      cycle_r   <= next_cycle;
-      rd_data_r <= next_rd_data;
+      d_r          <= next_d;
+      bank_state_r <= next_bank_state;
+      wr_bank_r    <= next_wr_bank;
+      rd_bank_r    <= next_rd_bank;
+      wr_count_r   <= next_wr_count;
+      rd_idx_r     <= next_rd_idx;
+      cycle_r      <= next_cycle;
+      rd_data_r    <= next_rd_data;
     end
   end
 
