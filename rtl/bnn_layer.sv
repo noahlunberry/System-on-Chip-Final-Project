@@ -97,7 +97,7 @@ module bnn_layer #(
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
   config_controller #(
-      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
+      .PARALLEL_INPUTS(PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS),
       .TOTAL_NEURONS      (TOTAL_NEURONS),
       .TOTAL_INPUTS       (TOTAL_INPUTS),

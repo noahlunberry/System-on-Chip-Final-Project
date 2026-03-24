@@ -185,6 +185,19 @@ module bnn_fcc #(
     end
   endgenerate
 
+  // We must stall the upstream AXI bus while we are injecting padding,
+  // AND on the cycle immediately after the last beat (`bin_last_r`)
+  // so that we don't pull in the first beat of a back-to-back frame
+  // into `bin_data_r` while the padding FSM is about to assert `padding_r`.
+  logic stall_axi;
+  generate
+    if (PAD_BEATS > 0) begin : gen_stall
+      assign stall_axi = gen_input_pad.padding_r || bin_last_r;
+    end else begin : gen_no_stall
+      assign stall_axi = 1'b0;
+    end
+  endgenerate
+
   // Serial-to-parallel FIFO: writes INPUT_BUS_ELEMENTS bits, reads MAX_PARALLEL_INPUTS bits
   logic bin_fifo_full;
   logic bin_fifo_empty;
@@ -210,7 +223,7 @@ module bnn_fcc #(
   );
 
   assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
-  assign data_in_ready     = config_ready && !bin_fifo_alm_full;
+  assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi;
 
   bnn #(
       .LAYERS              (LAYERS),
