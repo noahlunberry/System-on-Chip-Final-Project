@@ -212,7 +212,7 @@ module config_manager #(
       fifo_vr #(
           .N(8),            // convert byte back
           .M(LAYER_WIDTH),  // to properly aligned bus width per layer
-          .P(17)            // DEPTH
+          .P(10)            // DEPTH
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
