@@ -1,5 +1,5 @@
 module config_controller #(
-    parameter int MAX_PARALLEL_INPUTS = 8,
+    parameter int PARALLEL_INPUTS     = 8,
     parameter int PARALLEL_NEURONS    = 8,
     parameter int TOTAL_NEURONS       = 256,
     parameter int TOTAL_INPUTS        = 256,
@@ -23,7 +23,7 @@ module config_controller #(
 
   // add assertion to make sure this is true
   localparam int TOTAL_CYCLES = TOTAL_NEURONS / PARALLEL_NEURONS;
-  localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / MAX_PARALLEL_INPUTS);
+  localparam int W_ADDR_PER_CYCLE = (TOTAL_INPUTS / PARALLEL_INPUTS);
   localparam int T_ADDR_PER_CYCLE = 1'b1;
 
 
@@ -41,9 +41,9 @@ module config_controller #(
 
   // Assignments
   assign weight_addr_out     = w_addr_out_r;
-  assign ram_weight_wr_en    = w_neuron_r;
+  assign ram_weight_wr_en    = {PARALLEL_NEURONS{weight_wr_en}} & w_neuron_r;
   assign threshold_addr_out  = t_addr_out_r;
-  assign ram_threshold_wr_en = t_neuron_r;
+  assign ram_threshold_wr_en = {PARALLEL_NEURONS{threshold_wr_en}} & t_neuron_r;
 
   always_ff @(posedge clk) begin
     w_addr_r         <= next_w_addr;
