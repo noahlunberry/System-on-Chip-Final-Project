@@ -59,6 +59,16 @@ module bnn_fcc #(
   localparam int INPUT_BINARIZATION_THRESHOLD = 1 << (INPUT_DATA_WIDTH - 1);
   localparam int MAX_PARALLEL_INPUTS = get_max_parallel_inputs();
 
+  // Round up TOPOLOGY[0] to nearest multiple of MAX_PARALLEL_INPUTS
+  // Matches PADDED_INPUTS in bnn.sv so layer 1 gets the right number of input chunks
+  localparam int PADDED_INPUTS = ((TOPOLOGY[0] + MAX_PARALLEL_INPUTS - 1)
+                                / MAX_PARALLEL_INPUTS) * MAX_PARALLEL_INPUTS;
+  // After all real pixels, how many extra zero beats to push
+  localparam int AXI_TOTAL_BITS = ((TOPOLOGY[0] + INPUT_BUS_ELEMENTS - 1)
+                                 / INPUT_BUS_ELEMENTS) * INPUT_BUS_ELEMENTS;
+  localparam int BITS_TO_PAD = PADDED_INPUTS - AXI_TOTAL_BITS;
+  localparam int PAD_BEATS = BITS_TO_PAD / INPUT_BUS_ELEMENTS;
+
   logic [    INPUT_DATA_WIDTH-1:0] pixels            [        INPUT_BUS_ELEMENTS];
 
   logic [ MAX_PARALLEL_INPUTS-1:0] weight_wr_data;
@@ -67,7 +77,7 @@ module bnn_fcc #(
   logic [              LAYERS-1:0] threshold_wr_en;
 
   logic                            bnn_ready;
-  logic [     PARALLEL_INPUTS-1:0] bnn_data_in;
+  logic [ MAX_PARALLEL_INPUTS-1:0] bnn_data_in;
   logic                            bnn_data_in_valid;
   logic [THRESHOLD_DATA_WIDTH-1:0] bnn_count_out     [PARALLEL_NEURONS[LAYERS-1]];
   logic                            bnn_count_valid;
@@ -80,12 +90,13 @@ module bnn_fcc #(
   end
 
   config_manager #(
-      .BUS_WIDTH           (INPUT_BUS_WIDTH),
+      .BUS_WIDTH           (CONFIG_BUS_WIDTH),
       .LAYERS              (LAYERS),
       .PARALLEL_INPUTS     (PARALLEL_INPUTS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
-      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
+      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH),
+      .BYTES_TO_PAD(PAD_BEATS)
   ) config_manager (
       .clk                  (clk),
       .rst                  (rst),
@@ -103,8 +114,12 @@ module bnn_fcc #(
   // ── Binarization + Serial-to-Parallel FIFO ──────────────────────────────
   // The AXI bus delivers INPUT_BUS_ELEMENTS pixels per beat. Each pixel is
   // binarized (>= threshold → 1) and the resulting bits are written into a
-  // fifo_vr that accumulates narrow writes and produces PARALLEL_INPUTS-wide
+  // fifo_vr that accumulates narrow writes and produces MAX_PARALLEL_INPUTS-wide
   // reads. This decouples the bus width from the BNN's parallelism.
+  //
+  // When TOPOLOGY[0] is not a multiple of MAX_PARALLEL_INPUTS, the input stream
+  // needs zero-padding to fill PADDED_INPUTS total bits — analogous to how
+  // config_manager pads weights with 0xFF in its PAD state.
 
   // Unpack pixels from AXI beat
   always_comb begin
@@ -116,12 +131,15 @@ module bnn_fcc #(
   // Binarize pixels (registered)
   logic [INPUT_BUS_ELEMENTS-1:0] bin_data_r;
   logic                          bin_valid_r;
+  logic                          bin_last_r;
 
   always_ff @(posedge clk) begin
     if (rst) begin
       bin_valid_r <= 1'b0;
+      bin_last_r  <= 1'b0;
     end else begin
       bin_valid_r <= data_in_valid && data_in_ready;
+      bin_last_r  <= data_in_valid && data_in_ready && data_in_last;
       if (data_in_valid && data_in_ready) begin
         for (int i = 0; i < INPUT_BUS_ELEMENTS; i++)
           bin_data_r[i] <= pixels[i] >= INPUT_BINARIZATION_THRESHOLD;
@@ -129,20 +147,59 @@ module bnn_fcc #(
     end
   end
 
-  // Serial-to-parallel FIFO: writes INPUT_BUS_ELEMENTS bits, reads PARALLEL_INPUTS bits
+  // ── Input Padding FSM ───────────────────────────────────────────────────
+  // After the last real AXI beat, inject PAD_BEATS zero-valued writes into
+  // the bin_fifo so the total bit count reaches PADDED_INPUTS.
+  logic [INPUT_BUS_ELEMENTS-1:0] fifo_wr_data;
+  logic                          fifo_wr_en;
+
+  generate
+    if (PAD_BEATS > 0) begin : gen_input_pad
+      localparam int PAD_CTR_W = $clog2(PAD_BEATS + 1);
+      logic [PAD_CTR_W-1:0] pad_ctr_r;
+      logic                 padding_r;
+
+      always_ff @(posedge clk) begin
+        if (rst) begin
+          pad_ctr_r <= '0;
+          padding_r <= 1'b0;
+        end else begin
+          if (bin_last_r && !padding_r) begin
+            padding_r <= 1'b1;
+            pad_ctr_r <= '0;
+          end else if (padding_r) begin
+            if (pad_ctr_r == PAD_BEATS - 1) begin
+              padding_r <= 1'b0;
+              pad_ctr_r <= '0;
+            end else begin
+              pad_ctr_r <= pad_ctr_r + 1;
+            end
+          end
+        end
+      end
+
+      assign fifo_wr_data = padding_r ? {INPUT_BUS_ELEMENTS{1'b0}} : bin_data_r;
+      assign fifo_wr_en   = bin_valid_r || padding_r;
+    end else begin : gen_no_input_pad
+      assign fifo_wr_data = bin_data_r;
+      assign fifo_wr_en   = bin_valid_r;
+    end
+  endgenerate
+
+  // Serial-to-parallel FIFO: writes INPUT_BUS_ELEMENTS bits, reads MAX_PARALLEL_INPUTS bits
   logic bin_fifo_full;
   logic bin_fifo_empty;
   logic bin_fifo_alm_full;
 
   fifo_vr #(
-      .N(INPUT_BUS_ELEMENTS),  // write width (e.g. 8 binary bits per AXI beat)
-      .M(PARALLEL_INPUTS),     // read width  (e.g. 64 bits for BNN)
-      .P(5)                    // depth: 2^5 = 32 entries in M-units
+      .N(INPUT_BUS_ELEMENTS),    // write width (e.g. 8 binary bits per AXI beat)
+      .M(MAX_PARALLEL_INPUTS),   // read width  (e.g. 32 bits for layer 1)
+      .P(5)                      // depth: 2^5 = 32 entries in M-units
   ) bin_fifo (
       .clk             (clk),
       .rst             (rst),
-      .wr_en           (bin_valid_r),
-      .wr_data         (bin_data_r),
+      .wr_en           (fifo_wr_en),
+      .wr_data         (fifo_wr_data),
       .rd_en           (!bin_fifo_empty && bnn_ready),
       .rd_data         (bnn_data_in),
       .alm_full_thresh (5'd1),    // assert 1 entry before full
