@@ -11,7 +11,8 @@ module bnn_layer #(
         (TOTAL_NEURONS / PARALLEL_NEURONS) * (TOTAL_INPUTS / PARALLEL_INPUTS) + 1
     ),
     localparam int T_RAM_ADDR_W = $clog2((TOTAL_NEURONS / PARALLEL_NEURONS) + 1),
-    localparam int THRESHOLD_DATA_WIDTH = $clog2(MAX_INPUTS + 1)
+    localparam int THRESHOLD_DATA_WIDTH = $clog2(MAX_INPUTS + 1),
+    localparam int ACC_WIDTH = 1 + $clog2(PARALLEL_INPUTS)
 
 ) (
     input logic clk,
@@ -42,12 +43,6 @@ module bnn_layer #(
     if (TOTAL_INPUTS % PARALLEL_INPUTS)
       $fatal(1, "layer requires TOTAL_INPUTS to be a multiple of PARRALEL_INPUTS");
   end
-
-  // TOTAL_INPUTS = 832 (padded), but real inputs = MAX_INPUTS (784)
-  localparam int REMAINDER = MAX_INPUTS % PARALLEL_INPUTS;  // 784 % 64 = 16
-  localparam logic [PARALLEL_INPUTS-1:0] W_PAD_MASK = 
-    (REMAINDER == 0) ? '0 : ({PARALLEL_INPUTS{1'b1}} << REMAINDER);
-
 
 
   // Each BRAM has its own write enable and write address, since data is entering serially.
@@ -101,7 +96,6 @@ module bnn_layer #(
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
-
   config_controller #(
       .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS   (PARALLEL_NEURONS),
@@ -122,15 +116,8 @@ module bnn_layer #(
       .ram_threshold_wr_en(t_wr_en),
       .weight_addr_out    (w_wr_addr),
       .threshold_addr_out (t_wr_addr),
-      .done               (config_done),
-      .w_last_addr        (w_last_addr)
+      .done               (config_done)
   );
-
-  // Padded weight data - only affects the last word per neuron
-  logic [MAX_PARALLEL_INPUTS-1:0] padded_weight_wr_data;
-  assign padded_weight_wr_data = w_last_addr
-    ? (weight_wr_data[PARALLEL_INPUTS-1:0] | W_PAD_MASK)
-    : weight_wr_data[PARALLEL_INPUTS-1:0];
 
   logic np_valid;
   logic np_last;
@@ -183,7 +170,7 @@ module bnn_layer #(
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
           .wr_addr(w_wr_addr),
-          .wr_data(padded_weight_wr_data)
+          .wr_data(weight_wr_data)
       );
 
       // Threshold RAM (one per NP)
