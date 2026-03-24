@@ -3,7 +3,9 @@ module config_manager #(
     parameter int LAYERS = 3,
     parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
     parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int THRESHOLD_DATA_WIDTH = 32
+    parameter int THRESHOLD_DATA_WIDTH = 32,
+    parameter int BYTES_TO_PAD = 0,
+    localparam int PAD_EN = BYTES_TO_PAD > 0 ? 1 : 0
 ) (
     input logic clk,
     input logic rst,
@@ -35,6 +37,7 @@ module config_manager #(
   logic msg_type_r;
   logic [1:0] layer_id_r;
   logic [31:0] total_bytes_r;
+  logic [15:0] bytes_per_neuron_r;
 
   // Parser controller module is responsible for writing vlaid datato the FIFO and communicating with the AXI stream.
   // The FSM parses valid header/payload data from the config stream. Once the entire payload is written, it
@@ -42,16 +45,16 @@ module config_manager #(
   parser_controller #(
       .CONFIG_BUS_WIDTH(BUS_WIDTH)
   ) parser_controller (
-      .clk        (clk),
-      .valid      (config_valid),
-      .rst        (rst),
-      .data       (config_data_in),
-      .empty      (empty),
-      .ready      (config_ready),
-      .wr_en      (fifo_wr_en_r),
-      .msg_type   (msg_type_r),
-      .layer_id   (layer_id_r),
-      .total_bytes(total_bytes_r),
+      .clk             (clk),
+      .valid           (config_valid),
+      .rst             (rst),
+      .data            (config_data_in),
+      .empty           (empty),
+      .ready           (config_ready),
+      .wr_en           (fifo_wr_en_r),
+      .msg_type        (msg_type_r),
+      .layer_id        (layer_id_r),
+      .total_bytes     (total_bytes_r),
       .bytes_per_neuron(bytes_per_neuron_r)
   );
 
@@ -61,37 +64,41 @@ module config_manager #(
   // is read until empty, re-enabling the parser controller to assert valid and take new data from the
   // configuration stream.
 
-  typedef enum logic [0:0] {
+  typedef enum logic [1:0] {
     READ,
-    DRAIN
+    DRAIN,
+    PAD
   } state_t;
   state_t state_r, next_state;
   logic [31:0] rd_count_r, next_rd_count;
   logic [31:0] count_r, next_count;
-  logic ram_wr_en_r, next_ram_wr_en;
+  logic [8:0] byte_idx_r, next_byte_idx;
+  logic [7:0] pad_count_r, next_pad_count;
+  logic buffer_wr_r, next_buffer_wr_en;
   logic fifo_rd_en_r, next_fifo_rd_en;
+  logic [7:0] data;
 
   always_ff @(posedge clk) begin
     state_r      <= next_state;
     rd_count_r   <= next_rd_count;
     count_r      <= next_count;
-    ram_wr_en_r  <= next_ram_wr_en;
+    buffer_wr_r  <= next_buffer_wr_en;
     fifo_rd_en_r <= next_fifo_rd_en;
     if (rst) begin
       state_r      <= READ;
       rd_count_r   <= '0;
       count_r      <= '0;
-      ram_wr_en_r  <= 0;
+      buffer_wr_r  <= 0;
       fifo_rd_en_r <= 0;
     end
   end
 
   always_comb begin
-    next_state      = state_r;
-    next_rd_count   = rd_count_r;
-    next_count      = count_r;
-    next_ram_wr_en  = ram_wr_en_r;
-    next_fifo_rd_en = fifo_rd_en_r;
+    next_state        = state_r;
+    next_rd_count     = rd_count_r;
+    next_count        = count_r;
+    next_buffer_wr_en = buffer_wr_r;
+    next_fifo_rd_en   = fifo_rd_en_r;
 
     case (state_r)
       READ: begin
@@ -115,22 +122,38 @@ module config_manager #(
         // Continuously read while the buffer is not empty. Also assert enable for the layer side controller
         // to direct the data to the appropriate BRAMs
         if (!empty) begin
+          // data can stay combinationally synced to the state
+          data = weight_ram_wr_data;
           next_count = count_r + 1'b1;
           next_fifo_rd_en = 1;
-          next_ram_wr_en = 1;
+          next_buffer_wr_en = 1;
+          if ((byte_idx_r == bytes_per_neuron_r - 1) && PAD_EN) begin
+            next_state = PAD;
+          end
           if (count_r == rd_count_r) begin
             next_state = DRAIN;
             next_count = '0;
           end
         end else begin
-            next_fifo_rd_en = 0;
-            next_ram_wr_en = 0;
-          end
+          next_fifo_rd_en   = 0;
+          next_buffer_wr_en = 0;
+        end
+      end
+
+      // For BYTES_TO_PAD cycles, write 1's to the buffer instead of real weight data
+      PAD: begin
+        data = '1;
+        next_fifo_rd_en = 0;
+        next_buffer_wr_en = 1;
+        next_pad_count = pad_count_r + 1;
+        if (pad_count_r == BYTES_TO_PAD - 1) begin
+          next_state = READ;
+        end
       end
 
       DRAIN: begin
-        next_fifo_rd_en = 1;
-        next_ram_wr_en = 0;
+        next_fifo_rd_en   = 1;
+        next_buffer_wr_en = 0;
         if (empty) next_state = READ;
       end
     endcase
@@ -141,20 +164,20 @@ module config_manager #(
   logic t_rd_en;
   logic t_wr_en;
 
- 
+
   assign w_rd_en = fifo_rd_en_r && !msg_type_r && !empty;
   assign t_rd_en = fifo_rd_en_r && msg_type_r && !empty;
-  assign w_wr_en = fifo_wr_en_r && !msg_type_r;
-  assign t_wr_en = fifo_wr_en_r && msg_type_r;
+  assign w_wr_en = buffer_wr_r && !msg_type_r;
+  assign t_wr_en = buffer_wr_r && msg_type_r;
 
   always_comb begin
     weight_ram_wr_en    = '0;
     threshold_ram_wr_en = '0;
 
-     // !empty signal essential to guard edge case where fifo is emptying, and no valid data is being produced
-    if (ram_wr_en_r && (layer_id_r < LAYERS) && !empty) begin
+    // !empty signal essential to guard edge case where fifo is emptying, and no valid data is being produced
+    if (buffer_wr_r && (layer_id_r < LAYERS) && !empty) begin
       if (msg_type_r) threshold_ram_wr_en[layer_id_r] = 1'b1;
-      else weight_ram_wr_en[layer_id_r] = 1'b1; 
+      else weight_ram_wr_en[layer_id_r] = 1'b1;
     end
   end
 
@@ -162,8 +185,8 @@ module config_manager #(
   // Assymetric FIFO to convert bus stream into individual bytes
   fifo_vr #(
       .N(BUS_WIDTH),            // write config_data_in
-      .M(MAX_PARALLEL_INPUTS),  // READ config_data_in
-      .P(17)                  // DEPTH (calculate later)
+      .M(8),  // read individual bytes
+      .P(17)                    // DEPTH (calculate later)
   ) fifo_weights (
       .clk            (clk),
       .rst            (rst),
@@ -178,12 +201,28 @@ module config_manager #(
   );
 
   // Need to pack individual bytes into max parallel bytes sized buses to output to BRAM
-  //
+  fifo_vr #(
+      .N(BUS_WIDTH),            // write individual bytes
+      .M(MAX_PARALLEL_INPUTS),  // READ parallel inputs amount of bits
+      .P(17)                    // DEPTH (calculate later)
+  ) fifo_weights (
+      .clk            (clk),
+      .rst            (rst),
+      .rd_en          (layer1_w_rd_en_),
+      .wr_en          (w_rd_en),
+      .wr_data        (data),
+      .alm_full_thresh(),
+      .alm_full       (),
+      .full           (w_full),
+      .empty          (buffer_empty),
+      .rd_data        (weight_ram_wr_data)
+  );
+
 
   fifo_vr #(
-      .N(BUS_WIDTH),            // write config_data_in
-      .M(32),  // READ config_data_in
-      .P(12)                  // DEPTH: size of addresses (calculate later)
+      .N(BUS_WIDTH),  // write config_data_in
+      .M(32),         // READ config_data_in
+      .P(12)          // DEPTH: size of addresses (calculate later)
   ) fifo_thresholds (
       .clk            (clk),
       .rst            (rst),
