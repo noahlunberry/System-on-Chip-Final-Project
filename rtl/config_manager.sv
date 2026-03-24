@@ -4,9 +4,7 @@ module config_manager #(
     parameter int PARALLEL_INPUTS = 8,
     parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
     parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int THRESHOLD_DATA_WIDTH = 32,
-    parameter int BYTES_TO_PAD = 0,
-    localparam int PAD_EN = BYTES_TO_PAD > 0 ? 1 : 0
+    parameter int THRESHOLD_DATA_WIDTH = 32
 ) (
     input logic clk,
     input logic rst,
@@ -63,6 +61,35 @@ module config_manager #(
       .bytes_per_neuron(bytes_per_neuron_r)
   );
 
+  // ── Dynamic per-layer padding computation ──────────────────────────────
+  // Each packer FIFO has a different LAYER_WIDTH. If bytes_per_neuron is
+  // not a multiple of (LAYER_WIDTH / 8), we must inject padding bytes so
+  // the packer can produce a complete output word.
+  //
+  // bytes_per_word[layer] = LAYER_WIDTH / 8  (always power of 2)
+  // remainder             = bytes_per_neuron & (bytes_per_word - 1)
+  // bytes_to_pad          = remainder ? (bytes_per_word - remainder) : 0
+
+  // Lookup bytes_per_word for the active layer
+  logic [7:0] bytes_per_word;
+  always_comb begin
+    bytes_per_word = MAX_PARALLEL_INPUTS / 8;  // layer 0 default
+    for (int k = 0; k < LAYERS; k++) begin
+      if (layer_id_r == 2'(k)) begin
+        if (k == 0) bytes_per_word = MAX_PARALLEL_INPUTS / 8;
+        else        bytes_per_word = PARALLEL_NEURONS[k-1] / 8;
+      end
+    end
+  end
+
+  logic [7:0] pad_remainder;
+  logic [7:0] bytes_to_pad;
+  logic       pad_en;
+
+  assign pad_remainder = bytes_per_neuron_r[7:0] & (bytes_per_word - 8'd1);
+  assign bytes_to_pad  = (pad_remainder == 0) ? 8'd0 : (bytes_per_word - pad_remainder);
+  assign pad_en        = (bytes_to_pad != 0);
+
   typedef enum logic [1:0] {
     READ,
     DRAIN,
@@ -74,8 +101,9 @@ module config_manager #(
   logic [31:0] count_r, next_count;
   logic [8:0] byte_idx_r, next_byte_idx;
   logic [7:0] pad_count_r, next_pad_count;
-  logic buffer_wr_r, next_buffer_wr_en;
-  logic fifo_rd_en_r, next_fifo_rd_en;
+  logic buffer_wr_en;
+  logic fifo_rd_en;
+  logic last_rd_r, next_last_rd;  // tracks whether the last byte read was the final read
 
   logic [7:0] data;
   logic [7:0] w_byte_data;
@@ -86,8 +114,7 @@ module config_manager #(
     count_r      <= next_count;
     byte_idx_r   <= next_byte_idx;
     pad_count_r  <= next_pad_count;
-    buffer_wr_r  <= next_buffer_wr_en;
-    fifo_rd_en_r <= next_fifo_rd_en;
+    last_rd_r    <= next_last_rd;
 
     if (rst) begin
       state_r      <= READ;
@@ -95,8 +122,7 @@ module config_manager #(
       count_r      <= '0;
       byte_idx_r   <= '0;
       pad_count_r  <= '0;
-      buffer_wr_r  <= 0;
-      fifo_rd_en_r <= 0;
+      last_rd_r    <= 0;
     end
   end
 
@@ -109,8 +135,9 @@ module config_manager #(
     next_count        = count_r;
     next_byte_idx     = byte_idx_r;
     next_pad_count    = pad_count_r;
-    next_buffer_wr_en = buffer_wr_r;
-    next_fifo_rd_en   = fifo_rd_en_r;
+    buffer_wr_en      = 0;
+    fifo_rd_en        = 0;
+    next_last_rd      = last_rd_r;
 
     // Use live payload byte dynamically
     data              = w_byte_data;
@@ -119,51 +146,62 @@ module config_manager #(
       READ: begin
         // decode message type and layer id to find the correct amount of reads necessary.
         if (msg_type_r == 0) begin
-          next_rd_count = (total_bytes_r + bytes_per_neuron_r - 1) / bytes_per_neuron_r;
+          next_rd_count = total_bytes_r; // count_r counts bytes for weights
         end else begin
-          next_rd_count = (total_bytes_r) / 4;
+          next_rd_count = (total_bytes_r) / 4; // count_r counts 32-bit words for thresholds
         end
 
         // Continuously read while buffer is not empty
         if (!active_stream_empty) begin
           next_count = count_r + 1'b1;
-          next_fifo_rd_en = 1;
-          next_buffer_wr_en = 1;
+          fifo_rd_en = 1;
+          buffer_wr_en = 1;
 
           if (msg_type_r == 0) begin
             if (byte_idx_r == bytes_per_neuron_r - 1) begin
               next_byte_idx = '0;
-              if (PAD_EN) next_state = PAD;
+              if (pad_en) begin
+                next_state = PAD;
+              end
             end else begin
               next_byte_idx = byte_idx_r + 1;
             end
           end
 
-          if (count_r == rd_count_r) begin
-            next_state = DRAIN;
+          // Track whether this is the last read of the stream.
+          // Trigger exactly on the cycle we schedule the last byte read.
+          if (next_count == rd_count_r) begin
             next_count = '0;
+            next_last_rd = 1'b1;
+            if (next_state != PAD) begin
+              next_state = DRAIN;
+            end
           end
-        end else begin
-          next_fifo_rd_en   = 0;
-          next_buffer_wr_en = 0;
         end
       end
 
-      // For BYTES_TO_PAD cycles, inject 1's padding sequence (0xFF) to the buffer
+      // For bytes_to_pad cycles, inject 1's padding sequence (0xFF) to the buffer
       PAD: begin
         data = 8'hFF;
-        next_fifo_rd_en = 0;
-        next_buffer_wr_en = 1;
+        fifo_rd_en = 0;
+        buffer_wr_en = 1;
         next_pad_count = pad_count_r + 1;
-        if (pad_count_r == BYTES_TO_PAD - 1) begin
+        if (pad_count_r == bytes_to_pad - 1) begin
           next_pad_count = '0;
-          next_state = READ;
+          // After padding the last neuron, drain remaining FIFO data;
+          // otherwise return to READ for the next neuron.
+          if (last_rd_r) begin
+            next_state = DRAIN;
+            next_last_rd = 1'b0;
+          end else begin
+            next_state = READ;
+          end
         end
       end
 
       DRAIN: begin
-        next_fifo_rd_en   = 1;
-        next_buffer_wr_en = 0;
+        fifo_rd_en   = 1;
+        buffer_wr_en = 0;
         if (active_stream_empty) next_state = READ;
       end
     endcase
@@ -174,8 +212,8 @@ module config_manager #(
   logic t_rd_en;
   logic t_wr_en;
 
-  assign w_rd_en = fifo_rd_en_r && !msg_type_r && !w_empty;
-  assign t_rd_en = fifo_rd_en_r && msg_type_r && !t_empty;
+  assign w_rd_en = fifo_rd_en && !msg_type_r && !w_empty;
+  assign t_rd_en = fifo_rd_en && msg_type_r && !t_empty;
   assign w_wr_en = fifo_wr_en_r && !msg_type_r;
   assign t_wr_en = fifo_wr_en_r && msg_type_r;
 
@@ -218,7 +256,7 @@ module config_manager #(
           .rst             (rst),
           .rd_en           (packer_rd_en[i]),
           // Write BRAM buffer when buffer is asserted, targeted to the current active layer
-          .wr_en           (buffer_wr_r && !msg_type_r && layer_id_r == i),
+          .wr_en           (buffer_wr_en && !msg_type_r && layer_id_r == i),
           .wr_data         (data),
           .alm_full_thresh ('0),
           .alm_empty_thresh('0),
@@ -261,7 +299,7 @@ module config_manager #(
     weight_ram_wr_data  = '0;
 
     // Thresholds output directly controlled by the main FSM
-    if (buffer_wr_r && msg_type_r && (layer_id_r < LAYERS)) begin
+    if (buffer_wr_en && msg_type_r && (layer_id_r < LAYERS)) begin
       threshold_ram_wr_en[layer_id_r] = 1'b1;
     end
 

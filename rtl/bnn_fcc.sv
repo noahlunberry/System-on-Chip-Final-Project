@@ -95,8 +95,7 @@ module bnn_fcc #(
       .PARALLEL_INPUTS     (PARALLEL_INPUTS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
-      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH),
-      .BYTES_TO_PAD(PAD_BEATS)
+      .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
   ) config_manager (
       .clk                  (clk),
       .rst                  (rst),
