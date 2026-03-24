@@ -41,8 +41,7 @@ module config_manager #(
   logic all_packers_empty;
   assign all_packers_empty = &packer_empty;
 
-  // The config FSM waits for all underlying FIFOs to process their stream
-  assign empty = w_empty && t_empty && all_packers_empty;
+
 
   // Parser controller module is responsible for writing valid data to the FIFO and communicating with the AXI stream.
   parser_controller #(
@@ -108,6 +107,9 @@ module config_manager #(
   logic [7:0] data;
   logic [7:0] w_byte_data;
 
+    // The config FSM waits for all underlying FIFOs to process their stream
+  assign empty = w_empty && t_empty && all_packers_empty && (state_r == READ);
+
   always_ff @(posedge clk) begin
     state_r      <= next_state;
     rd_count_r   <= next_rd_count;
@@ -160,7 +162,7 @@ module config_manager #(
           if (msg_type_r == 0) begin
             if (byte_idx_r == bytes_per_neuron_r - 1) begin
               next_byte_idx = '0;
-              if (pad_en) begin
+              if (pad_en && !msg_type_r) begin // only pad weights
                 next_state = PAD;
               end
             end else begin
@@ -250,7 +252,7 @@ module config_manager #(
       fifo_vr #(
           .N(8),            // convert byte back
           .M(LAYER_WIDTH),  // to properly aligned bus width per layer
-          .P(10)            // DEPTH
+          .P(12)            // DEPTH
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
@@ -299,7 +301,7 @@ module config_manager #(
     weight_ram_wr_data  = '0;
 
     // Thresholds output directly controlled by the main FSM
-    if (buffer_wr_en && msg_type_r && (layer_id_r < LAYERS)) begin
+    if (t_rd_en && msg_type_r && (layer_id_r < LAYERS)) begin
       threshold_ram_wr_en[layer_id_r] = 1'b1;
     end
 
