@@ -65,7 +65,7 @@ module bnn_layer #(
   // Input buffer signals
   logic [     PARALLEL_INPUTS-1:0] buffer_rd_data;
   logic                            buffer_empty;
-  logic                            buffer_full;
+  logic                            buffer_rd_ready;
   logic                            buffer_not_full;
 
   logic                            config_done;
@@ -89,7 +89,7 @@ module bnn_layer #(
       .rd_data (buffer_rd_data),
       .empty   (buffer_empty),
       .not_full(buffer_not_full),
-      .full    (buffer_full)
+      .rd_ready(buffer_rd_ready)
   );
 
 
@@ -97,14 +97,14 @@ module bnn_layer #(
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
   config_controller #(
-      .PARALLEL_INPUTS(PARALLEL_INPUTS),
-      .PARALLEL_NEURONS   (PARALLEL_NEURONS),
-      .TOTAL_NEURONS      (TOTAL_NEURONS),
-      .TOTAL_INPUTS       (TOTAL_INPUTS),
-      .T_RAM_DATA_W       (THRESHOLD_DATA_WIDTH),
-      .W_RAM_ADDR_W       (W_RAM_ADDR_W),
-      .T_RAM_ADDR_W       (T_RAM_ADDR_W),
-      .LAST_LAYER         (LAST_LAYER)
+      .PARALLEL_INPUTS (PARALLEL_INPUTS),
+      .PARALLEL_NEURONS(PARALLEL_NEURONS),
+      .TOTAL_NEURONS   (TOTAL_NEURONS),
+      .TOTAL_INPUTS    (TOTAL_INPUTS),
+      .T_RAM_DATA_W    (THRESHOLD_DATA_WIDTH),
+      .W_RAM_ADDR_W    (W_RAM_ADDR_W),
+      .T_RAM_ADDR_W    (T_RAM_ADDR_W),
+      .LAST_LAYER      (LAST_LAYER)
   ) u_cfc (
       .clk(clk),
       .rst(rst),
@@ -123,7 +123,7 @@ module bnn_layer #(
   logic np_last;
   logic valid_data;
   // Only begin producing new data if downstream interface is ready
-  assign valid_data = buffer_full && ready_out;
+  assign valid_data = buffer_rd_ready && ready_out;
 
   neuron_controller #(
       .PARALLEL_INPUTS (PARALLEL_INPUTS),
