@@ -14,6 +14,23 @@ files:
   # These are common to all projects.
   - ../rtl/bnn_fcc.sv
   - rtl/bnn_fcc_timing.sv
+  - ../verification/axi4_stream_if.sv
+  - ../verification/bnn_fcc_tb_pkg.sv
+  - ../verification/bnn_fcc_tb.sv
+  - ../rtl/add_tree.sv
+  - ../rtl/bnn_layer.sv
+  - ../rtl/bnn.sv
+  - ../rtl/config_controller.sv
+  - ../rtl/config_manager.sv
+  - ../rtl/delay.sv
+  - ../rtl/fifo_vr.sv
+  - ../rtl/neuron_controller.sv
+  - ../rtl/neuron_processor.sv
+  - ../rtl/parser_controller.sv
+  - ../rtl/ram_sdp.sv
+  - ../rtl/replay_buffer.sv
+  - ../rtl/sync_fifo.sv
+  - ../rtl/xnor_add_tree.sv
 
 parameters:
   INPUT_DATA_WIDTH: [8]
