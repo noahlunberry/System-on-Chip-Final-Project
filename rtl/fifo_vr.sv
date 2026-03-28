@@ -1,7 +1,7 @@
 module fifo_vr #(
-    parameter N = 1,
-    parameter M = 1,
-    parameter P = 1
+    parameter N = 1, // write width
+    parameter M = 1, // read width
+    parameter P = 1 // depth relative to write elements
 ) (
     input           clk,
     input           rst,
