@@ -1,10 +1,10 @@
 module config_manager #(
-    parameter int BUS_WIDTH = 64,
-    parameter int LAYERS = 3,
-    parameter int PARALLEL_INPUTS = 8,
-    parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
-    parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int THRESHOLD_DATA_WIDTH = 32
+    parameter int BUS_WIDTH                    = 64,
+    parameter int LAYERS                       = 3,
+    parameter int PARALLEL_INPUTS              = 8,
+    parameter int PARALLEL_NEURONS    [LAYERS] = '{default: 8},
+    parameter int MAX_PARALLEL_INPUTS          = 8,
+    parameter int THRESHOLD_DATA_WIDTH         = 32
 ) (
     input logic clk,
     input logic rst,
@@ -16,62 +16,99 @@ module config_manager #(
     input  logic                 config_keep,
     input  logic                 config_last,
 
+    // RAM Write Interfaces
     output logic [ MAX_PARALLEL_INPUTS-1:0] weight_ram_wr_data,
     output logic [              LAYERS-1:0] weight_ram_wr_en,
     output logic [THRESHOLD_DATA_WIDTH-1:0] threshold_ram_wr_data,
     output logic [              LAYERS-1:0] threshold_ram_wr_en
-
 );
 
-  localparam int THRESH_RD_BYTES = (THRESHOLD_DATA_WIDTH) / 8;
+  // =========================================================================
+  // Local Parameters
+  // =========================================================================
+  localparam int THRESH_RD_BYTES = THRESHOLD_DATA_WIDTH / 8;
 
+  // FIFO Sizing & Workarounds
+  localparam int WEIGHT_FIFO_DEPTH = 64;
+  localparam int WEIGHT_FIFO_HEADROOM = 16;
+  localparam int W_FIFO_SIZE = 1 << $clog2(WEIGHT_FIFO_DEPTH);
+  localparam int W_WORKAROUND_THRESH = W_FIFO_SIZE - (((W_FIFO_SIZE - WEIGHT_FIFO_HEADROOM) * 8) / BUS_WIDTH);
 
+  localparam int THRESH_FIFO_DEPTH = 64;
+  localparam int THRESH_FIFO_HEADROOM = 16;
+  localparam int T_FIFO_SIZE = 1 << $clog2(THRESH_FIFO_DEPTH);
+  localparam int T_WORKAROUND_THRESH  = T_FIFO_SIZE - (((T_FIFO_SIZE - THRESH_FIFO_HEADROOM) * 32) / BUS_WIDTH);
 
-  logic empty;
-  logic w_empty;
-  logic t_empty;
+  // =========================================================================
+  // Signal Declarations
+  // =========================================================================
+  // Parser & Config
+  logic              parser_ready;
+  logic              empty;
+  logic              fifo_wr_en_r;
+  logic              msg_type_r;
+  logic [       1:0] layer_id_r;
+  logic [      31:0] total_bytes_r;
+  logic [      15:0] bytes_per_neuron_r;
 
-  logic fifo_wr_en_r;
-  logic msg_type_r;
-  logic [1:0] layer_id_r;
-  logic [31:0] total_bytes_r;
-  logic [15:0] bytes_per_neuron_r;
+  // FIFO Status
+  logic              w_empty;
+  logic              t_empty;
+  logic              w_alm_full;
+  logic              t_alm_full;
+  logic              w_rd_en;
+  logic              w_wr_en;
+  logic              t_rd_en;
+  logic              t_wr_en;
 
   logic [LAYERS-1:0] packer_empty;
-  logic all_packers_empty;
-  assign all_packers_empty = &packer_empty;
+  logic              all_packers_empty;
+  logic              active_stream_empty;
 
+  // FSM Control Signals
+  typedef enum logic [1:0] {
+    READ,
+    DRAIN,
+    PAD
+  } state_t;
 
+  state_t state_r, next_state;
 
-  logic parser_ready;
-  // Parser controller module is responsible for writing valid data to the FIFO and communicating with the AXI stream.
-  parser_controller #(
-      .CONFIG_BUS_WIDTH(BUS_WIDTH)
-  ) parser_controller (
-      .clk             (clk),
-      .valid           (config_valid),
-      .rst             (rst),
-      .data            (config_data_in),
-      .empty           (empty),
-      .ready           (parser_ready),
-      .wr_en           (fifo_wr_en_r),
-      .msg_type        (msg_type_r),
-      .layer_id        (layer_id_r),
-      .total_bytes     (total_bytes_r),
-      .bytes_per_neuron(bytes_per_neuron_r)
-  );
+  logic [31:0] rd_count_r, next_rd_count;
+  logic [31:0] count_r, next_count;
+  logic [8:0] byte_idx_r, next_byte_idx;
+  logic [7:0] pad_count_r, next_pad_count;
+  logic last_rd_r, next_last_rd;
 
-  // ── Dynamic per-layer padding computation ──────────────────────────────
-  // Each packer FIFO has a different LAYER_WIDTH. If bytes_per_neuron is
-  // not a multiple of (LAYER_WIDTH / 8), we must inject padding bytes so
-  // the packer can produce a complete output word.
-  //
-  // bytes_per_word[layer] = LAYER_WIDTH / 8  (always power of 2)
-  // remainder             = bytes_per_neuron & (bytes_per_word - 1)
-  // bytes_to_pad          = remainder ? (bytes_per_word - remainder) : 0
+  logic       buffer_wr_en;
+  logic       fifo_rd_en;
 
-  // Lookup bytes_per_word for the active layer
+  // Data Routing & Padding
+  logic [7:0] data;
+  logic [7:0] w_byte_data;
   logic [7:0] bytes_per_word;
+  logic [7:0] pad_remainder;
+  logic [7:0] bytes_to_pad;
+  logic       pad_en;
+
+  // =========================================================================
+  // Combinational Assignments & Top-Level Logic
+  // =========================================================================
+  assign all_packers_empty   = &packer_empty;
+  assign active_stream_empty = msg_type_r ? t_empty : w_empty;
+
+  // The config FSM waits for all underlying FIFOs to process their stream
+  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ);
+  assign config_ready        = !w_alm_full && !t_alm_full && parser_ready;
+
+  assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
+  assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
+  assign w_wr_en             = fifo_wr_en_r && !msg_type_r;
+  assign t_wr_en             = fifo_wr_en_r && msg_type_r;
+
+  // =========================================================================
+  // Padding Calculation (Dynamic per-layer)
+  // =========================================================================
   always_comb begin
     bytes_per_word = MAX_PARALLEL_INPUTS / 8;  // layer 0 default
     for (int k = 0; k < LAYERS; k++) begin
@@ -82,97 +119,90 @@ module config_manager #(
     end
   end
 
-  logic [7:0] pad_remainder;
-  logic [7:0] bytes_to_pad;
-  logic       pad_en;
-
   assign pad_remainder = bytes_per_neuron_r[7:0] & (bytes_per_word - 8'd1);
   assign bytes_to_pad  = (pad_remainder == 0) ? 8'd0 : (bytes_per_word - pad_remainder);
   assign pad_en        = (bytes_to_pad != 0);
 
-  typedef enum logic [1:0] {
-    READ,
-    DRAIN,
-    PAD
-  } state_t;
-  state_t state_r, next_state;
+  // =========================================================================
+  // Configuration Parsing
+  // =========================================================================
+  parser_controller #(
+      .CONFIG_BUS_WIDTH(BUS_WIDTH)
+  ) parser_controller_inst (
+      .clk             (clk),
+      .rst             (rst),
+      .valid           (config_valid && config_ready),
+      .data            (config_data_in),
+      .empty           (empty),
+      .ready           (parser_ready),
+      .wr_en           (fifo_wr_en_r),
+      .msg_type        (msg_type_r),
+      .layer_id        (layer_id_r),
+      .total_bytes     (total_bytes_r),
+      .bytes_per_neuron(bytes_per_neuron_r)
+  );
 
-  logic [31:0] rd_count_r, next_rd_count;
-  logic [31:0] count_r, next_count;
-  logic [8:0] byte_idx_r, next_byte_idx;
-  logic [7:0] pad_count_r, next_pad_count;
-  logic buffer_wr_en;
-  logic fifo_rd_en;
-  logic last_rd_r, next_last_rd;  // tracks whether the last byte read was the final read
-
-  logic [7:0] data;
-  logic [7:0] w_byte_data;
-
-  // The config FSM waits for all underlying FIFOs to process their stream
-  assign empty = w_empty && t_empty && all_packers_empty && (state_r == READ);
-
+  // =========================================================================
+  // Control FSM
+  // =========================================================================
   always_ff @(posedge clk) begin
-    state_r     <= next_state;
-    rd_count_r  <= next_rd_count;
-    count_r     <= next_count;
-    byte_idx_r  <= next_byte_idx;
-    pad_count_r <= next_pad_count;
-    last_rd_r   <= next_last_rd;
-
     if (rst) begin
       state_r     <= READ;
       rd_count_r  <= '0;
       count_r     <= '0;
       byte_idx_r  <= '0;
       pad_count_r <= '0;
-      last_rd_r   <= 0;
+      last_rd_r   <= 1'b0;
+    end else begin
+      state_r     <= next_state;
+      rd_count_r  <= next_rd_count;
+      count_r     <= next_count;
+      byte_idx_r  <= next_byte_idx;
+      pad_count_r <= next_pad_count;
+      last_rd_r   <= next_last_rd;
     end
   end
 
-  logic active_stream_empty;
-  assign active_stream_empty = msg_type_r ? t_empty : w_empty;
-
   always_comb begin
+    // Default Assignments
     next_state     = state_r;
     next_rd_count  = rd_count_r;
     next_count     = count_r;
     next_byte_idx  = byte_idx_r;
     next_pad_count = pad_count_r;
-    buffer_wr_en   = 0;
-    fifo_rd_en     = 0;
     next_last_rd   = last_rd_r;
 
-    // Use live payload byte dynamically
-    data           = w_byte_data;
+    buffer_wr_en   = 1'b0;
+    fifo_rd_en     = 1'b0;
+    data           = w_byte_data;  // Use live payload byte dynamically
 
     case (state_r)
       READ: begin
-        // decode message type and layer id to find the correct amount of reads necessary.
+        // Decode message type to find the correct read count
         if (msg_type_r == 0) begin
-          next_rd_count = total_bytes_r;  // count_r counts bytes for weights
+          next_rd_count = total_bytes_r;  // bytes for weights
         end else begin
-          next_rd_count = (total_bytes_r) / 4;  // count_r counts 32-bit words for thresholds
+          next_rd_count = total_bytes_r / 4;  // 32-bit words for thresholds
         end
 
         // Continuously read while buffer is not empty
         if (!active_stream_empty) begin
           next_count   = count_r + 1'b1;
-          fifo_rd_en   = 1;
-          buffer_wr_en = 1;
+          fifo_rd_en   = 1'b1;
+          buffer_wr_en = 1'b1;
 
           if (msg_type_r == 0) begin
-            if (byte_idx_r == bytes_per_neuron_r - 1) begin
+            if (byte_idx_r == (bytes_per_neuron_r - 1)) begin
               next_byte_idx = '0;
-              if (pad_en && !msg_type_r) begin  // only pad weights
+              if (pad_en) begin
                 next_state = PAD;
               end
             end else begin
-              next_byte_idx = byte_idx_r + 1;
+              next_byte_idx = byte_idx_r + 1'b1;
             end
           end
 
-          // Track whether this is the last read of the stream.
-          // Trigger exactly on the cycle we schedule the last byte read.
+          // Trigger exactly on the cycle we schedule the last byte read
           if (next_count == rd_count_r) begin
             next_count   = '0;
             next_last_rd = 1'b1;
@@ -183,16 +213,16 @@ module config_manager #(
         end
       end
 
-      // For bytes_to_pad cycles, inject 1's padding sequence (0xFF) to the buffer
       PAD: begin
-        data = 8'hFF;
-        fifo_rd_en = 0;
-        buffer_wr_en = 1;
-        next_pad_count = pad_count_r + 1;
-        if (pad_count_r == bytes_to_pad - 1) begin
+        // Inject 1's padding sequence (0xFF) to the buffer
+        data           = 8'hFF;
+        fifo_rd_en     = 1'b0;
+        buffer_wr_en   = 1'b1;
+        next_pad_count = pad_count_r + 1'b1;
+
+        if (pad_count_r == (bytes_to_pad - 1)) begin
           next_pad_count = '0;
-          // After padding the last neuron, drain remaining FIFO data;
-          // otherwise return to READ for the next neuron.
+          // After padding the last neuron, drain remaining FIFO data
           if (last_rd_r) begin
             next_state   = DRAIN;
             next_last_rd = 1'b0;
@@ -203,46 +233,33 @@ module config_manager #(
       end
 
       DRAIN: begin
-        fifo_rd_en   = 1;
-        buffer_wr_en = 0;
-        if (active_stream_empty) next_state = READ;
+        fifo_rd_en   = 1'b1;
+        buffer_wr_en = 1'b0;
+        if (active_stream_empty) begin
+          next_state = READ;
+        end
       end
+
+      default: next_state = READ;
     endcase
   end
 
-  logic w_rd_en;
-  logic w_wr_en;
-  logic t_rd_en;
-  logic t_wr_en;
+  // =========================================================================
+  // Datapath & FIFOs
+  // =========================================================================
 
-  assign w_rd_en = fifo_rd_en && !msg_type_r && !w_empty;
-  assign t_rd_en = fifo_rd_en && msg_type_r && !t_empty;
-  assign w_wr_en = fifo_wr_en_r && !msg_type_r;
-  assign t_wr_en = fifo_wr_en_r && msg_type_r;
-
-  // Weight byte FIFO
-  parameter int WEIGHT_FIFO_DEPTH = 16;
-  parameter int WEIGHT_FIFO_HEADROOM = 2;
-
-  // Threshold FIFO
-  parameter int THRESH_FIFO_DEPTH = 16;
-  parameter int THRESH_FIFO_HEADROOM = 4;
-
-  // Per-layer packers
-  parameter int PACKER_DEPTH_WORDS[LAYERS] = '{default: 4};
-  parameter int PACKER_HEADROOM_WORDS[LAYERS] = '{default: 1};
-  // Assymetric FIFO to convert bus stream into individual bytes
+  // Weight Byte FIFO: Assymetric FIFO to convert bus stream to individual bytes
   fifo_vr #(
-      .N(BUS_WIDTH),                 // write config_data_in
-      .M(8),                         // read individual bytes
-      .P($clog2(WEIGHT_FIFO_DEPTH))  // DEPTH
+      .N(BUS_WIDTH),                 // Write width
+      .M(8),                         // Read width
+      .P($clog2(WEIGHT_FIFO_DEPTH))  // Depth
   ) fifo_weights_bytes (
       .clk             (clk),
       .rst             (rst),
       .rd_en           (w_rd_en),
       .wr_en           (w_wr_en),
       .wr_data         (config_data_in),
-      .alm_full_thresh (WEIGHT_FIFO_HEADROOM),
+      .alm_full_thresh (W_WORKAROUND_THRESH),
       .alm_empty_thresh('0),
       .alm_full        (w_alm_full),
       .alm_empty       (),
@@ -251,9 +268,8 @@ module config_manager #(
       .rd_data         (w_byte_data)
   );
 
-
-  // Packer FIFOs: Unpack individual bytes into dynamically parameterized output interfaces
-  logic [LAYERS-1:0] packer_rd_en;
+  // Packer FIFOs: Unpack bytes into dynamically parameterized output interfaces
+  logic [             LAYERS-1:0] packer_rd_en;
   logic [MAX_PARALLEL_INPUTS-1:0] packer_rd_data[LAYERS];
 
   genvar i;
@@ -263,15 +279,14 @@ module config_manager #(
       logic [LAYER_WIDTH-1:0] packer_layer_data;
 
       fifo_vr #(
-          .N(8),                               // convert byte back
-          .M(LAYER_WIDTH),                     // to properly aligned bus width per layer
-          .P($clog2(MAX_PARALLEL_INPUTS * 4))  // DEPTH
+          .N(8),                               // Write byte
+          .M(LAYER_WIDTH),                     // Read aligned bus width
+          .P($clog2(MAX_PARALLEL_INPUTS * 4))  // Depth
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
           .rd_en           (packer_rd_en[i]),
-          // Write BRAM buffer when buffer is asserted, targeted to the current active layer
-          .wr_en           (buffer_wr_en && !msg_type_r && layer_id_r == i),
+          .wr_en           (buffer_wr_en && !msg_type_r && (layer_id_r == i)),
           .wr_data         (data),
           .alm_full_thresh ('0),
           .alm_empty_thresh('0),
@@ -287,17 +302,18 @@ module config_manager #(
     end
   endgenerate
 
+  // Thresholds FIFO
   fifo_vr #(
-      .N(BUS_WIDTH),  // write 64-bit word
-      .M(32),         // read 32-bit threshold word
-      .P($clog2(THRESH_FIFO_DEPTH))          // DEPTH
+      .N(BUS_WIDTH),                 // Write width
+      .M(32),                        // Read 32-bit threshold word
+      .P($clog2(THRESH_FIFO_DEPTH))  // Depth
   ) fifo_thresholds (
       .clk             (clk),
       .rst             (rst),
       .rd_en           (t_rd_en),
       .wr_en           (t_wr_en),
       .wr_data         (config_data_in),
-      .alm_full_thresh (THRESH_FIFO_HEADROOM),
+      .alm_full_thresh (T_WORKAROUND_THRESH),
       .alm_empty_thresh('0),
       .alm_full        (t_alm_full),
       .alm_empty       (),
@@ -306,7 +322,9 @@ module config_manager #(
       .rd_data         (threshold_ram_wr_data)  // Direct alignment for thresholds
   );
 
+  // =========================================================================
   // Layer RAM Output Alignment
+  // =========================================================================
   always_comb begin
     weight_ram_wr_en    = '0;
     threshold_ram_wr_en = '0;
@@ -318,16 +336,14 @@ module config_manager #(
       threshold_ram_wr_en[layer_id_r] = 1'b1;
     end
 
-    // Weights automatically drain out of the layer specific packers when complete sequences arise
+    // Weights automatically drain out of the specific packers when sequences arise
     for (int j = 0; j < LAYERS; j++) begin
-      if (!packer_empty[j] && (layer_id_r == j)) begin
-        packer_rd_en[j] = 1'b1;
+      if (!packer_empty[j] && (layer_id_r == 2'(j))) begin
+        packer_rd_en[j]     = 1'b1;
         weight_ram_wr_en[j] = 1'b1;
-        weight_ram_wr_data = packer_rd_data[j];
+        weight_ram_wr_data  = packer_rd_data[j];
       end
     end
   end
-
-  assign config_ready = !w_alm_full && !t_alm_full && parser_ready ;
 
 endmodule

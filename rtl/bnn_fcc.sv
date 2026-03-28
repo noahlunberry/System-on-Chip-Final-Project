@@ -214,7 +214,7 @@ module bnn_fcc #(
       .wr_data         (fifo_wr_data),
       .rd_en           (!bin_fifo_empty && bnn_ready),
       .rd_data         (bnn_data_in),
-      .alm_full_thresh (5'd1),    // assert 1 entry before full
+      .alm_full_thresh (8),    // assert 1 entry before full
       .alm_empty_thresh('0),
       .alm_full        (bin_fifo_alm_full),
       .alm_empty       (),
