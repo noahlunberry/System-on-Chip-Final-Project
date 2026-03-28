@@ -85,7 +85,7 @@ module bnn_fcc #(
   initial begin
     for (int i = 0; i < LAYERS - 1; i++) begin
       if (TOPOLOGY[i+1] % PARALLEL_NEURONS[i])
-        $fatal(1, "bnn_fcc requires TOPOLOGY[%0d] to be divisible by PARALLEL_NEURONS[%0d]", i+1, i);
+        $fatal(1, "bnn_fcc requires TOPOLOGY[%0d] to be divisible by PARALLEL_NEURONS[%0d]", i + 1, i);
     end
   end
 
@@ -141,7 +141,7 @@ module bnn_fcc #(
       bin_last_r  <= data_in_valid && data_in_ready && data_in_last;
       if (data_in_valid && data_in_ready) begin
         for (int i = 0; i < INPUT_BUS_ELEMENTS; i++)
-          bin_data_r[i] <= pixels[i] >= INPUT_BINARIZATION_THRESHOLD;
+        bin_data_r[i] <= pixels[i] >= INPUT_BINARIZATION_THRESHOLD;
       end
     end
   end
@@ -204,9 +204,9 @@ module bnn_fcc #(
   logic bin_fifo_alm_full;
 
   fifo_vr #(
-      .N(INPUT_BUS_ELEMENTS),    // write width (e.g. 8 binary bits per AXI beat)
-      .M(MAX_PARALLEL_INPUTS),   // read width  (e.g. 32 bits for layer 1)
-      .P(5)                      // depth: 2^5 = 32 entries in M-units
+      .N(INPUT_BUS_ELEMENTS),   // write width (e.g. 8 binary bits per AXI beat)
+      .M(MAX_PARALLEL_INPUTS),  // read width  (e.g. 32 bits for layer 1)
+      .P(5)                     // depth: 2^5 = 32 entries in M-units
   ) bin_fifo (
       .clk             (clk),
       .rst             (rst),
@@ -214,7 +214,7 @@ module bnn_fcc #(
       .wr_data         (fifo_wr_data),
       .rd_en           (!bin_fifo_empty && bnn_ready),
       .rd_data         (bnn_data_in),
-      .alm_full_thresh (8),    // assert 1 entry before full
+      .alm_full_thresh (8),                             // assert 1 entry before full
       .alm_empty_thresh('0),
       .alm_full        (bin_fifo_alm_full),
       .alm_empty       (),
@@ -236,7 +236,7 @@ module bnn_fcc #(
   ) bnn_main (
       .clk              (clk),
       .rst              (rst),
-      .en               (data_out_ready),
+      .en               (bnn_en),
       .ready            (bnn_ready),
       .weight_wr_data   (weight_wr_data),
       .weight_wr_en     (weight_wr_en),
@@ -251,26 +251,54 @@ module bnn_fcc #(
 
   logic [THRESHOLD_DATA_WIDTH-1:0] max_count;
 
+  logic                            next_out_valid;
+  logic [    OUTPUT_BUS_WIDTH-1:0] next_out_data;
+
   always_comb begin : argmax
     if (PARALLEL_NEURONS[LAYERS-1] != TOPOLOGY[LAYERS])
       $fatal(1, "bnn_fcc currently requires output layer neurons to match PARALLEL_NEURONS for that layer");
 
-    data_out_valid = bnn_count_valid;
-
-    // This is beyond horrible for synthesis and is solely intended to test the testbench framework.
+    next_out_valid = bnn_count_valid;
     max_count = bnn_count_out[0];
-    data_out_data = '0;
+    next_out_data = '0;
+
     for (int i = 1; i < TOPOLOGY[LAYERS]; i++) begin
       if (bnn_count_out[i] > max_count) begin
-        data_out_data = i;
+        next_out_data = i;
         max_count = bnn_count_out[i];
       end
     end
   end
 
-  // Configuration Manager
+  // AXI Stream Skid Buffer
+  logic                        out_valid_reg;
+  logic [OUTPUT_BUS_WIDTH-1:0] out_data_reg;
 
-  // Instantiate the 3 layers
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      out_valid_reg <= 1'b0;
+      out_data_reg  <= '0;
+    end else begin
+      // Update register if downstream is ready, OR if the register is currently empty
+      if (data_out_ready) begin
+        out_valid_reg <= next_out_valid;
+        out_data_reg  <= next_out_data;
+      end else if (!out_valid_reg) begin
+        out_valid_reg <= next_out_valid;
+        out_data_reg  <= next_out_data;
+      end
+    end
+  end
+
+  // Drive the final AXI Outputs
+  assign data_out_valid = out_valid_reg;
+  assign data_out_data = out_data_reg;
+
+  assign data_out_keep = '1;  // All bytes are valid
+  assign data_out_last = 1'b1;  // Assumes 1 classification output = 1 packet
+
+  // The core can advance if the consumer is ready, OR if the skid buffer has room
+  assign bnn_en = data_out_ready || !out_valid_reg;
 
 
 

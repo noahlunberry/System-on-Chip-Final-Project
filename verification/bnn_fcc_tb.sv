@@ -91,8 +91,8 @@ module bnn_fcc_tb #(
     parameter bit      VERIFY_MODEL                             = 1,
     parameter string   BASE_DIR                                 = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python", //C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/python
     parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b0,
-    parameter real     CONFIG_VALID_PROBABILITY                 = 1.0,
-    parameter real     DATA_IN_VALID_PROBABILITY                = 1.0,
+    parameter real     CONFIG_VALID_PROBABILITY                 = 1,
+    parameter real     DATA_IN_VALID_PROBABILITY                = 1,
     parameter realtime TIMEOUT                                  = 100ms,
     parameter realtime CLK_PERIOD                               = 10ns,
     parameter bit      DEBUG                                    = 1'b0,
