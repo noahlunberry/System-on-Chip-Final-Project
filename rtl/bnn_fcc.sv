@@ -225,6 +225,8 @@ module bnn_fcc #(
   assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
   assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi;
 
+  logic bnn_en;
+
   bnn #(
       .LAYERS              (LAYERS),
       .NUM_INPUTS          (TOPOLOGY[0]),

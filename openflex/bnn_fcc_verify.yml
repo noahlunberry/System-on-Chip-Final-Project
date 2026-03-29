@@ -12,10 +12,11 @@ files:
 
   # These are common to all projects.  
   - ../rtl/bnn_fcc.sv
-  - ../verification/axi4_stream_if.sv
-  - ../verification/bnn_fcc_tb_pkg.sv
-  - ../verification/bnn_fcc_tb.sv
+  #- ../verification/axi4_stream_if.sv
+  #- ../verification/bnn_fcc_tb_pkg.sv
+  #- ../verification/bnn_fcc_tb.sv
   - ../rtl/add_tree.sv
+  - ../rtl/argmax_tree.sv
   - ../rtl/bnn_layer.sv
   - ../rtl/bnn.sv
   - ../rtl/config_controller.sv
@@ -36,7 +37,7 @@ parameters:
   CONFIG_VALID_PROBABILITY: [0.8]
   DATA_IN_VALID_PROBABILITY: [0.8]
   INPUT_DATA_WIDTH: [8]
-  INPUT_BUS_WIDTH: [512]
+  INPUT_BUS_WIDTH: [64]
   CONFIG_BUS_WIDTH: [64]
   OUTPUT_DATA_WIDTH: [4]
   OUTPUT_BUS_WIDTH: [8]

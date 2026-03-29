@@ -48,7 +48,7 @@ module fifo_vr #(
         // if we have a write request and the FIFO is not full, or
         // we have a read and doing both the read and the write do not
         // push the fill over the MEM_SIZE limit
-        if (!(rst)) begin
+        else begin
             if (wr_en && !full) begin
                 for (int i = 0; i <= N - 1; i++) begin
                     mem[(i+wraddr*N)%(MEM_SIZE)] <= wr_data[i]; // changed to little-endian (write the LSB first)

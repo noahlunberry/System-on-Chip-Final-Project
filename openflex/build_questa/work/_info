@@ -1,0 +1,512 @@
+m255
+K4
+z2
+!s11f vlog 2020.1 2020.02, Feb 28 2020
+13
+!s112 1.1
+!i10d 8192
+!i10e 25
+!i10f 100
+cModel Technology
+Z0 dC:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/openflex/build_questa
+vadd_tree
+Z1 DXx6 sv_std 3 std 0 22 VYECXdT12H8WgbUP_5Y6:3
+Z2 !s110 1774744885
+!i10b 1
+!s100 iFW<kBk8e<hzz5NZoCNOS3
+Z3 !s11b Dg1SIo80bB@j0V0VzS_@n1
+IF7dN;S7@]X?NmOY_Hd_7a0
+Z4 VDg1SIo80bB@j0V0VzS_@n1
+S1
+R0
+w1772929014
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv
+!i122 0
+L0 4 88
+Z5 OV;L;2020.1;71
+r1
+!s85 0
+31
+Z6 !s108 1774744885.000000
+!s107 C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\sync_fifo.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\parser_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv|
+Z7 !s90 -64|-sv|-timescale|1ns/100ps|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\parser_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\sync_fifo.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv|
+!i113 1
+Z8 o-64 -sv -timescale 1ns/100ps
+Z9 tCvgOpt 0
+vargmax_tree
+R1
+R2
+!i10b 1
+!s100 4T5`aXQl8DB>V]OMf9<cY3
+R3
+I>Q[3Ag8o1GfC?OCO^OVGa2
+R4
+S1
+R0
+Z10 w1774743868
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv
+!i122 0
+L0 4 125
+R5
+r1
+!s85 0
+31
+R6
+Z11 !s107 C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\sync_fifo.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\parser_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv|C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv|
+R7
+!i113 1
+R8
+R9
+Yaxi4_stream_if
+R1
+R2
+!i10b 1
+!s100 a?WJ5i;W7<a[68;3ZfmNh1
+R3
+IWUP7:Z_:BJaP<b0h[iQNC0
+R4
+S1
+R0
+w1773968777
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv
+!i122 0
+L0 8 0
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vbnn
+R1
+R2
+!i10b 1
+!s100 =o:IQX81lXkP]]Xz7_86k1
+R3
+IY]R74hLSgam^30i07cR<O2
+R4
+S1
+R0
+Z12 w1774328979
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv
+!i122 0
+L0 3 119
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vbnn_fcc
+R1
+R2
+!i10b 1
+!s100 [_oL1<Z?D9WQK76I?__340
+R3
+I<mog[=JKC6lc_W3;_7T[42
+R4
+S1
+R0
+w1774744704
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv
+!i122 0
+L0 1 333
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vbnn_fcc_tb
+R1
+DXx4 work 14 bnn_fcc_tb_pkg 0 22 ?o49bocNcbhOP7ECJ7mA`0
+R2
+!i10b 1
+!s100 jFQCBbLGZ>QLRU==`0jj_2
+R3
+ICk^ZTgMG^HLH?9m6N1oXI1
+R4
+S1
+R0
+R10
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv
+!i122 0
+L0 85 383
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+Xbnn_fcc_tb_pkg
+R1
+R2
+!i10b 1
+!s100 Sdo0o8OZm^jEn2fT4ZBF]0
+R3
+I?o49bocNcbhOP7ECJ7mA`0
+V?o49bocNcbhOP7ECJ7mA`0
+S1
+R0
+Z13 w1774556819
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv
+!i122 0
+L0 15 0
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vbnn_layer
+R1
+R2
+!i10b 1
+!s100 0E0J42T5g9llcUBDg:RIk2
+R3
+IO7mi^`c14=1^L1PM1dAfA2
+R4
+S1
+R0
+R13
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv
+!i122 0
+L0 2 222
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vconfig_controller
+R1
+R2
+!i10b 1
+!s100 ?c0W9dT79d];;>@ZmI13Y3
+R3
+I=67nBE]n@@?KUXmnA0M0O0
+R4
+S1
+R0
+R12
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv
+!i122 0
+L0 1 124
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vconfig_manager
+R1
+R2
+!i10b 1
+!s100 SGRWMPQD7[YfUOo?la15C0
+R3
+IW@MIG6dm`Q541dg6P8Y9J0
+R4
+S1
+R0
+R10
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv
+!i122 0
+L0 1 349
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vdelay
+R1
+R2
+!i10b 1
+!s100 1c8D=1Jc^h1ozGoK5U:2b3
+R3
+IT4G?Vc1oEM1SF8h`fBUCG0
+R4
+S1
+R0
+Z14 w1772933088
+Z15 8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv
+Z16 FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv
+!i122 0
+L0 37 108
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vfifo_vr
+R1
+R2
+!i10b 1
+!s100 EECn163<]d36Rf:ST_1`T1
+R3
+IFgK5889F^iVMjcadD`o@]1
+R4
+S1
+R0
+R10
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv
+!i122 0
+L0 1 214
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vneuron_controller
+R1
+R2
+!i10b 1
+!s100 RaC@o8@o@MR[@M1<<k1iD3
+R3
+ISm]XImE;FG]hl[B177_>S1
+R4
+S1
+R0
+Z17 w1774146088
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv
+!i122 0
+L0 1 153
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vneuron_processor
+R1
+R2
+!i10b 1
+!s100 =Q;1IdO4CMXY8bV<WgE]<2
+R3
+IkYe4^VJmPLiOfOhDB6WgB1
+R4
+S1
+R0
+R17
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv
+!i122 0
+L0 1 130
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vparser_controller
+R1
+R2
+!i10b 1
+!s100 PUG<3dm>UmCf<[aiT7NB52
+R3
+IX^kObfAEJMAKO0YHlHH[M1
+R4
+S1
+R0
+w1774313139
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\parser_controller.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\parser_controller.sv
+!i122 0
+L0 5 133
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vram_sdp
+R1
+R2
+!i10b 1
+!s100 S<g^>=j>08e00fF<3g@ML3
+R3
+IWkZA`U<@JmmMD]=[7:AB[0
+R4
+S1
+R0
+w1769647448
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv
+!i122 0
+L0 4 51
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vregister
+R1
+R2
+!i10b 1
+!s100 =A:biP85l`04_CcW1B>1>0
+R3
+In8a;?a@aW7z>@A7a1PeIl1
+R4
+S1
+R0
+R14
+R15
+R16
+!i122 0
+L0 11 16
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vreplay_buffer
+R1
+R2
+!i10b 1
+!s100 5alELi[o[OT4RUGgeh0?h1
+R3
+I>KJQ6FIA6<TX<RY9iWk0h0
+R4
+S1
+R0
+R13
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv
+!i122 0
+L0 1 121
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vsync_fifo
+R1
+R2
+!i10b 1
+!s100 >WYEMSSo;k9S:IT5L:fzL2
+R3
+IS06lc=P5>jgO<oJVhgb[V1
+R4
+S1
+R0
+w1773950747
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\sync_fifo.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\sync_fifo.sv
+!i122 0
+L0 15 164
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9
+vxnor_add_tree
+R1
+R2
+!i10b 1
+!s100 Z4I^V@d?J<_hz78Sfln_V3
+R3
+IRZj@=T:llz[4KN]O=l=Ai1
+R4
+S1
+R0
+R14
+8C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv
+FC:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv
+!i122 0
+L0 12 64
+R5
+r1
+!s85 0
+31
+R6
+R11
+R7
+!i113 1
+R8
+R9

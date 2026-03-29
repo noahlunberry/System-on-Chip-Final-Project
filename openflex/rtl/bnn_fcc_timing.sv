@@ -93,7 +93,7 @@ module bnn_fcc_timing #(
         .data_out_ready(data_out_ready_r),
         .data_out_data (data_out_data_s),
         .data_out_keep (data_out_keep_s),
-        .data_out_last (data_in_last_s)
+        .data_out_last (data_out_last_s)
     );
 
     always_ff @(posedge clk) begin
