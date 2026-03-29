@@ -99,15 +99,15 @@ module bnn_fcc_timing #(
     always_ff @(posedge clk) begin
         config_valid_r <= config_valid;
         config_ready <= config_ready_s;
-        config_data_r <= config_data_r;
-        config_keep_r <= config_keep_r;
-        config_last_r <= config_last_r;
+        config_data_r <= config_data;
+        config_keep_r <= config_keep;
+        config_last_r <= config_last;
 
         data_in_valid_r <= data_in_valid;
         data_in_ready <= data_in_ready_s;
-        data_in_data_r <= data_in_data_r;
-        data_in_keep_r <= data_in_keep_r;
-        data_in_last_r <= data_in_last_r;
+        data_in_data_r <= data_in_data;
+        data_in_keep_r <= data_in_keep;
+        data_in_last_r <= data_in_last;
 
         data_out_valid <= data_out_valid_s;
         data_out_ready_r <= data_out_ready;
