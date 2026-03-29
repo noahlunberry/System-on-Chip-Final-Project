@@ -12,7 +12,7 @@
 
 module bnn_fcc_timing #(
     parameter int INPUT_DATA_WIDTH  = 8,
-    parameter int INPUT_BUS_WIDTH   = 512,
+    parameter int INPUT_BUS_WIDTH   = 1024,
     parameter int CONFIG_BUS_WIDTH  = 64,
     parameter int OUTPUT_DATA_WIDTH = 4,
     parameter int OUTPUT_BUS_WIDTH  = 8,
@@ -21,8 +21,8 @@ module bnn_fcc_timing #(
     parameter int TOPOLOGY[TOTAL_LAYERS] = '{0: 784, 1: 256, 2: 256, 3: 10, default: 0},
 
     // TODO: UPDATE BASED ON IMPLEMENTATION-SPECIFIC PARAMETERS
-    parameter int PARALLEL_INPUTS = 64,
-    parameter int PARALLEL_NEURONS[TOTAL_LAYERS-1] = '{64, 32, 10}    
+    parameter int PARALLEL_INPUTS = 128,
+    parameter int PARALLEL_NEURONS[TOTAL_LAYERS-1] = '{256, 64, 10}    
 ) (
     input logic clk,
     input logic rst,
