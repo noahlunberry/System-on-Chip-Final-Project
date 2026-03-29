@@ -1,5 +1,5 @@
 # vsim -64 -c -do "run -all; quit" bnn_fcc_tb -gINPUT_BUS_WIDTH=64 -gINPUT_DATA_WIDTH=8 -gBASE_DIR=../../python -gOUTPUT_BUS_WIDTH=8 -gOUTPUT_DATA_WIDTH=4 -gCONFIG_VALID_PROBABILITY=0.8 -gCONFIG_BUS_WIDTH=64 -gTOGGLE_DATA_OUT_READY=0 -gTOTAL_LAYERS=4 -gDATA_IN_VALID_PROBABILITY=0.8 -gUSE_CUSTOM_TOPOLOGY=0 
-# Start time: 20:41:26 on Mar 28,2026
+# Start time: 21:19:46 on Mar 28,2026
 # Loading sv_std.std
 # Loading work.bnn_fcc_tb_pkg
 # Loading work.bnn_fcc_tb
@@ -73,7 +73,8 @@
 #   Layer 2 (output): 10 Neurons
 # [95 ns] Streaming weights and thresholds.
 # Break key hit
-# Simulation stop requested.
+# Break in Module xnor_add_tree at C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/rtl/xnor_add_tree.sv line 37
+# Stopped at C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/rtl/xnor_add_tree.sv line 37
 #  quit
-# End time: 20:45:45 on Mar 28,2026, Elapsed time: 0:04:19
+# End time: 21:25:43 on Mar 28,2026, Elapsed time: 0:05:57
 # Errors: 0, Warnings: 21
