@@ -281,7 +281,7 @@ module config_manager #(
       fifo_vr #(
           .N(8),                               // Write byte
           .M(LAYER_WIDTH),                     // Read aligned bus width
-          .P($clog2(MAX_PARALLEL_INPUTS * 4))  // Depth
+          .P(3)  // Depth
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),

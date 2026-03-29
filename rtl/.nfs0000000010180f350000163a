@@ -81,23 +81,6 @@ module bnn_fcc #(
   logic                            bnn_data_in_valid;
   logic [THRESHOLD_DATA_WIDTH-1:0] bnn_count_out     [PARALLEL_NEURONS[LAYERS-1]];
   logic                            bnn_count_valid;
-  logic                            bnn_en;
-
-  // Binarize pixels (registered)
-  logic [  INPUT_BUS_ELEMENTS-1:0] bin_data_r;
-  logic                            bin_valid_r;
-  logic                            bin_last_r;
-
-  // BIN FIFO SIGNALS
-  logic                            bin_fifo_full;
-  logic                            bin_fifo_empty;
-  logic                            bin_fifo_alm_full;
-  logic                            stall_axi;
-
-
-  logic out_fifo_full;
-  logic out_fifo_empty;
-  logic out_fifo_alm_full;
 
   initial begin
     for (int i = 0; i < LAYERS - 1; i++) begin
@@ -144,6 +127,10 @@ module bnn_fcc #(
     end
   end
 
+  // Binarize pixels (registered)
+  logic [INPUT_BUS_ELEMENTS-1:0] bin_data_r;
+  logic                          bin_valid_r;
+  logic                          bin_last_r;
 
   always_ff @(posedge clk) begin
     if (rst) begin
@@ -179,7 +166,7 @@ module bnn_fcc #(
           if (bin_last_r && !padding_r) begin
             padding_r <= 1'b1;
             pad_ctr_r <= '0;
-          end else if (padding_r && !bin_fifo_alm_full) begin
+          end else if (padding_r) begin
             if (pad_ctr_r == PAD_BEATS - 1) begin
               padding_r <= 1'b0;
               pad_ctr_r <= '0;
@@ -191,7 +178,7 @@ module bnn_fcc #(
       end
 
       assign fifo_wr_data = padding_r ? {INPUT_BUS_ELEMENTS{1'b0}} : bin_data_r;
-      assign fifo_wr_en   = bin_valid_r || (padding_r && !bin_fifo_alm_full);
+      assign fifo_wr_en   = bin_valid_r || padding_r;
     end else begin : gen_no_input_pad
       assign fifo_wr_data = bin_data_r;
       assign fifo_wr_en   = bin_valid_r;
@@ -202,7 +189,7 @@ module bnn_fcc #(
   // AND on the cycle immediately after the last beat (`bin_last_r`)
   // so that we don't pull in the first beat of a back-to-back frame
   // into `bin_data_r` while the padding FSM is about to assert `padding_r`.
-
+  logic stall_axi;
   generate
     if (PAD_BEATS > 0) begin : gen_stall
       assign stall_axi = gen_input_pad.padding_r || bin_last_r;
@@ -212,20 +199,22 @@ module bnn_fcc #(
   endgenerate
 
   // Serial-to-parallel FIFO: writes INPUT_BUS_ELEMENTS bits, reads MAX_PARALLEL_INPUTS bits
-
+  logic bin_fifo_full;
+  logic bin_fifo_empty;
+  logic bin_fifo_alm_full;
 
   fifo_vr #(
       .N(INPUT_BUS_ELEMENTS),   // write width (e.g. 8 binary bits per AXI beat)
       .M(MAX_PARALLEL_INPUTS),  // read width  (e.g. 32 bits for layer 1)
-      .P(4)                     // depth in M-units
+      .P(5)                     // depth: 2^5 = 32 entries in M-units
   ) bin_fifo (
       .clk             (clk),
       .rst             (rst),
       .wr_en           (fifo_wr_en),
       .wr_data         (fifo_wr_data),
-      .rd_en           (!bin_fifo_empty && bnn_ready && bnn_en),
+      .rd_en           (!bin_fifo_empty && bnn_ready),
       .rd_data         (bnn_data_in),
-      .alm_full_thresh (16),                                      // assert 1 entry before full
+      .alm_full_thresh (8),                             // assert 1 entry before full
       .alm_empty_thresh('0),
       .alm_full        (bin_fifo_alm_full),
       .alm_empty       (),
@@ -234,10 +223,7 @@ module bnn_fcc #(
   );
 
   assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
-  assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi && !out_fifo_alm_full;
-  assign bnn_en = !out_fifo_alm_full;
-
-
+  assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi;
 
   bnn #(
       .LAYERS              (LAYERS),
@@ -268,7 +254,9 @@ module bnn_fcc #(
   // -------------------------------------------------------------------------
   // The entire pipeline (BNN + Argmax) can advance if the AXI consumer is ready,
   // OR if the skid buffer is currently empty and can absorb a result.
-
+  logic pipe_en;
+  logic out_valid_reg;
+  assign pipe_en = data_out_ready || !out_valid_reg;
 
   // -------------------------------------------------------------------------
   // The Argmax Tree
@@ -285,7 +273,7 @@ module bnn_fcc #(
   ) argmax_inst (
       .clk    (clk),
       .rst    (rst),
-      .en     (1'b1),           // Stalls perfectly with the rest of the pipeline
+      .en     (pipe_en),        // Stalls perfectly with the rest of the pipeline
       .inputs (bnn_count_out),
       .max_val(tree_max_val),
       .max_idx(tree_max_idx)
@@ -296,7 +284,7 @@ module bnn_fcc #(
   // -------------------------------------------------------------------------
   // The depth of the argmax tree is ceil(log2(NUM_CLASSES)). 
   // For 10 classes, this is 4 clock cycles.
-  localparam int ARGMAX_LATENCY = $clog2(NUM_CLASSES);
+  localparam int ARGMAX_LATENCY = $clog2(NUM_CLASSES); 
   logic tree_out_valid;
 
   delay #(
@@ -305,49 +293,36 @@ module bnn_fcc #(
   ) valid_delay_inst (
       .clk(clk),
       .rst(rst),
-      .en (1'b1),
+      .en (pipe_en),
       .in (bnn_count_valid),
       .out(tree_out_valid)
   );
 
   // -------------------------------------------------------------------------
-  // AXI Stream Output FIFO (Elastic Buffer)
+  // AXI Stream Skid Buffer
   // -------------------------------------------------------------------------
-  
+  logic [OUTPUT_BUS_WIDTH-1:0] out_data_reg;
 
-  // Note: AXI-Stream requires "First-Word Fall-Through" (FWFT) FIFO behavior, 
-  // meaning the read data is available on the same cycle 'empty' goes low.
-  // Assuming your 'fifo_vr' module supports standard N=M widths and FWFT.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      out_valid_reg <= 1'b0;
+      out_data_reg  <= '0;
+    end else begin
+      if (pipe_en) begin
+        out_valid_reg <= tree_out_valid;
+        // Cast the internal index width to the AXI output bus width
+        out_data_reg  <= OUTPUT_BUS_WIDTH'(tree_max_idx);
+      end
+    end
+  end
 
-  localparam int OUT_FIFO_DEPTH_LOG2 = 5;  // 32 entries
-  localparam int PIPELINE_LATENCY = ARGMAX_LATENCY + 10;  // Adjust '10' to your BNN's actual latency
-
-  fifo_vr #(
-      .N(OUTPUT_BUS_WIDTH),
-      .M(OUTPUT_BUS_WIDTH),
-      .P(OUT_FIFO_DEPTH_LOG2)
-  ) out_fifo (
-      .clk    (clk),
-      .rst    (rst),
-      // Write side: driven by the free-flowing pipeline
-      .wr_en  (tree_out_valid),
-      .wr_data(OUTPUT_BUS_WIDTH'(tree_max_idx)),
-
-      // Read side: driven by the AXI consumer
-      .rd_en  (data_out_ready && !out_fifo_empty),
-      .rd_data(data_out_data),
-
-      // Backpressure threshold: Reserve enough space for all inflight pipeline stages
-      .alm_full_thresh ((1 << OUT_FIFO_DEPTH_LOG2) - PIPELINE_LATENCY - 2),
-      .alm_empty_thresh('0),
-      .alm_full        (out_fifo_alm_full),                                  // Routed upstream to 'bnn_en'
-      .alm_empty       (),
-      .full            (out_fifo_full),
-      .empty           (out_fifo_empty)
-  );
-
+  // -------------------------------------------------------------------------
   // Final AXI Assignments
-  assign data_out_valid = !out_fifo_empty;
+  // -------------------------------------------------------------------------
+  assign data_out_valid = out_valid_reg;
+  assign data_out_data  = out_data_reg;
+
+  // Tie off unused AXI signals to prevent 'X' propagation in verification
   assign data_out_keep  = '1;
   assign data_out_last  = 1'b1;
 
