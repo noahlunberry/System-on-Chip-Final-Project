@@ -249,29 +249,58 @@ module bnn_fcc #(
       .data_out_valid   (bnn_count_valid)
   );
 
-  logic [THRESHOLD_DATA_WIDTH-1:0] max_count;
+  // -------------------------------------------------------------------------
+  // Pipeline Backpressure Logic
+  // -------------------------------------------------------------------------
+  // The entire pipeline (BNN + Argmax) can advance if the AXI consumer is ready,
+  // OR if the skid buffer is currently empty and can absorb a result.
+  logic pipe_en;
+  logic out_valid_reg;
+  assign pipe_en = data_out_ready || !out_valid_reg;
 
-  logic                            next_out_valid;
-  logic [    OUTPUT_BUS_WIDTH-1:0] next_out_data;
+  // -------------------------------------------------------------------------
+  // The Argmax Tree
+  // -------------------------------------------------------------------------
+  localparam int NUM_CLASSES = TOPOLOGY[LAYERS];
+  localparam int INDEX_WIDTH = (NUM_CLASSES > 1) ? $clog2(NUM_CLASSES) : 1;
 
-  always_comb begin : argmax
-    if (PARALLEL_NEURONS[LAYERS-1] != TOPOLOGY[LAYERS])
-      $fatal(1, "bnn_fcc currently requires output layer neurons to match PARALLEL_NEURONS for that layer");
+  logic [THRESHOLD_DATA_WIDTH-1:0] tree_max_val;
+  logic [         INDEX_WIDTH-1:0] tree_max_idx;
 
-    next_out_valid = bnn_count_valid;
-    max_count = bnn_count_out[0];
-    next_out_data = '0;
+  argmax_tree #(
+      .NUM_INPUTS(NUM_CLASSES),
+      .DATA_WIDTH(THRESHOLD_DATA_WIDTH)
+  ) argmax_inst (
+      .clk    (clk),
+      .rst    (rst),
+      .en     (pipe_en),        // Stalls perfectly with the rest of the pipeline
+      .inputs (bnn_count_out),
+      .max_val(tree_max_val),
+      .max_idx(tree_max_idx)
+  );
 
-    for (int i = 1; i < TOPOLOGY[LAYERS]; i++) begin
-      if (bnn_count_out[i] > max_count) begin
-        next_out_data = i;
-        max_count = bnn_count_out[i];
-      end
-    end
-  end
+  // -------------------------------------------------------------------------
+  // The Valid Signal Shift Register (Delay Line)
+  // -------------------------------------------------------------------------
+  // The depth of the argmax tree is ceil(log2(NUM_CLASSES)). 
+  // For 10 classes, this is 4 clock cycles.
+  localparam int ARGMAX_LATENCY = $clog2(NUM_CLASSES); 
+  logic tree_out_valid;
 
+  delay #(
+      .CYCLES(ARGMAX_LATENCY),
+      .WIDTH (1)
+  ) valid_delay_inst (
+      .clk(clk),
+      .rst(rst),
+      .en (pipe_en),
+      .in (bnn_count_valid),
+      .out(tree_out_valid)
+  );
+
+  // -------------------------------------------------------------------------
   // AXI Stream Skid Buffer
-  logic                        out_valid_reg;
+  // -------------------------------------------------------------------------
   logic [OUTPUT_BUS_WIDTH-1:0] out_data_reg;
 
   always_ff @(posedge clk) begin
@@ -279,26 +308,23 @@ module bnn_fcc #(
       out_valid_reg <= 1'b0;
       out_data_reg  <= '0;
     end else begin
-      // Update register if downstream is ready, OR if the register is currently empty
-      if (data_out_ready) begin
-        out_valid_reg <= next_out_valid;
-        out_data_reg  <= next_out_data;
-      end else if (!out_valid_reg) begin
-        out_valid_reg <= next_out_valid;
-        out_data_reg  <= next_out_data;
+      if (pipe_en) begin
+        out_valid_reg <= tree_out_valid;
+        // Cast the internal index width to the AXI output bus width
+        out_data_reg  <= OUTPUT_BUS_WIDTH'(tree_max_idx);
       end
     end
   end
 
-  // Drive the final AXI Outputs
+  // -------------------------------------------------------------------------
+  // Final AXI Assignments
+  // -------------------------------------------------------------------------
   assign data_out_valid = out_valid_reg;
-  assign data_out_data = out_data_reg;
+  assign data_out_data  = out_data_reg;
 
-  assign data_out_keep = '1;  // All bytes are valid
-  assign data_out_last = 1'b1;  // Assumes 1 classification output = 1 packet
-
-  // The core can advance if the consumer is ready, OR if the skid buffer has room
-  assign bnn_en = data_out_ready || !out_valid_reg;
+  // Tie off unused AXI signals to prevent 'X' propagation in verification
+  assign data_out_keep  = '1;
+  assign data_out_last  = 1'b1;
 
 
 
