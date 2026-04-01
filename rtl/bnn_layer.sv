@@ -162,7 +162,7 @@ module bnn_layer #(
           .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
-          .STYLE      ("block")
+          .STYLE      ("")
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (w_rd_en),
@@ -179,7 +179,7 @@ module bnn_layer #(
           .ADDR_WIDTH (T_RAM_ADDR_W),
           .REG_RD_DATA(1'b0),
           .WRITE_FIRST(1'b0),
-          .STYLE      ("block")
+          .STYLE      ("")
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (t_rd_en),

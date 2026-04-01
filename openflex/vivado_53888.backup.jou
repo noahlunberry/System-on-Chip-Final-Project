@@ -3,8 +3,8 @@
 # SW Build 5239630 on Fri Nov 08 22:35:27 MST 2024
 # IP Build 5239520 on Sun Nov 10 16:12:51 MST 2024
 # SharedData Build 5239561 on Fri Nov 08 14:39:27 MST 2024
-# Start of session at: Sun Mar 29 21:14:21 2026
-# Process ID         : 32548
+# Start of session at: Sun Mar 29 21:11:25 2026
+# Process ID         : 53888
 # Current directory  : C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/openflex
 # Command line       : vivado.exe -mode tcl
 # Log file           : C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/openflex/vivado.log
@@ -19,9 +19,7 @@
 # Host memory        : 33802 MB
 # Swap memory        : 11811 MB
 # Total Virtual      : 45614 MB
-# Available Virtual  : 10313 MB
+# Available Virtual  : 10492 MB
 #-----------------------------------------------------------
-Sourcing tcl script 'C:/Users/pawin/AppData/Roaming/Xilinx/Vivado/Vivado_init.tcl'
-Vivado% get_param general.maxThreads
-8
-Vivado% 
+set_param general.maxThreads 8
+get_param general.maxThreads
