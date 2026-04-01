@@ -1,0 +1,4 @@
+
+# Vivado / OpenFlex build artifacts
+openflex/build_vivado/
+*.dcp
