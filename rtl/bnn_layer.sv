@@ -165,7 +165,7 @@ module bnn_layer #(
           .STYLE      ("")
       ) u_w_ram (
           .clk    (clk),
-          .rd_en  (w_rd_en),
+          .rd_en  (1'b1), // was a super huge fanout signal
           .rd_addr(w_rd_addr),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
@@ -182,7 +182,7 @@ module bnn_layer #(
           .STYLE      ("")
       ) u_t_ram (
           .clk    (clk),
-          .rd_en  (t_rd_en),
+          .rd_en  (1'b1),
           .rd_addr(t_rd_addr),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
