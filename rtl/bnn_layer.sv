@@ -45,12 +45,12 @@ module bnn_layer #(
   end
 
 
-  // Each BRAM has its own write enable and write address, since data is entering serially.
-  logic [    PARALLEL_NEURONS-1:0] w_wr_en;
-  logic [        W_RAM_ADDR_W-1:0] w_wr_addr;
+  // Each BRAM has its own write enable and write address.
+  logic [PARALLEL_NEURONS-1:0] w_wr_en;
+  logic [W_RAM_ADDR_W-1:0]     w_wr_addr[PARALLEL_NEURONS];
 
-  logic [    PARALLEL_NEURONS-1:0] t_wr_en;
-  logic [        T_RAM_ADDR_W-1:0] t_wr_addr;
+  logic [PARALLEL_NEURONS-1:0] t_wr_en;
+  logic [T_RAM_ADDR_W-1:0]     t_wr_addr[PARALLEL_NEURONS];
 
   // The rd address and enable can be combined into one array, since data is read in parallel
   // They each have their own rd data and rd addresses, since data will be read in parallel
@@ -97,14 +97,11 @@ module bnn_layer #(
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
   config_controller #(
-      .PARALLEL_INPUTS (PARALLEL_INPUTS),
-      .PARALLEL_NEURONS(PARALLEL_NEURONS),
-      .TOTAL_NEURONS   (TOTAL_NEURONS),
-      .TOTAL_INPUTS    (TOTAL_INPUTS),
-      .T_RAM_DATA_W    (THRESHOLD_DATA_WIDTH),
-      .W_RAM_ADDR_W    (W_RAM_ADDR_W),
-      .T_RAM_ADDR_W    (T_RAM_ADDR_W),
-      .LAST_LAYER      (LAST_LAYER)
+    .PARALLEL_INPUTS (PARALLEL_INPUTS),
+    .PARALLEL_NEURONS(PARALLEL_NEURONS),
+    .TOTAL_NEURONS   (TOTAL_NEURONS),
+    .TOTAL_INPUTS    (TOTAL_INPUTS),
+    .LAST_LAYER      (LAST_LAYER)
   ) u_cfc (
       .clk(clk),
       .rst(rst),
@@ -169,7 +166,7 @@ module bnn_layer #(
           .rd_addr(w_rd_addr),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
-          .wr_addr(w_wr_addr),
+          .wr_addr(w_wr_addr[gi]),
           .wr_data(weight_wr_data)
       );
 
@@ -186,7 +183,7 @@ module bnn_layer #(
           .rd_addr(t_rd_addr),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
-          .wr_addr(t_wr_addr),
+          .wr_addr(t_wr_addr[gi]),
           .wr_data(threshold_wr_data)
       );
 
