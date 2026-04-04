@@ -1,13 +1,12 @@
 # =============================================================================
 # Makefile for BNN FCC UVM Testbench
 # =============================================================================
-# Run from: verification/uvm/  (this directory)
+# Run from: verification/bnn_uvm/  (this directory)
 #
-# NOTE: The recommended simulation directory is sim/ at the project root.
-#       This Makefile works if you prefer to run from here instead.
-#       BASE_DIR in bnn_fcc_uvm_tb.sv defaults to "../python", which resolves
-#       to bnn_uvm/verification/python from here — you may need to override it.
-#       If using the sim/ directory, this is not an issue.
+# NOTE: This flow assumes GNU make on a Linux shell with Questa/ModelSim on
+#       PATH. The repo uses lowercase rtl/ on case-sensitive filesystems, and
+#       the default BASE_DIR below points back to ../../python so the testbench
+#       can find its model data when launched from here.
 #
 # USAGE:
 #   make                              # compile + optimize
@@ -17,21 +16,34 @@
 #   make clean                        # remove generated files
 # =============================================================================
 
+VLIB = vlib
+VMAP = vmap
 VLOG = vlog
 VSIM = vsim
 VOPT = vopt
 
+ROOT_DIR = ../..
+RTL_DIR = $(ROOT_DIR)/rtl
+BASE_DIR ?= $(ROOT_DIR)/python
+USE_VOPT ?= 1
+UVM_VERSION ?= 1.2
+UVM_SRC ?= $(shell dirname "$$(command -v $(VLOG) 2>/dev/null)")/../verilog_src/uvm-$(UVM_VERSION)/src
+UVM_PKG = $(UVM_SRC)/uvm_pkg.sv
 WORK_DIR = work
 TOP_MODULE = bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
+ELAB_TOP = work.$(TOP_MODULE)
+SIM_TOP = work.$(OPTIMIZED_TOP)
+RUN_TOP = $(if $(filter 1,$(USE_VOPT)),$(SIM_TOP),$(ELAB_TOP))
+RUN_PARAM_FLAGS = $(if $(filter 1,$(USE_VOPT)),,$(PARAM_FLAGS))
 
 TEST ?= bnn_fcc_base_test
 SEED ?= random
+UVM_VERBOSITY ?= UVM_MEDIUM
 UVM_FLAGS = +UVM_TESTNAME=$(TEST)
+PARAM_FLAGS = "-gBASE_DIR=\"$(BASE_DIR)\""
 
 # ---- RTL sources (bottom-up compile order) ----
-RTL_DIR = ../../RTL
-
 RTL_SOURCES = \
 	$(RTL_DIR)/ram_sdp.sv \
 	$(RTL_DIR)/sync_fifo.sv \
@@ -58,45 +70,49 @@ VLOG_FLAGS = -sv \
 	-timescale "1ns/1ps" \
 	+define+UVM_PACKER_MAX_BYTES=1500000 \
 	+define+UVM_DISABLE_AUTO_ITEM_RECORDING \
+	+incdir+$(UVM_SRC) \
 	-work $(WORK_DIR)
 
 VOPT_FLAGS = +acc -o $(OPTIMIZED_TOP)
 
-VSIM_FLAGS = -c \
+VSIM_COMMON_FLAGS = \
 	-debugDB \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
-	+UVM_VERBOSITY=UVM_MEDIUM \
-	$(UVM_FLAGS) \
-	-sv_seed $(SEED) \
-	-do "run -all"
-
-VSIM_GUI_FLAGS = -gui \
-	-debugDB \
-	-voptargs="+acc" \
-	+UVM_NO_RELNOTES \
-	+UVM_VERBOSITY=UVM_MEDIUM \
+	+UVM_VERBOSITY=$(UVM_VERBOSITY) \
 	$(UVM_FLAGS) \
 	-sv_seed $(SEED)
+
+VSIM_FLAGS = -c \
+	$(VSIM_COMMON_FLAGS) \
+	-do "run -all; quit -f"
+
+VSIM_GUI_FLAGS = -gui \
+	$(VSIM_COMMON_FLAGS)
 
 all: compile optimize
 
 $(WORK_DIR):
-	vlib $(WORK_DIR)
-	vmap work $(WORK_DIR)
+	$(VLIB) $(WORK_DIR)
+	$(VMAP) work $(WORK_DIR)
 
 compile: $(WORK_DIR) logs
-	$(VLOG) $(VLOG_FLAGS) $(RTL_SOURCES) -f sources.f
+	@test -f "$(UVM_PKG)" || (echo "UVM sources not found at $(UVM_PKG). Set UVM_SRC=/path/to/verilog_src/uvm-$(UVM_VERSION)/src"; exit 1)
+	$(VLOG) $(VLOG_FLAGS) $(UVM_PKG) $(RTL_SOURCES) -f sources.f
 
 optimize: compile
-	$(VOPT) $(TOP_MODULE) $(VOPT_FLAGS)
+ifeq ($(USE_VOPT),1)
+	$(VOPT) $(PARAM_FLAGS) $(ELAB_TOP) $(VOPT_FLAGS)
+else
+	@echo "Skipping standalone vopt (USE_VOPT=0)"
+endif
 
 sim: optimize
 	@echo "=== Running test: $(TEST) (seed: $(SEED)) ==="
-	$(VSIM) $(VSIM_FLAGS) $(OPTIMIZED_TOP)
+	$(VSIM) $(RUN_PARAM_FLAGS) $(VSIM_FLAGS) $(RUN_TOP)
 
 gui: optimize
-	$(VSIM) $(VSIM_GUI_FLAGS) $(OPTIMIZED_TOP) &
+	$(VSIM) $(RUN_PARAM_FLAGS) $(VSIM_GUI_FLAGS) $(RUN_TOP) &
 
 TESTS = bnn_fcc_base_test \
         bnn_fcc_protocol_stress_test \
@@ -104,14 +120,14 @@ TESTS = bnn_fcc_base_test \
         bnn_fcc_reset_stress_test \
         bnn_fcc_output_class_test
 
-regress: optimize
+regress: optimize logs
 	@pass=0; fail=0; \
 	for t in $(TESTS); do \
 		echo "--- $$t ---"; \
-		$(VSIM) -c -debugDB -voptargs="+acc" \
+		$(VSIM) $(RUN_PARAM_FLAGS) -c -debugDB -voptargs="+acc" \
 			+UVM_NO_RELNOTES +UVM_VERBOSITY=UVM_LOW \
 			+UVM_TESTNAME=$$t -sv_seed random \
-			-do "run -all" $(OPTIMIZED_TOP) > logs/$$t.log 2>&1; \
+			-do "run -all; quit -f" $(RUN_TOP) > logs/$$t.log 2>&1; \
 		if grep -q "TEST PASSED" logs/$$t.log; then \
 			echo "  PASSED"; pass=$$((pass+1)); \
 		else \
@@ -124,6 +140,6 @@ logs:
 	mkdir -p logs
 
 clean:
-	rm -rf $(WORK_DIR) transcript vsim.wlf *.db *.dbg *.vstf *.ucdb modelsim.ini logs/
+	rm -rf $(WORK_DIR) transcript vsim.wlf *.db *.dbg *.vstf *.ucdb logs/
 
 .PHONY: all compile optimize sim gui regress clean logs
