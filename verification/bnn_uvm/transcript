@@ -1,0 +1,87 @@
+# vsim -c -voptargs="+acc" "+UVM_NO_RELNOTES" "+UVM_VERBOSITY=UVM_LOW" "+UVM_TESTNAME=bnn_fcc_base_test" -sv_seed 1 work.bnn_fcc_uvm_tb -do "run 0; quit -f" -gBASE_DIR=../../python 
+# Start time: 16:05:17 on Apr 04,2026
+# Loading C:/Users/pawin/AppData/Local/Temp\CodexSandboxOffline@ACEY_dpi_25720\win32pe_gcc-4.2.1\export_tramp.dll
+# ** Note: (vsim-8785) UVM-aware debugging capabilities will be disabled since no compiled "questa_uvm_pkg" can be found.
+# This also means that later if you turn on UVM-aware debugging your debug simulations may have
+# different random seeds from your non-debug simulations.
+# Loading sv_std.std
+# Loading work.bnn_fcc_tb_pkg
+# Loading work.uvm_pkg
+# Loading work.axi4_stream_pkg
+# Loading work.bnn_fcc_pkg
+# Loading work.uvm_pkg_sv_unit
+# Loading work.bnn_fcc_uvm_tb
+# Loading work.bnn_reset_if
+# Loading work.axi4_stream_if
+# Loading work.bnn_fcc
+# Loading work.config_manager
+# Loading work.parser_controller
+# Loading work.fifo_vr
+# Loading work.bnn
+# Loading work.bnn_layer
+# Loading work.replay_buffer
+# Loading work.config_controller
+# Loading work.neuron_controller
+# Loading work.delay
+# Loading work.argmax_tree
+# Loading work.register
+# Loading work.ram_sdp
+# Loading work.neuron_processor
+# Loading work.xnor_add_tree
+# Loading work.add_tree
+# ** Warning: (vsim-8311) System Verilog assertions are supported only in Questasim.
+# ** Warning: (vsim-3015) [PCDPC] - Port size (1) does not match connection size (8) for port 'config_keep'. The port definition is at: ../../rtl/config_manager.sv(16).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/config_manager File: ../../rtl/bnn_fcc.sv Line: 116
+# ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: ../../rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/config_manager/fifo_weights_bytes File: ../../rtl/config_manager.sv Line: 256
+# ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: ../../rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/config_manager/fifo_thresholds File: ../../rtl/config_manager.sv Line: 310
+# ** Warning: (vsim-3015) [PCDPC] - Port size (32) does not match connection size (10) for port 'rd_data'. The port definition is at: ../../rtl/fifo_vr.sv(18).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/config_manager/fifo_thresholds File: ../../rtl/config_manager.sv Line: 310
+# ** Warning: (vsim-3015) [PCDPC] - Port size (4) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: ../../rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/bin_fifo File: ../../rtl/bnn_fcc.sv Line: 221
+# ** Warning: (vsim-2685) [TFMPC] - Too few port connections for 'u_layer_1'.  Expected 13, found 12.
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/bnn_main/u_layer_1 File: ../../rtl/bnn.sv Line: 58
+# ** Warning: (vsim-3722) ../../rtl/bnn.sv(58): [TFMPC] - Missing connection for port 'count_out'.
+# ** Warning: (vsim-2685) [TFMPC] - Too few port connections for 'u_layer_2'.  Expected 13, found 12.
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/bnn_main/u_layer_2 File: ../../rtl/bnn.sv Line: 81
+# ** Warning: (vsim-3722) ../../rtl/bnn.sv(81): [TFMPC] - Missing connection for port 'count_out'.
+# ** Warning: (vsim-3015) [PCDPC] - Port size (5) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: ../../rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/DUT/out_fifo File: ../../rtl/bnn_fcc.sv Line: 329
+# Compiling C:/Users/pawin/AppData/Local/Temp\CodexSandboxOffline@ACEY_dpi_25720\win32pe_gcc-4.2.1\exportwrapper.c
+# Loading C:/Users/pawin/AppData/Local/Temp\CodexSandboxOffline@ACEY_dpi_25720\win32pe_gcc-4.2.1\vsim_auto_compile.dll
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_check_path' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_deposit' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_force' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_release_and_read' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_release' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_hdl_read' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_get_next_arg_c' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_get_tool_name_c' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_get_tool_version_c' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_regcomp' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_regexec' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dpi_regfree' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_re_match' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_dump_re_cache' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Warning: (vsim-3770) Failed to find user specified function 'uvm_glob_to_re' in DPI C/C++ source files.
+#    Time: 0 ps  Iteration: 0  Region: /uvm_pkg File: C:/intelFPGA/20.1/modelsim_ase/verilog_src/uvm-1.2/src/uvm_pkg.sv
+# ** Error: (vsim-1) Unable to checkout verification license - testbench generation feature (randomize, randcase, randsequence, covergroup) is only supported with QuestaSim.
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb File: tb/bnn_fcc_uvm_tb.sv
+# Error loading design
+# End time: 16:05:19 on Apr 04,2026, Elapsed time: 0:00:02
+# Errors: 1, Warnings: 26

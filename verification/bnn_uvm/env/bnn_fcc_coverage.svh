@@ -142,10 +142,10 @@ class bnn_fcc_coverage extends uvm_component;
     int unsigned thresh_layer_id;
     covergroup cg_thresh;
         cp_mag   : coverpoint thresh_mag {
-            bins small  = {[0:50]};
-            bins medium = {[51:200]};
-            bins large  = {[201:500]};
-            bins huge   = {[501:$]};
+            bins small_bin  = {[0:50]};
+            bins medium_bin = {[51:200]};
+            bins large_bin  = {[201:500]};
+            bins huge_bin   = {[501:$]};
         }
         cp_layer : coverpoint thresh_layer_id { bins layer[] = {[0:3]}; }
         x_thresh_layer : cross cp_mag, cp_layer;

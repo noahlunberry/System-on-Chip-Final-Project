@@ -28,21 +28,19 @@ class bnn_fcc_reset_stress_test extends bnn_fcc_base_test;
     // Inject a reset pulse on the top-level rst/rst_n signals
     task inject_reset();
         virtual axi4_stream_if #(64) cfg_vif;
+        virtual bnn_reset_if reset_vif;
         if (!uvm_config_db#(virtual axi4_stream_if #(64))::get(null, "*", "cfg_vif", cfg_vif))
             `uvm_fatal("NO_VIF", "Could not get cfg_vif for reset injection")
+        if (!uvm_config_db#(virtual bnn_reset_if)::get(null, "*", "reset_vif", reset_vif))
+            `uvm_fatal("NO_RESET_VIF", "Could not get reset_vif for reset injection")
 
         env.scoreboard.handle_reset();
-        // Drive reset via the aresetn signal indirectly: we toggle it through the TB
-        // Since we cannot directly drive rst from within UVM, we use a config_db flag
-        // that the top module picks up. For now, toggle aresetn low/high.
         @(posedge cfg_vif.aclk);
-        force bnn_fcc_uvm_tb.rst = 1'b1;
-        force bnn_fcc_uvm_tb.rst_n = 1'b0;
+        reset_vif.rst   <= 1'b1;
+        reset_vif.rst_n <= 1'b0;
         repeat (5) @(posedge cfg_vif.aclk);
-        release bnn_fcc_uvm_tb.rst;
-        release bnn_fcc_uvm_tb.rst_n;
-        bnn_fcc_uvm_tb.rst <= 1'b0;
-        bnn_fcc_uvm_tb.rst_n <= 1'b1;
+        reset_vif.rst   <= 1'b0;
+        reset_vif.rst_n <= 1'b1;
         repeat (5) @(posedge cfg_vif.aclk);
         env.scoreboard.clear_reset();
     endtask

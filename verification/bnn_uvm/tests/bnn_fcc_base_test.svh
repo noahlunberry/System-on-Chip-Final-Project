@@ -47,8 +47,8 @@ class bnn_fcc_base_test extends uvm_test;
             base_dir = "../python";
 
         begin
-            bnn_fcc_uvm_tb::int_q_wrapper wrap;
-            if (uvm_config_db#(bnn_fcc_uvm_tb::int_q_wrapper)::get(this, "", "bnn_topology", wrap))
+            int_q_wrapper wrap;
+            if (uvm_config_db#(int_q_wrapper)::get(this, "", "bnn_topology", wrap))
                 bnn_topology = wrap.arr;
         end
 

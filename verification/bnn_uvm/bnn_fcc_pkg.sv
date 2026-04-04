@@ -15,14 +15,24 @@ package bnn_fcc_pkg;
     import axi4_stream_pkg::*;
     import bnn_fcc_tb_pkg::*;
 
-    // Sequences (no dependencies on env)
+    // Shared wrapper object for passing dynamic topology through config_db.
+    class int_q_wrapper;
+        int arr[];
+        function new(int a[]);
+            arr = a;
+        endfunction
+    endclass
+
+    // Supporting types used by sequences and tests.
+    `include "bnn_fcc_scoreboard.svh"
+    `include "bnn_fcc_coverage.svh"
+
+    // Sequences depend on coverage and bnn_expected_queue.
     `include "bnn_cfg_sequence.svh"
     `include "bnn_image_sequence.svh"
     `include "axi4s_ready_sequence.svh"
 
-    // Environment components (scoreboard defines bnn_expected_queue used by sequences)
-    `include "bnn_fcc_scoreboard.svh"
-    `include "bnn_fcc_coverage.svh"
+    // Environment depends on scoreboard and coverage.
     `include "bnn_fcc_env.svh"
 
     // Tests (depend on env + sequences)

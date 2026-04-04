@@ -46,17 +46,16 @@ module bnn_fcc_uvm_tb #(
     localparam realtime HALF_CLK_PERIOD = CLK_PERIOD / 2.0;
 
     logic clk = 1'b0;
-    logic rst_n;
-    logic rst;
+    bnn_reset_if reset_if();
 
     initial begin
         forever #HALF_CLK_PERIOD clk <= ~clk;
     end
 
     // Standard AXI4-Stream Interfaces reused from uvm_reference
-    axi4_stream_if #(CONFIG_BUS_WIDTH) cfg_if(clk, rst_n);
-    axi4_stream_if #(INPUT_BUS_WIDTH)  in_if(clk, rst_n);
-    axi4_stream_if #(OUTPUT_BUS_WIDTH) out_if(clk, rst_n);
+    axi4_stream_if #(CONFIG_BUS_WIDTH) cfg_if(clk, reset_if.rst_n);
+    axi4_stream_if #(INPUT_BUS_WIDTH)  in_if(clk, reset_if.rst_n);
+    axi4_stream_if #(OUTPUT_BUS_WIDTH) out_if(clk, reset_if.rst_n);
 
     // DUT instantiation. Maps standard config parameters to match the basic TB flow
     bnn_fcc #(
@@ -71,7 +70,7 @@ module bnn_fcc_uvm_tb #(
         .PARALLEL_NEURONS (PARALLEL_NEURONS)
     ) DUT (
         .clk(clk),
-        .rst(rst),
+        .rst(reset_if.rst),
         .config_valid(cfg_if.tvalid),
         .config_ready(cfg_if.tready),
         .config_data (cfg_if.tdata),
@@ -98,12 +97,12 @@ module bnn_fcc_uvm_tb #(
 
     // Reset sequence injected prior to UVM starting properly.
     initial begin
-        rst <= 1'b1;
-        rst_n <= 1'b0;
+        reset_if.rst <= 1'b1;
+        reset_if.rst_n <= 1'b0;
         repeat (5) @(posedge clk);
         @(negedge clk);
-        rst <= 1'b0;
-        rst_n <= 1'b1;
+        reset_if.rst <= 1'b0;
+        reset_if.rst_n <= 1'b1;
     end
 
     // Configuration DB wiring for UVM references
@@ -112,6 +111,7 @@ module bnn_fcc_uvm_tb #(
         uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(null, "*", "cfg_vif", cfg_if);
         uvm_config_db#(virtual axi4_stream_if #(INPUT_BUS_WIDTH))::set(null, "*", "in_vif", in_if);
         uvm_config_db#(virtual axi4_stream_if #(OUTPUT_BUS_WIDTH))::set(null, "*", "out_vif", out_if);
+        uvm_config_db#(virtual bnn_reset_if)::set(null, "*", "reset_vif", reset_if);
         
         // Pass essential environment parameters downward instead of hardcoding macros 
         uvm_config_db#(int)::set(null, "*", "num_test_images", NUM_TEST_IMAGES);
@@ -122,19 +122,15 @@ module bnn_fcc_uvm_tb #(
         // without an object wrapper, hence we map ACTUAL_TOPOLOGY this way.
         begin
             int dyn_top[];
+            int_q_wrapper top_wrap;
             dyn_top = new[ACTUAL_TOTAL_LAYERS];
             for(int i=0; i<ACTUAL_TOTAL_LAYERS; i++) dyn_top[i] = ACTUAL_TOPOLOGY[i];
-            uvm_config_db#(int_q_wrapper)::set(null, "*", "bnn_topology", new(dyn_top));
+            top_wrap = new(dyn_top);
+            uvm_config_db#(int_q_wrapper)::set(null, "*", "bnn_topology", top_wrap);
         end
 
         run_test();
     end
-
-    // Object wrapper class to support passing the topology across boundaries.
-    class int_q_wrapper;
-        int arr[];
-        function new(int a[]); arr = a; endfunction
-    endclass
 
     // =========================================================================
     // AXI4-Stream Protocol Hold Assertions
@@ -150,15 +146,15 @@ module bnn_fcc_uvm_tb #(
     endproperty
 
     // Config interface: master must hold TVALID until TREADY
-    assert property (axi4s_valid_hold(cfg_if.tvalid, cfg_if.tready, clk, rst_n))
+    assert property (axi4s_valid_hold(cfg_if.tvalid, cfg_if.tready, clk, reset_if.rst_n))
     else `uvm_error("AXI_HOLD", "Config TVALID dropped before handshake")
 
     // Input interface: master must hold TVALID until TREADY
-    assert property (axi4s_valid_hold(in_if.tvalid, in_if.tready, clk, rst_n))
+    assert property (axi4s_valid_hold(in_if.tvalid, in_if.tready, clk, reset_if.rst_n))
     else `uvm_error("AXI_HOLD", "Input TVALID dropped before handshake")
 
     // Output interface: DUT must hold TVALID until TREADY
-    assert property (axi4s_valid_hold(out_if.tvalid, out_if.tready, clk, rst_n))
+    assert property (axi4s_valid_hold(out_if.tvalid, out_if.tready, clk, reset_if.rst_n))
     else `uvm_error("AXI_HOLD", "Output TVALID dropped before handshake")
 
     // =========================================================================
