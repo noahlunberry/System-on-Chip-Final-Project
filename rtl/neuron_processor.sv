@@ -54,8 +54,9 @@ module neuron_processor #(
 
   // delay the valid in and last signals for the latency of the pipeline xnor add tree
   delay #(
-      .CYCLES(TREE_LATENCY),
-      .WIDTH (1)
+      .CYCLES       (TREE_LATENCY),
+      .WIDTH        (1),
+      .PRESERVE_REGS(1'b1)
   ) u_last_delay (
       .clk(clk),
       .rst(rst),
@@ -65,8 +66,9 @@ module neuron_processor #(
   );
 
   delay #(
-      .CYCLES(TREE_LATENCY),
-      .WIDTH (1)
+      .CYCLES       (TREE_LATENCY),
+      .WIDTH        (1),
+      .PRESERVE_REGS(1'b1)
   ) u_valid_in_delay (
       .clk(clk),
       .rst(rst),
@@ -74,6 +76,7 @@ module neuron_processor #(
       .in (valid_in),
       .out(tree_valid_out)
   );
+
 
   logic [THRESHOLD_WIDTH-1:0] threshold_out_r;
 
