@@ -27,8 +27,9 @@ RTL_DIR = $(ROOT_DIR)/rtl
 BASE_DIR ?= $(ROOT_DIR)/python
 USE_VOPT ?= 1
 UVM_VERSION ?= 1.2
+UVM_LIB ?= mtiUvm
 UVM_SRC ?= $(shell dirname "$$(command -v $(VLOG) 2>/dev/null)")/../verilog_src/uvm-$(UVM_VERSION)/src
-UVM_PKG = $(UVM_SRC)/uvm_pkg.sv
+UVM_MACROS = $(UVM_SRC)/uvm_macros.svh
 WORK_DIR = work
 TOP_MODULE = bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
@@ -64,6 +65,7 @@ RTL_SOURCES = \
 
 VLOG_FLAGS = -sv \
 	-mfcu \
+	-L $(UVM_LIB) \
 	-lint \
 	+acc=pr \
 	-suppress 2275 \
@@ -73,9 +75,10 @@ VLOG_FLAGS = -sv \
 	+incdir+$(UVM_SRC) \
 	-work $(WORK_DIR)
 
-VOPT_FLAGS = +acc -o $(OPTIMIZED_TOP)
+VOPT_FLAGS = -L $(UVM_LIB) +acc -o $(OPTIMIZED_TOP)
 
 VSIM_COMMON_FLAGS = \
+	-L $(UVM_LIB) \
 	-debugDB \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
@@ -97,8 +100,8 @@ $(WORK_DIR):
 	$(VMAP) work $(WORK_DIR)
 
 compile: $(WORK_DIR) logs
-	@test -f "$(UVM_PKG)" || (echo "UVM sources not found at $(UVM_PKG). Set UVM_SRC=/path/to/verilog_src/uvm-$(UVM_VERSION)/src"; exit 1)
-	$(VLOG) $(VLOG_FLAGS) $(UVM_PKG) $(RTL_SOURCES) -f sources.f
+	@test -f "$(UVM_MACROS)" || (echo "UVM headers not found at $(UVM_MACROS). Set UVM_SRC=/path/to/verilog_src/uvm-$(UVM_VERSION)/src"; exit 1)
+	$(VLOG) $(VLOG_FLAGS) $(RTL_SOURCES) -f sources.f
 
 optimize: compile
 ifeq ($(USE_VOPT),1)
