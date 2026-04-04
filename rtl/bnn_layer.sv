@@ -70,6 +70,14 @@ module bnn_layer #(
 
   logic                            config_done;
 
+  // Stage config writes locally so the long config_manager -> RAM write path
+  // is cut at this layer boundary. The controller and RAMs then see aligned
+  // enable/data one cycle later.
+  logic                            cfg_weight_wr_en_r;
+  logic [ MAX_PARALLEL_INPUTS-1:0] cfg_weight_wr_data_r;
+  logic                            cfg_threshold_wr_en_r;
+  logic [THRESHOLD_DATA_WIDTH-1:0] cfg_threshold_wr_data_r;
+
   assign ready_in = config_done && buffer_not_full;
 
 
@@ -92,6 +100,29 @@ module bnn_layer #(
       .rd_ready(buffer_rd_ready)
   );
 
+  // Local pipelining for config writes.
+  // This breaks the long path from config_manager/packer logic into the RAM
+  // write-data pins. The layer still accepts one config word per cycle.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      cfg_weight_wr_en_r      <= 1'b0;
+      cfg_weight_wr_data_r    <= '0;
+      cfg_threshold_wr_en_r   <= 1'b0;
+      cfg_threshold_wr_data_r <= '0;
+    end else begin
+      cfg_weight_wr_en_r    <= weight_wr_en;
+      cfg_threshold_wr_en_r <= threshold_wr_en;
+
+      if (weight_wr_en) begin
+        cfg_weight_wr_data_r <= weight_wr_data;
+      end
+
+      if (threshold_wr_en) begin
+        cfg_threshold_wr_data_r <= threshold_wr_data;
+      end
+    end
+  end
+
 
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
@@ -106,8 +137,8 @@ module bnn_layer #(
       .clk(clk),
       .rst(rst),
 
-      .weight_wr_en   (weight_wr_en),
-      .threshold_wr_en(threshold_wr_en),
+      .weight_wr_en   (cfg_weight_wr_en_r),
+      .threshold_wr_en(cfg_threshold_wr_en_r),
 
       .ram_weight_wr_en   (w_wr_en),
       .ram_threshold_wr_en(t_wr_en),
@@ -167,7 +198,7 @@ module bnn_layer #(
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en[gi]),
           .wr_addr(w_wr_addr[gi]),
-          .wr_data(weight_wr_data)
+          .wr_data(cfg_weight_wr_data_r)
       );
 
       // Threshold RAM (one per NP)
@@ -184,7 +215,7 @@ module bnn_layer #(
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en[gi]),
           .wr_addr(t_wr_addr[gi]),
-          .wr_data(threshold_wr_data)
+          .wr_data(cfg_threshold_wr_data_r)
       );
 
     end
