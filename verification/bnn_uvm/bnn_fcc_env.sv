@@ -3,6 +3,7 @@
 
 `include "uvm_macros.svh"
 import uvm_pkg::*;
+import axi4_stream_pkg::*;
 
 class bnn_fcc_env extends uvm_env;
     `uvm_component_utils(bnn_fcc_env)
@@ -74,6 +75,12 @@ class bnn_fcc_env extends uvm_env;
 
     function void connect_phase(uvm_phase phase);
         super.connect_phase(phase);
+
+        // The scoreboard reconstructs complete images/config packets from the
+        // monitored AXI traffic, so its monitors must emit packet-level items.
+        cfg_agent.monitor.is_packet_level = 1'b1;
+        in_agent.monitor.is_packet_level  = 1'b1;
+        out_agent.monitor.is_packet_level = 1'b1;
 
         // Config stream
         cfg_agent.driver.vif  = cfg_vif;

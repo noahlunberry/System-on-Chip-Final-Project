@@ -142,10 +142,16 @@ module bnn_fcc_uvm_tb #(
     $timeformat(-9, 0, " ns", 0);
 
     // Store the virtual interfaces.
+    uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(uvm_root::get(), "*", "cfg_vif",
+                                                                    config_in_if);
     uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(uvm_root::get(), "*", "config_vif",
                                                                     config_in_if);
+    uvm_config_db#(virtual axi4_stream_if #(INPUT_BUS_WIDTH))::set(uvm_root::get(), "*", "in_vif",
+                                                                   data_in_if);
     uvm_config_db#(virtual axi4_stream_if #(INPUT_BUS_WIDTH))::set(uvm_root::get(), "*", "data_in_vif",
                                                                    data_in_if);
+    uvm_config_db#(virtual axi4_stream_if #(OUTPUT_BUS_WIDTH))::set(uvm_root::get(), "*", "out_vif",
+                                                                    data_out_if);
     uvm_config_db#(virtual axi4_stream_if #(OUTPUT_BUS_WIDTH))::set(uvm_root::get(), "*", "data_out_vif",
                                                                     data_out_if);
 
@@ -174,9 +180,9 @@ module bnn_fcc_uvm_tb #(
     // NOTE: AXI is a little weird and prohibits transmitters from waiting on tready
     // to assert tvalid. Normally, a transmitter treats a ready signal as an enable,
     // but that practice is not AXI-compliant.
-    assert property (@(posedge clk) disable iff (rst) !out_intf.tready && out_intf.tvalid |=> $stable(out_intf.tdata))
+    assert property (@(posedge clk) disable iff (rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tdata))
     else `uvm_error("ASSERT", "Output changed with tready disabled.");
 
-    assert property (@(posedge clk) disable iff (rst) !out_intf.tready && out_intf.tvalid |=> $stable(out_intf.tvalid))
+    assert property (@(posedge clk) disable iff (rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tvalid))
     else `uvm_error("ASSERT", "Valid changed with tready disabled.");
 endmodule

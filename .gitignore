@@ -6,3 +6,4 @@ openflex/build_vivado/
 # sim
 verification/bnn_uvm/work
 .nfs*
+work
