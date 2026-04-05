@@ -26,11 +26,6 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     // Reference model
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
 
-    // Config from top/test
-    string base_dir;
-    bit    verify_model;
-    bit    use_custom_topology;
-
     int passed;
     int failed;
 
@@ -41,9 +36,6 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     endfunction
 
     function void build_phase(uvm_phase phase);
-        string model_path;
-        int trained_topology[4];
-
         super.build_phase(phase);
 
         // Create the analysis exports.
@@ -56,26 +48,11 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         in_fifo  = new("in_fifo",  this);
         out_fifo = new("out_fifo", this);
 
-        if (!uvm_config_db#(string)::get(this, "", "base_dir", base_dir))
-            `uvm_fatal("NO_BASE_DIR", "base_dir not set")
+        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "model_h", model))
+            `uvm_fatal("NO_MODEL", "Scoreboard could not find shared model_h.")
 
-        if (!uvm_config_db#(bit)::get(this, "", "use_custom_topology", use_custom_topology))
-            use_custom_topology = 1'b0;
-
-        // Prefer a model handle provided by the test/env.
-        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "model_h", model)) begin
-            // Fall back to loading the default trained MNIST/SFC model,
-            // which matches the top-level defaults.
-            if (use_custom_topology) begin
-                `uvm_fatal("NO_MODEL",
-                           "use_custom_topology=1, but no model_h was provided to the scoreboard.")
-            end
-
-            model = new();
-            trained_topology = '{784, 256, 256, 10};
-            model_path = $sformatf("%s/%s", base_dir, "model_data");
-            model.load_from_file(model_path, trained_topology);
-        end
+        if (!model.is_loaded)
+            `uvm_fatal("MODEL_NOT_LOADED", "Scoreboard received an unloaded model handle.")
     endfunction
 
     function void connect_phase(uvm_phase phase);

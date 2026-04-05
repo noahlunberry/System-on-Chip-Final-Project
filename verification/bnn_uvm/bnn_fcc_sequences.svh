@@ -18,16 +18,14 @@ import bnn_fcc_tb_pkg::*;
 // -----------------------------------------------------------------------------
 // Base Configuration Sequence
 // -----------------------------------------------------------------------------
-// Loads the reference model, then converts that model into the same AXI config
-// stream used by the original non-UVM testbench.
+// Consumes the shared reference model, then converts that model into the same
+// AXI config stream used by the original non-UVM testbench.
 virtual class bnn_fcc_config_base_sequence extends
     uvm_sequence #(axi4_stream_seq_item #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH));
     `uvm_object_utils(bnn_fcc_config_base_sequence)
 
     typedef axi4_stream_seq_item #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_axi_item_t;
 
-    string base_dir;
-    bit    use_custom_topology;
     bit    is_packet_level;
 
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
@@ -39,29 +37,10 @@ virtual class bnn_fcc_config_base_sequence extends
         super.new(name);
     endfunction
 
-    // Pull the sequence knobs from config_db and build the config stream.
+    // Pull the shared model handle from config_db and build the config stream.
     function void load_sequence_config();
-        string model_path;
-        int trained_topology[4];
-
-        if (!uvm_config_db#(string)::get(null, "", "base_dir", base_dir))
-            `uvm_fatal("NO_BASE_DIR", "base_dir not specified for configuration sequence.")
-
-        if (!uvm_config_db#(bit)::get(null, "", "use_custom_topology", use_custom_topology))
-            use_custom_topology = 1'b0;
-
-        // Prefer a pre-built model handle when the test provides one.
-        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model)) begin
-            if (use_custom_topology) begin
-                `uvm_fatal("NO_MODEL",
-                           "use_custom_topology=1, but no model_h was provided to the configuration sequence.")
-            end
-
-            model = new();
-            trained_topology = '{784, 256, 256, 10};
-            model_path = $sformatf("%s/%s", base_dir, "model_data");
-            model.load_from_file(model_path, trained_topology);
-        end
+        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model))
+            `uvm_fatal("NO_MODEL", "Configuration sequence could not find shared model_h.")
 
         if (!model.is_loaded)
             `uvm_fatal("MODEL_NOT_LOADED", "Configuration sequence received an unloaded model handle.")
@@ -187,9 +166,7 @@ virtual class bnn_fcc_image_base_sequence extends
 
     // Pull the runtime knobs from config_db and create the image database.
     function void load_sequence_config();
-        string model_path;
         string input_path;
-        int trained_topology[4];
 
         if (!uvm_config_db#(int)::get(null, "", "num_test_images", num_test_images))
             `uvm_fatal("NO_NUM_IMAGES", "num_test_images not specified for image sequence.")
@@ -200,18 +177,8 @@ virtual class bnn_fcc_image_base_sequence extends
         if (!uvm_config_db#(bit)::get(null, "", "use_custom_topology", use_custom_topology))
             use_custom_topology = 1'b0;
 
-        // Reuse the exact same model handle when a custom topology is active.
-        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model)) begin
-            if (use_custom_topology) begin
-                `uvm_fatal("NO_MODEL",
-                           "use_custom_topology=1, but no model_h was provided to the image sequence.")
-            end
-
-            model = new();
-            trained_topology = '{784, 256, 256, 10};
-            model_path = $sformatf("%s/%s", base_dir, "model_data");
-            model.load_from_file(model_path, trained_topology);
-        end
+        if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model))
+            `uvm_fatal("NO_MODEL", "Image sequence could not find shared model_h.")
 
         if (!model.is_loaded)
             `uvm_fatal("MODEL_NOT_LOADED", "Image sequence received an unloaded model handle.")

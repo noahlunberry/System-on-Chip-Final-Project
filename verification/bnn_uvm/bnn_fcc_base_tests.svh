@@ -14,8 +14,8 @@ import bnn_fcc_tb_pkg::*;
 // -----------------------------------------------------------------------------
 // Base Test
 // -----------------------------------------------------------------------------
-// Creates the environment, constructs the reference model used by both the
-// sequences and the scoreboard, and provides common reporting/helpers.
+// Creates the environment, owns the shared reference model handle used by the
+// sequences and scoreboard, and provides common reporting/helpers.
 class bnn_fcc_base_test extends uvm_test;
     `uvm_component_utils(bnn_fcc_base_test)
 
@@ -64,8 +64,9 @@ class bnn_fcc_base_test extends uvm_test;
         if (!uvm_config_db#(bit)::get(this, "", "debug", debug))
             debug = 1'b0;
 
-        // Prefer a model handle provided from above, otherwise mirror the
-        // original TB and load the trained MNIST model by default.
+        // The base test is the single owner/publisher of model_h. It either
+        // consumes an injected model handle or mirrors the original TB and
+        // creates the default trained MNIST model.
         if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "model_h", model)) begin
             if (use_custom_topology) begin
                 `uvm_fatal("NO_MODEL",
@@ -78,9 +79,12 @@ class bnn_fcc_base_test extends uvm_test;
             model.load_from_file(model_path, trained_topology);
         end
 
+        if (!model.is_loaded)
+            `uvm_fatal("MODEL_NOT_LOADED", "Base test received an unloaded model handle.")
+
         stim = new(model.topology[0]);
 
-        // Make the same model handle visible to the scoreboard and sequences.
+        // Publish the one shared model handle to all downstream consumers.
         uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::set(
             uvm_root::get(), "*", "model_h", model
         );
