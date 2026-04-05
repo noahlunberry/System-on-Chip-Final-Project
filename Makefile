@@ -1,16 +1,8 @@
-# Makefile for Questa SystemVerilog/UVM simulation of the bnn_fcc UVM testbench
+# Makefile for Questa SystemVerilog simulation with UVM
 
-# Check if Questa tools exist in PATH
+# Check if vsim exists in PATH
 ifeq (,$(shell which vsim 2>/dev/null))
 $(error "vsim not found in PATH. Please ensure Questa is properly installed and added to PATH")
-endif
-
-ifeq (,$(shell which vlog 2>/dev/null))
-$(error "vlog not found in PATH. Please ensure Questa is properly installed and added to PATH")
-endif
-
-ifeq (,$(shell which vopt 2>/dev/null))
-$(error "vopt not found in PATH. Please ensure Questa is properly installed and added to PATH")
 endif
 
 # Tool and library configuration
@@ -20,15 +12,27 @@ VOPT = vopt
 
 # Project configuration
 WORK_DIR = work
-SOURCES_FILE = sources.txt
-TOP_MODULE = work.bnn_fcc_uvm_tb
-OPTIMIZED_TOP = bnn_fcc_uvm_tb_opt
+TOP_MODULE = bnn_fcc_uvm_tb
+OPTIMIZED_TOP = $(TOP_MODULE)_opt
 
 # UVM configuration
 UVM_TESTNAME ?= bnn_fcc_single_beat_test
 UVM_FLAGS = +UVM_TESTNAME=$(UVM_TESTNAME)
 
-# Common testbench knobs
+# Questa/UVM configuration
+# Default to the built-in Questa UVM that matches the server log
+VSIM_PATH := $(shell which vsim 2>/dev/null)
+VSIM_BIN_DIR := $(patsubst %/,%,$(dir $(VSIM_PATH)))
+QUESTA_HOME ?= $(abspath $(VSIM_BIN_DIR)/..)
+UVM_VERSION ?= 1.1d
+UVM_LIB ?= mtiUvm
+UVM_SRC ?= $(QUESTA_HOME)/verilog_src/uvm-$(UVM_VERSION)/src
+
+ifeq (,$(wildcard $(UVM_SRC)/uvm_macros.svh))
+$(error "uvm_macros.svh not found. Override UVM_SRC=/path/to/uvm-<version>/src")
+endif
+
+# Testbench runtime configuration
 BASE_DIR ?= $(abspath python)
 NUM_TEST_IMAGES ?= 50
 VERIFY_MODEL ?= 1
@@ -38,20 +42,6 @@ DATA_IN_VALID_PROBABILITY ?= 0.95
 DEBUG ?= 0
 CLK_PERIOD ?= 10ns
 TIMEOUT ?= 100ms
-
-# Questa/UVM source location
-VSIM_PATH := $(shell which vsim 2>/dev/null)
-VSIM_BIN_DIR := $(patsubst %/,%,$(dir $(VSIM_PATH)))
-UVM_SRC ?= $(if $(UVM_HOME),$(UVM_HOME)/src,$(if $(QUESTA_HOME),$(QUESTA_HOME)/verilog_src/uvm-1.2/src,$(if $(MTI_HOME),$(MTI_HOME)/verilog_src/uvm-1.2/src,$(abspath $(VSIM_BIN_DIR)/../verilog_src/uvm-1.2/src))))
-
-ifeq (,$(wildcard $(UVM_SRC)/uvm_macros.svh))
-$(error "Could not locate uvm_macros.svh. Set UVM_SRC=/path/to/uvm-1.2/src or UVM_HOME=/path/to/uvm-1.2")
-endif
-
-INCDIRS = \
-	+incdir+$(UVM_SRC) \
-	+incdir+verification \
-	+incdir+verification/bnn_uvm
 
 TB_GFLAGS = \
 	-gBASE_DIR=\"$(BASE_DIR)\" \
@@ -69,34 +59,36 @@ VLOG_FLAGS = -sv \
 	-mfcu \
 	-lint \
 	+acc=pr \
-	-L uvm \
+	-L $(UVM_LIB) \
 	-suppress 2275 \
 	-timescale "1ns/100ps" \
 	+define+UVM_PACKER_MAX_BYTES=1500000 \
 	+define+UVM_DISABLE_AUTO_ITEM_RECORDING \
-	$(INCDIRS) \
+	+incdir+$(UVM_SRC) \
+	+incdir+verification \
+	+incdir+verification/bnn_uvm \
 	-work $(WORK_DIR)
 
-# Optimization flags
+# Optimization flags (preserve full visibility with +acc)
 VOPT_FLAGS = +acc \
-	-L uvm \
+	-L $(UVM_LIB) \
 	-o $(OPTIMIZED_TOP)
 
 # Simulation flags
 VSIM_FLAGS = -c \
 	-debugDB \
-	-L uvm \
+	-L $(UVM_LIB) \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
 	$(TB_GFLAGS) \
-	-do "run -all; quit -f"
+	-do "run -all"
 
 # GUI simulation flags
 VSIM_GUI_FLAGS = -gui \
 	-debugDB \
-	-L uvm \
+	-L $(UVM_LIB) \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
@@ -111,11 +103,11 @@ $(WORK_DIR):
 	vlib $(WORK_DIR)
 	vmap work $(WORK_DIR)
 
-# Compile all sources in a single compilation unit
+# Read sources from file and compile
 compile: $(WORK_DIR)
-	$(VLOG) $(VLOG_FLAGS) -f $(SOURCES_FILE)
+	$(VLOG) $(VLOG_FLAGS) -f sources.txt
 
-# Optimize design
+# Optimize design while maintaining full visibility
 optimize: compile
 	$(VOPT) $(TOP_MODULE) $(VOPT_FLAGS)
 
@@ -146,12 +138,4 @@ clean:
 	rm -rf *.ucdb
 	rm -rf modelsim.ini
 
-# Print common usage examples
-help:
-	@echo "Targets: compile optimize sim gui clean"
-	@echo "Example CLI run:"
-	@echo "  make sim UVM_TESTNAME=bnn_fcc_single_beat_test NUM_TEST_IMAGES=10"
-	@echo "Example with explicit UVM source path:"
-	@echo "  make sim UVM_SRC=/path/to/uvm-1.2/src"
-
-.PHONY: all compile optimize sim gui clean help
+.PHONY: all compile optimize sim gui clean

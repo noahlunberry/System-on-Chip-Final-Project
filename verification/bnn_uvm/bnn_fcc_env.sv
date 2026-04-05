@@ -47,6 +47,7 @@ class bnn_fcc_env extends uvm_env;
         cfg_agent = axi4_stream_agent #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH)::type_id::create("cfg_agent", this);
         in_agent  = axi4_stream_agent #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH )::type_id::create("in_agent",  this);
         out_agent = axi4_stream_agent #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH)::type_id::create("out_agent", this);
+        out_agent.is_active = UVM_PASSIVE;
 
         scoreboard      = bnn_fcc_scoreboard::type_id::create("scoreboard", this);
         cfg_coverage    = bnn_cfg_coverage   ::type_id::create("cfg_coverage", this);
@@ -92,10 +93,8 @@ class bnn_fcc_env extends uvm_env;
         in_agent.monitor.vif = in_vif;
 
         // Output stream
-        // Keep monitor connected. Only connect driver if you are truly using
-        // the AXI driver to model output-side behavior.
+        // The output agent is passive, so only the monitor binds to the DUT.
         out_agent.monitor.vif = out_vif;
-        // out_agent.driver.vif  = out_vif;
 
         // Scoreboard connections
         cfg_agent.monitor.ap.connect(scoreboard.cfg_ae);

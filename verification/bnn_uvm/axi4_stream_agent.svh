@@ -29,19 +29,27 @@ class axi4_stream_agent #(
     // Helper function to configure the transaction level of the driver and
     // monitor.
     function automatic void configure_transaction_level(bit is_packet_level);
-        driver.is_packet_level = is_packet_level;
+        if (driver != null)
+            driver.is_packet_level = is_packet_level;
         monitor.is_packet_level = is_packet_level;        
     endfunction
 
     function void build_phase(uvm_phase phase);
         super.build_phase(phase);
-        sequencer = axi4_stream_sequencer#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)::type_id::create("sequencer", this);
-        driver    = axi4_stream_driver#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)::type_id::create("driver", this);
+
+        // Passive agents only observe bus traffic, so they do not need a
+        // sequencer/driver pair.
+        if (get_is_active() == UVM_ACTIVE) begin
+            sequencer = axi4_stream_sequencer#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)::type_id::create("sequencer", this);
+            driver    = axi4_stream_driver#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)::type_id::create("driver", this);
+        end
+
         monitor   = axi4_stream_monitor#(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH)::type_id::create("monitor", this);
     endfunction
 
     function void connect_phase(uvm_phase phase);
-        driver.seq_item_port.connect(sequencer.seq_item_export);
+        if (get_is_active() == UVM_ACTIVE)
+            driver.seq_item_port.connect(sequencer.seq_item_export);
     endfunction
 endclass
 

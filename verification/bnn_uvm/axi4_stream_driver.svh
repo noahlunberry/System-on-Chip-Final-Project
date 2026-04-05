@@ -49,6 +49,9 @@ class axi4_stream_driver #(
         // The sequence item also requires all parameters.     
         axi4_stream_seq_item #(DATA_WIDTH, ID_WIDTH, DEST_WIDTH, USER_WIDTH) req;
 
+        if (vif == null)
+            `uvm_fatal("NO_VIF", "axi4_stream_driver started without a bound virtual interface.")
+
         // According to AXI spec, tvalid must be cleared on reset.
         vif.tvalid <= 1'b0;
 
