@@ -4,6 +4,7 @@
 `include "uvm_macros.svh"
 import uvm_pkg::*;
 import axi4_stream_pkg::*;
+`include "bnn_fcc_coverage.svh"
 
 class bnn_fcc_env extends uvm_env;
     `uvm_component_utils(bnn_fcc_env)
