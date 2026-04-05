@@ -96,6 +96,18 @@ module bnn_fcc_uvm_tb #(
   assign config_in_if.tstrb = config_in_if.tkeep;
   assign data_in_if.tstrb   = data_in_if.tkeep;
 
+  // Match the original TB backpressure behavior by driving TREADY directly
+  // from the top-level testbench. The output agent is monitor-only.
+  initial begin
+    if (!TOGGLE_DATA_OUT_READY) data_out_if.tready <= 1'b1;
+    else begin
+      forever begin
+        data_out_if.tready <= $urandom();
+        @(posedge clk);
+      end
+    end
+  end
+
   // ---------------------------------
   // DUT
   // ---------------------------------
@@ -172,8 +184,7 @@ module bnn_fcc_uvm_tb #(
     uvm_config_db#(bnn_fcc_uvm_pkg::bnn_fcc_topology_cfg)::set(uvm_root::get(), "*", "custom_topology_cfg_h",
                                                                 topology_cfg_h);
 
-    // Store handshake / backpressure configuration.
-    uvm_config_db#(bit)::set(uvm_root::get(), "*", "toggle_data_out_ready", TOGGLE_DATA_OUT_READY);
+    // Store handshake configuration.
     uvm_config_db#(real)::set(uvm_root::get(), "*", "config_valid_probability", CONFIG_VALID_PROBABILITY);
     uvm_config_db#(real)::set(uvm_root::get(), "*", "data_in_valid_probability", DATA_IN_VALID_PROBABILITY);
 

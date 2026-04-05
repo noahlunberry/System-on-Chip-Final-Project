@@ -64,14 +64,14 @@ class bnn_fcc_env extends uvm_env;
 
         // Separate knobs per input stream
         if (!uvm_config_db#(int)::get(this, "", "cfg_min_driver_delay", cfg_min_driver_delay))
-            cfg_min_driver_delay = 0;
+            cfg_min_driver_delay = 1;
         if (!uvm_config_db#(int)::get(this, "", "cfg_max_driver_delay", cfg_max_driver_delay))
-            cfg_max_driver_delay = 0;
+            cfg_max_driver_delay = 1;
 
         if (!uvm_config_db#(int)::get(this, "", "in_min_driver_delay", in_min_driver_delay))
-            in_min_driver_delay = 0;
+            in_min_driver_delay = 1;
         if (!uvm_config_db#(int)::get(this, "", "in_max_driver_delay", in_max_driver_delay))
-            in_max_driver_delay = 0;
+            in_max_driver_delay = 1;
     endfunction
 
     function void connect_phase(uvm_phase phase);

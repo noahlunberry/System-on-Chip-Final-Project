@@ -20,7 +20,7 @@ import bnn_fcc_tb_pkg::*;
 // 1. optionally verify the SV reference model against Python outputs
 // 2. send configuration traffic
 // 3. send images as individual AXI beats
-// 4. toggle output ready in parallel
+// 4. rely on the top-level TB to toggle output ready in parallel
 // 5. wait until the scoreboard has checked every image
 class bnn_fcc_single_beat_test extends bnn_fcc_base_test;
     `uvm_component_utils(bnn_fcc_single_beat_test)
@@ -41,10 +41,6 @@ class bnn_fcc_single_beat_test extends bnn_fcc_base_test;
 
         if (verify_model && !use_custom_topology)
             verify_reference_model();
-
-        fork
-            drive_output_ready();
-        join_none
 
         cfg_seq = bnn_fcc_config_beat_sequence::type_id::create("cfg_seq");
         img_seq = bnn_fcc_image_beat_sequence::type_id::create("img_seq");

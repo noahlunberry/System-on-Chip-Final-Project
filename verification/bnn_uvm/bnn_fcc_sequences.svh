@@ -27,8 +27,10 @@ virtual class bnn_fcc_config_base_sequence extends
     typedef axi4_stream_seq_item #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_axi_item_t;
 
     bit    is_packet_level;
+    real   valid_probability;
 
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_vif;
 
     bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] config_bus_data_stream[];
     bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] config_bus_keep_stream[];
@@ -37,8 +39,25 @@ virtual class bnn_fcc_config_base_sequence extends
         super.new(name);
     endfunction
 
+    // Returns 1 with probability p, mirroring the helper in bnn_fcc_tb.
+    function automatic bit chance(real p);
+        if (p > 1.0 || p < 0.0)
+            `uvm_fatal("BAD_VALID_PROB",
+                       $sformatf("Configuration valid probability must be in [0.0, 1.0], got %0f.", p))
+
+        return ($urandom < (p * (2.0 ** 32)));
+    endfunction
+
     // Pull the shared model handle from config_db and build the config stream.
     function void load_sequence_config();
+        if (!uvm_config_db#(real)::get(null, "", "config_valid_probability", valid_probability))
+            valid_probability = 1.0;
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(
+                null, "", "cfg_vif", cfg_vif
+            ))
+            `uvm_fatal("NO_CFG_VIF", "Configuration sequence could not find cfg_vif.")
+
         if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model))
             `uvm_fatal("NO_MODEL", "Configuration sequence could not find shared model_h.")
 
@@ -50,6 +69,12 @@ virtual class bnn_fcc_config_base_sequence extends
         if (config_bus_data_stream.size() == 0)
             `uvm_fatal("EMPTY_CONFIG", "Configuration sequence created an empty config stream.")
     endfunction
+
+    // Wait for a cycle where the producer is allowed to assert TVALID.
+    task automatic wait_for_valid_slot();
+        while (!chance(valid_probability))
+            @(posedge cfg_vif.aclk iff cfg_vif.tready);
+    endtask
 endclass
 
 
@@ -89,6 +114,7 @@ class bnn_fcc_config_beat_sequence extends bnn_fcc_config_base_sequence;
             req.tuser            = '0;
             req.is_packet_level  = 1'b0;
 
+            wait_for_valid_slot();
             send_request(req);
             wait_for_item_done();
         end
@@ -156,12 +182,23 @@ virtual class bnn_fcc_image_base_sequence extends
     string base_dir;
     bit    use_custom_topology;
     bit    is_packet_level;
+    real   valid_probability;
 
     BNN_FCC_Model    #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
     BNN_FCC_Stimulus #(bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH) stim;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH) in_vif;
 
     function new(string name = "bnn_fcc_image_base_sequence");
         super.new(name);
+    endfunction
+
+    // Returns 1 with probability p, mirroring the helper in bnn_fcc_tb.
+    function automatic bit chance(real p);
+        if (p > 1.0 || p < 0.0)
+            `uvm_fatal("BAD_VALID_PROB",
+                       $sformatf("Input valid probability must be in [0.0, 1.0], got %0f.", p))
+
+        return ($urandom < (p * (2.0 ** 32)));
     endfunction
 
     // Pull the runtime knobs from config_db and create the image database.
@@ -176,6 +213,14 @@ virtual class bnn_fcc_image_base_sequence extends
 
         if (!uvm_config_db#(bit)::get(null, "", "use_custom_topology", use_custom_topology))
             use_custom_topology = 1'b0;
+
+        if (!uvm_config_db#(real)::get(null, "", "data_in_valid_probability", valid_probability))
+            valid_probability = 1.0;
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH))::get(
+                null, "", "in_vif", in_vif
+            ))
+            `uvm_fatal("NO_IN_VIF", "Image sequence could not find in_vif.")
 
         if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(null, "", "model_h", model))
             `uvm_fatal("NO_MODEL", "Image sequence could not find shared model_h.")
@@ -193,6 +238,12 @@ virtual class bnn_fcc_image_base_sequence extends
             stim.load_from_file(input_path, num_test_images);
         end
     endfunction
+
+    // Wait for a cycle where the producer is allowed to assert TVALID.
+    task automatic wait_for_valid_slot();
+        while (!chance(valid_probability))
+            @(posedge in_vif.aclk iff in_vif.tready);
+    endtask
 
     // Pack one image into the AXI beat layout used by the original testbench.
     function void pack_image(
@@ -268,6 +319,7 @@ class bnn_fcc_image_beat_sequence extends bnn_fcc_image_base_sequence;
                 req.tuser            = '0;
                 req.is_packet_level  = 1'b0;
 
+                wait_for_valid_slot();
                 send_request(req);
                 wait_for_item_done();
             end

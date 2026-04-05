@@ -32,7 +32,6 @@ class bnn_fcc_base_test extends uvm_test;
     string base_dir;
     bit    verify_model;
     bit    use_custom_topology;
-    bit    toggle_data_out_ready;
     bit    debug;
 
     function new(string name = "bnn_fcc_base_test", uvm_component parent = null);
@@ -58,9 +57,6 @@ class bnn_fcc_base_test extends uvm_test;
 
         if (!uvm_config_db#(bit)::get(this, "", "use_custom_topology", use_custom_topology))
             use_custom_topology = 1'b0;
-
-        if (!uvm_config_db#(bit)::get(this, "", "toggle_data_out_ready", toggle_data_out_ready))
-            toggle_data_out_ready = 1'b1;
 
         if (!uvm_config_db#(bit)::get(this, "", "debug", debug))
             debug = 1'b0;
@@ -143,25 +139,6 @@ class bnn_fcc_base_test extends uvm_test;
         end
 
         `uvm_info(get_type_name(), "SV model successfully verified against Python outputs.", UVM_LOW)
-    endtask
-
-    // Replicates the old procedural output-ready logic from bnn_fcc_tb.
-    virtual task drive_output_ready();
-        env.out_vif.tready <= 1'b1;
-        @(posedge env.out_vif.aclk iff env.out_vif.aresetn);
-
-        if (toggle_data_out_ready) begin
-            forever begin
-                env.out_vif.tready <= $urandom();
-                @(posedge env.out_vif.aclk);
-            end
-        end
-        else begin
-            forever begin
-                env.out_vif.tready <= 1'b1;
-                @(posedge env.out_vif.aclk);
-            end
-        end
     endtask
 
     // Wait until the scoreboard has observed all expected classifications.
