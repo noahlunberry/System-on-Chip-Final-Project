@@ -139,7 +139,15 @@ module bnn_fcc_uvm_tb #(
   // These typedefs make config_db calls less ugly
 
   initial begin
+    bnn_fcc_uvm_pkg::bnn_fcc_topology_cfg topology_cfg_h;
+
     $timeformat(-9, 0, " ns", 0);
+
+    topology_cfg_h = new();
+    topology_cfg_h.custom_layers = CUSTOM_LAYERS;
+    topology_cfg_h.custom_topology = new[CUSTOM_LAYERS];
+    foreach (CUSTOM_TOPOLOGY[i])
+      topology_cfg_h.custom_topology[i] = CUSTOM_TOPOLOGY[i];
 
     // Store the virtual interfaces.
     uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(uvm_root::get(), "*", "cfg_vif",
@@ -161,6 +169,8 @@ module bnn_fcc_uvm_tb #(
     uvm_config_db#(string)::set(uvm_root::get(), "*", "base_dir", BASE_DIR);
     uvm_config_db#(bit)::set(uvm_root::get(), "*", "debug", DEBUG);
     uvm_config_db#(bit)::set(uvm_root::get(), "*", "use_custom_topology", USE_CUSTOM_TOPOLOGY);
+    uvm_config_db#(bnn_fcc_uvm_pkg::bnn_fcc_topology_cfg)::set(uvm_root::get(), "*", "custom_topology_cfg_h",
+                                                                topology_cfg_h);
 
     // Store handshake / backpressure configuration.
     uvm_config_db#(bit)::set(uvm_root::get(), "*", "toggle_data_out_ready", TOGGLE_DATA_OUT_READY);

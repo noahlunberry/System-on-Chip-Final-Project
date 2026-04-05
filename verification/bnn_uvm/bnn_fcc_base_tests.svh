@@ -41,6 +41,7 @@ class bnn_fcc_base_test extends uvm_test;
 
     virtual function void build_phase(uvm_phase phase);
         string model_path;
+        bnn_fcc_uvm_pkg::bnn_fcc_topology_cfg topology_cfg_h;
         int trained_topology[4];
 
         super.build_phase(phase);
@@ -65,18 +66,36 @@ class bnn_fcc_base_test extends uvm_test;
             debug = 1'b0;
 
         // The base test is the single owner/publisher of model_h. It either
-        // consumes an injected model handle or mirrors the original TB and
-        // creates the default trained MNIST model.
+        // consumes an injected model handle or mirrors the original TB by
+        // creating the trained MNIST model or a randomized custom-topology
+        // model based on the runtime parameters.
         if (!uvm_config_db#(BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "model_h", model)) begin
-            if (use_custom_topology) begin
-                `uvm_fatal("NO_MODEL",
-                           "use_custom_topology=1, but no model_h was provided to the base test.")
-            end
-
             model = new();
-            trained_topology = '{784, 256, 256, 10};
-            model_path = $sformatf("%s/%s", base_dir, MNIST_MODEL_DATA_PATH);
-            model.load_from_file(model_path, trained_topology);
+
+            if (use_custom_topology) begin
+                if (!uvm_config_db#(bnn_fcc_uvm_pkg::bnn_fcc_topology_cfg)::get(this, "", "custom_topology_cfg_h",
+                                                                                topology_cfg_h))
+                    `uvm_fatal("NO_CUSTOM_TOPOLOGY",
+                               "use_custom_topology=1, but custom_topology_cfg_h was not provided to the base test.")
+
+                if (topology_cfg_h.custom_layers < 2)
+                    `uvm_fatal("BAD_CUSTOM_LAYERS",
+                               $sformatf("custom_layers must be at least 2, got %0d.",
+                                         topology_cfg_h.custom_layers))
+
+                if (topology_cfg_h.custom_topology.size() != topology_cfg_h.custom_layers)
+                    `uvm_fatal("BAD_CUSTOM_TOPOLOGY",
+                               $sformatf("custom_topology size (%0d) did not match custom_layers (%0d).",
+                                         topology_cfg_h.custom_topology.size(),
+                                         topology_cfg_h.custom_layers))
+
+                model.create_random(topology_cfg_h.custom_topology);
+            end
+            else begin
+                trained_topology = '{784, 256, 256, 10};
+                model_path = $sformatf("%s/%s", base_dir, MNIST_MODEL_DATA_PATH);
+                model.load_from_file(model_path, trained_topology);
+            end
         end
 
         if (!model.is_loaded)

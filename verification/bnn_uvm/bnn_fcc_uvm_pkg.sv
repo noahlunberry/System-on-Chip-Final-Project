@@ -21,6 +21,19 @@ package bnn_fcc_uvm_pkg;
     // DUT configuration (can be modified or extended for your own DUT)        
     parameter int PARALLEL_INPUTS = 128;
     parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{256, 64, 10};
+
+    // Carries the original TB's custom-topology parameters into the UVM
+    // test layer, where the shared model handle is created.
+    class bnn_fcc_topology_cfg;
+        int custom_layers;
+        int custom_topology[];
+
+        function new();
+            custom_layers = 0;
+            custom_topology = new[0];
+        endfunction
+    endclass
+
   import axi4_stream_pkg::*;
 
 endpackage
