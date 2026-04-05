@@ -97,7 +97,7 @@ module bnn_fcc_tb #(
     parameter realtime CLK_PERIOD                               = 10ns,
     parameter bit      DEBUG                                    = 1'b0,
 
-    // Bus configuratio
+    // Bus configuration
     parameter int CONFIG_BUS_WIDTH = 64,
     parameter int INPUT_BUS_WIDTH  = 1024,
     parameter int OUTPUT_BUS_WIDTH = 8,
