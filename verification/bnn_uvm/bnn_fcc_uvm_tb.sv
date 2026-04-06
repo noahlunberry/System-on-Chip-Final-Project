@@ -24,21 +24,21 @@ module bnn_fcc_uvm_tb #(
     // ----------------------------
     // Bus configuration
     // ----------------------------
-    parameter int CONFIG_BUS_WIDTH = 64,
-    parameter int INPUT_BUS_WIDTH  = 1024,
-    parameter int OUTPUT_BUS_WIDTH = 8,
+    parameter int CONFIG_BUS_WIDTH = bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH,
+    parameter int INPUT_BUS_WIDTH  = bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH,
+    parameter int OUTPUT_BUS_WIDTH = bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH,
 
     // ----------------------------
     // App configuration
     // ----------------------------
-    parameter int INPUT_DATA_WIDTH  = 8,
-    parameter int OUTPUT_DATA_WIDTH = 4,
+    parameter int INPUT_DATA_WIDTH  = bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH,
+    parameter int OUTPUT_DATA_WIDTH = bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH,
 
     // ----------------------------
     // DUT configuration
     // ----------------------------
-    localparam int TRAINED_LAYERS = 4,
-    localparam int TRAINED_TOPOLOGY[TRAINED_LAYERS] = '{784, 256, 256, 10},
+    localparam int TRAINED_LAYERS = bnn_fcc_uvm_pkg::TRAINED_LAYERS,
+    localparam int TRAINED_TOPOLOGY[TRAINED_LAYERS] = bnn_fcc_uvm_pkg::TRAINED_TOPOLOGY,
 
     localparam int ACTUAL_TOTAL_LAYERS = USE_CUSTOM_TOPOLOGY ? CUSTOM_LAYERS : TRAINED_LAYERS,
     localparam int ACTUAL_TOPOLOGY[ACTUAL_TOTAL_LAYERS] =
@@ -46,8 +46,8 @@ module bnn_fcc_uvm_tb #(
 
     localparam int NON_INPUT_LAYERS = ACTUAL_TOTAL_LAYERS - 1,
 
-    parameter int PARALLEL_INPUTS = 128,
-    parameter int PARALLEL_NEURONS[NON_INPUT_LAYERS] = '{256, 64, 10}
+    parameter int PARALLEL_INPUTS = bnn_fcc_uvm_pkg::PARALLEL_INPUTS,
+    parameter int PARALLEL_NEURONS[NON_INPUT_LAYERS] = bnn_fcc_uvm_pkg::PARALLEL_NEURONS
 );
 
   // ---------------------------------

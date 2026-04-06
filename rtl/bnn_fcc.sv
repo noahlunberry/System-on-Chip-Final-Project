@@ -95,9 +95,9 @@ module bnn_fcc #(
   logic                            stall_axi;
 
 
-  logic out_fifo_full;
-  logic out_fifo_empty;
-  logic out_fifo_alm_full;
+  logic                            out_fifo_full;
+  logic                            out_fifo_empty;
+  logic                            out_fifo_alm_full;
 
   initial begin
     for (int i = 0; i < LAYERS - 1; i++) begin
@@ -234,7 +234,7 @@ module bnn_fcc #(
   );
 
   assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
-  assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi && !out_fifo_alm_full;
+  assign data_in_ready     = config_ready && !bin_fifo_alm_full && !stall_axi && !out_fifo_alm_full && config_last;
   assign bnn_en = !out_fifo_alm_full;
 
 
@@ -313,7 +313,7 @@ module bnn_fcc #(
   // -------------------------------------------------------------------------
   // AXI Stream Output FIFO (Elastic Buffer)
   // -------------------------------------------------------------------------
-  
+
 
   // Note: AXI-Stream requires "First-Word Fall-Through" (FWFT) FIFO behavior, 
   // meaning the read data is available on the same cycle 'empty' goes low.
