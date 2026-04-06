@@ -27,6 +27,7 @@ class bnn_fcc_base_test extends uvm_test;
 
     BNN_FCC_Model    #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
     BNN_FCC_Stimulus #(bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH) stim;
+    virtual bnn_fcc_ctrl_if ctrl_vif;
 
     int    num_test_images;
     string base_dir;
@@ -60,6 +61,9 @@ class bnn_fcc_base_test extends uvm_test;
 
         if (!uvm_config_db#(bit)::get(this, "", "debug", debug))
             debug = 1'b0;
+
+        if (!uvm_config_db#(virtual bnn_fcc_ctrl_if)::get(this, "", "ctrl_vif", ctrl_vif))
+            `uvm_fatal("NO_CTRL_VIF", "ctrl_vif not specified.")
 
         // The base test is the single owner/publisher of model_h. It either
         // consumes an injected model handle or mirrors the original TB by
@@ -145,6 +149,32 @@ class bnn_fcc_base_test extends uvm_test;
     virtual task wait_for_scoreboard_done();
         wait ((env.scoreboard.passed + env.scoreboard.failed) == num_test_images);
         repeat (5) @(posedge env.in_vif.aclk);
+    endtask
+
+    virtual task wait_for_scoreboard_idle();
+        env.scoreboard.wait_for_idle();
+    endtask
+
+    virtual task run_config_sequence(
+        bnn_fcc_config_base_sequence cfg_seq,
+        BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) expected_model = null,
+        string tag = "configuration"
+    );
+        BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model_to_commit;
+        int layers_touched;
+
+        model_to_commit = (expected_model == null) ? model : expected_model;
+        layers_touched = (cfg_seq.selected_layers.size() == 0) ? model_to_commit.num_layers :
+                                                              cfg_seq.selected_layers.size();
+
+        cfg_seq.start(env.cfg_agent.sequencer);
+        env.scoreboard.commit_model(model_to_commit, tag);
+        env.system_coverage.sample_reconfig(cfg_seq.get_reconfig_kind(), layers_touched);
+    endtask
+
+    virtual task pulse_reset(int cycles = 5, bit same_cfg_after_reset = 1'b1);
+        ctrl_vif.pulse_reset(cycles);
+        env.system_coverage.sample_post_reset(same_cfg_after_reset);
     endtask
 
     function void report_phase(uvm_phase phase);

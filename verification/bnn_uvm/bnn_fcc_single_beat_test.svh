@@ -45,7 +45,7 @@ class bnn_fcc_single_beat_test extends bnn_fcc_base_test;
         cfg_seq = bnn_fcc_config_beat_sequence::type_id::create("cfg_seq");
         img_seq = bnn_fcc_image_beat_sequence::type_id::create("img_seq");
 
-        cfg_seq.start(env.cfg_agent.sequencer);
+        run_config_sequence(cfg_seq, model, "initial full configuration");
 
         if (debug)
             `uvm_info(get_type_name(), "Configuration sequence completed. Starting image sequence.", UVM_LOW)

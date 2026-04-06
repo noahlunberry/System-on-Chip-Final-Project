@@ -9,3 +9,4 @@ verification/bnn_uvm/work
 work
 codex_uvm_check\
 vsim.dbg
+.codex

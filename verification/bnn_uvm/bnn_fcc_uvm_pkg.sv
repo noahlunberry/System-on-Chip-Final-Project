@@ -22,6 +22,27 @@ package bnn_fcc_uvm_pkg;
     parameter int PARALLEL_INPUTS = 128;
     parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{256, 64, 10};
 
+    typedef enum int {
+        BNN_CFG_ORDER_LAYER_INTERLEAVED = 0,
+        BNN_CFG_ORDER_WEIGHTS_THEN_THRESH = 1,
+        BNN_CFG_ORDER_THRESH_THEN_WEIGHTS = 2
+    } bnn_cfg_order_e;
+
+    typedef enum int {
+        BNN_RECONFIG_FULL = 0,
+        BNN_RECONFIG_WEIGHTS_ONLY = 1,
+        BNN_RECONFIG_THRESH_ONLY = 2,
+        BNN_RECONFIG_PARTIAL = 3
+    } bnn_reconfig_kind_e;
+
+    typedef enum int {
+        BNN_RESET_IDLE = 0,
+        BNN_RESET_DURING_CONFIG = 1,
+        BNN_RESET_DURING_IMAGE = 2,
+        BNN_RESET_DURING_OUTPUT = 3,
+        BNN_RESET_AT_TLAST = 4
+    } bnn_reset_phase_e;
+
     // Carries the original TB's custom-topology parameters into the UVM
     // test layer, where the shared model handle is created.
     class bnn_fcc_topology_cfg;

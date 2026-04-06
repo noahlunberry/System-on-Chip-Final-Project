@@ -54,7 +54,6 @@ module bnn_fcc_uvm_tb #(
   // Clock / Reset
   // ---------------------------------
   logic clk = 1'b0;
-  logic rst;
 
   localparam time HALF_CLK_PERIOD = CLK_PERIOD / 2;
 
@@ -63,10 +62,14 @@ module bnn_fcc_uvm_tb #(
   end
 
   initial begin
-    rst = 1'b1;
+    ctrl_if.rst = 1'b1;
     repeat (5) @(posedge clk);
-    rst = 1'b0;
+    ctrl_if.rst = 1'b0;
   end
+
+  bnn_fcc_ctrl_if ctrl_if (
+      .clk(clk)
+  );
 
   // ---------------------------------
   // Interfaces
@@ -75,21 +78,21 @@ module bnn_fcc_uvm_tb #(
       .DATA_WIDTH(CONFIG_BUS_WIDTH)
   ) config_in_if (
       .aclk   (clk),
-      .aresetn(!rst)
+      .aresetn(!ctrl_if.rst)
   );
 
   axi4_stream_if #(
       .DATA_WIDTH(INPUT_BUS_WIDTH)
   ) data_in_if (
       .aclk   (clk),
-      .aresetn(!rst)
+      .aresetn(!ctrl_if.rst)
   );
 
   axi4_stream_if #(
       .DATA_WIDTH(OUTPUT_BUS_WIDTH)
   ) data_out_if (
       .aclk   (clk),
-      .aresetn(!rst)
+      .aresetn(!ctrl_if.rst)
   );
 
   // Match your old TB behavior
@@ -123,7 +126,7 @@ module bnn_fcc_uvm_tb #(
       .PARALLEL_NEURONS (PARALLEL_NEURONS)
   ) dut (
       .clk(clk),
-      .rst(rst),
+      .rst(ctrl_if.rst),
 
       .config_valid(config_in_if.tvalid),
       .config_ready(config_in_if.tready),
@@ -174,6 +177,7 @@ module bnn_fcc_uvm_tb #(
                                                                     data_out_if);
     uvm_config_db#(virtual axi4_stream_if #(OUTPUT_BUS_WIDTH))::set(uvm_root::get(), "*", "data_out_vif",
                                                                     data_out_if);
+    uvm_config_db#(virtual bnn_fcc_ctrl_if)::set(uvm_root::get(), "*", "ctrl_vif", ctrl_if);
 
     // Store general test configuration.
     uvm_config_db#(int)::set(uvm_root::get(), "*", "num_test_images", NUM_TEST_IMAGES);
@@ -201,9 +205,9 @@ module bnn_fcc_uvm_tb #(
     // NOTE: AXI is a little weird and prohibits transmitters from waiting on tready
     // to assert tvalid. Normally, a transmitter treats a ready signal as an enable,
     // but that practice is not AXI-compliant.
-    assert property (@(posedge clk) disable iff (rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tdata))
+    assert property (@(posedge clk) disable iff (ctrl_if.rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tdata))
     else `uvm_error("ASSERT", "Output changed with tready disabled.");
 
-    assert property (@(posedge clk) disable iff (rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tvalid))
+    assert property (@(posedge clk) disable iff (ctrl_if.rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tvalid))
     else `uvm_error("ASSERT", "Valid changed with tready disabled.");
 endmodule

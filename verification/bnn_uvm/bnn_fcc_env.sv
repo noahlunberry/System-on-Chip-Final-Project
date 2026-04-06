@@ -25,6 +25,7 @@ class bnn_fcc_env extends uvm_env;
     bnn_cfg_coverage    cfg_coverage;
     bnn_input_coverage  input_coverage;
     bnn_output_coverage output_coverage;
+    bnn_system_coverage system_coverage;
 
     // Virtual interfaces
     virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_vif;
@@ -53,6 +54,7 @@ class bnn_fcc_env extends uvm_env;
         cfg_coverage    = bnn_cfg_coverage   ::type_id::create("cfg_coverage", this);
         input_coverage  = bnn_input_coverage ::type_id::create("input_coverage", this);
         output_coverage = bnn_output_coverage::type_id::create("output_coverage", this);
+        system_coverage = bnn_system_coverage::type_id::create("system_coverage", this);
 
         if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "cfg_vif", cfg_vif))
             `uvm_fatal("NO_CFG_VIF", "cfg_vif not set")
@@ -105,6 +107,7 @@ class bnn_fcc_env extends uvm_env;
         cfg_agent.monitor.ap.connect(cfg_coverage.cfg_ae);
         in_agent.monitor.ap.connect(input_coverage.in_ae);
         out_agent.monitor.ap.connect(output_coverage.out_ae);
+        in_agent.monitor.ap.connect(system_coverage.in_ae);
 
         // Driver delay configuration
         cfg_agent.driver.set_delay(cfg_min_driver_delay, cfg_max_driver_delay);

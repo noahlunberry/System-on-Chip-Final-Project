@@ -80,6 +80,7 @@ class bnn_cfg_coverage extends uvm_component;
     // directly from the packet-level config monitor.
     uvm_analysis_export #(axi_item_t) cfg_ae;
     uvm_tlm_analysis_fifo #(axi_item_t) cfg_fifo;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_vif;
 
     // State used by the covergroups below.
     int packet_num_beats;
@@ -97,6 +98,8 @@ class bnn_cfg_coverage extends uvm_component;
     int threshold_ratio_pct;
     int msg_transition_kind;
     int layer_transition_kind;
+    int cfg_gap_len;
+    int cfg_burst_len;
 
     // Covers coarse packet-level protocol properties such as full vs. partial
     // final beats.
@@ -222,6 +225,30 @@ class bnn_cfg_coverage extends uvm_component;
         threshold_cross: cross layer_id_cp, threshold_ratio_cp;
     endgroup
 
+    // Covers cycle-level TVALID gap/burst behavior on the config interface.
+    covergroup cfg_handshake_coverage;
+        gap_len_cp: coverpoint cfg_gap_len {
+            bins zero = {0};
+            bins short_gap = {[1:3]};
+            bins medium_gap = {[4:15]};
+            bins long_gap = {[16:$]};
+        }
+
+        burst_len_cp: coverpoint cfg_burst_len {
+            bins one = {1};
+            bins short_burst = {[2:4]};
+            bins long_burst = {[5:32]};
+            bins huge_burst = {[33:$]};
+        }
+    endgroup
+
+    // Covers live valid/ready/backpressure observations.
+    covergroup cfg_interface_coverage;
+        valid_cp: coverpoint cfg_vif.tvalid { bins hi = {1}; bins lo = {0}; }
+        ready_cp: coverpoint cfg_vif.tready { bins hi = {1}; bins lo = {0}; }
+        backpressure_cp: coverpoint (!cfg_vif.tready && cfg_vif.tvalid) { bins seen = {1}; }
+    endgroup
+
     // As in the mult example, this extra covergroup is instantiated explicitly
     // because it is sampled manually rather than through a class property name.
     cfg_toggle_coverage config_toggle_cov;
@@ -235,6 +262,8 @@ class bnn_cfg_coverage extends uvm_component;
         order_coverage = new();
         weight_density_coverage = new();
         threshold_coverage = new();
+        cfg_handshake_coverage = new();
+        cfg_interface_coverage = new();
         config_toggle_cov = new();
     endfunction
 
@@ -244,6 +273,9 @@ class bnn_cfg_coverage extends uvm_component;
         // Create the analysis export and FIFO.
         cfg_ae = new("cfg_ae", this);
         cfg_fifo = new("cfg_fifo", this);
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "cfg_vif", cfg_vif))
+            `uvm_warning("CFG_COV_NO_VIF", "Could not get cfg_vif for config interface coverage.")
     endfunction
 
     function void connect_phase(uvm_phase phase);
@@ -355,7 +387,46 @@ class bnn_cfg_coverage extends uvm_component;
         return 4;
     endfunction
 
-    task run_phase(uvm_phase phase);
+    task sample_cfg_interface();
+        int gap_cnt;
+        int burst_cnt;
+
+        if (cfg_vif == null)
+            return;
+
+        gap_cnt = 0;
+        burst_cnt = 0;
+
+        forever begin
+            @(posedge cfg_vif.aclk);
+
+            if (!cfg_vif.aresetn) begin
+                gap_cnt = 0;
+                burst_cnt = 0;
+                continue;
+            end
+
+            cfg_interface_coverage.sample();
+
+            if (cfg_vif.tvalid && cfg_vif.tready) begin
+                cfg_gap_len = gap_cnt;
+                cfg_burst_len = burst_cnt + 1;
+                cfg_handshake_coverage.sample();
+                burst_cnt++;
+                gap_cnt = 0;
+            end
+            else if (cfg_vif.tvalid && !cfg_vif.tready) begin
+                // Hold the current burst open until the transfer completes.
+            end
+            else begin
+                if (burst_cnt > 0)
+                    burst_cnt = 0;
+                gap_cnt++;
+            end
+        end
+    endtask
+
+    task sample_cfg_transactions();
         axi_item_t cfg_pkt;
         bit [7:0] cfg_bytes[$];
         int layer_inputs_by_layer[int];
@@ -483,6 +554,13 @@ class bnn_cfg_coverage extends uvm_component;
             end
         end
     endtask
+
+    task run_phase(uvm_phase phase);
+        fork
+            sample_cfg_interface();
+            sample_cfg_transactions();
+        join
+    endtask
 endclass
 
 
@@ -498,6 +576,7 @@ class bnn_input_coverage extends uvm_component;
     // Analysis export/FIFO pair for packet-level image transactions.
     uvm_analysis_export #(axi_item_t) in_ae;
     uvm_tlm_analysis_fifo #(axi_item_t) in_fifo;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH) in_vif;
 
     // State sampled by the covergroups below.
     int image_num_beats;
@@ -507,6 +586,10 @@ class bnn_input_coverage extends uvm_component;
     int sideband_tid;
     int sideband_tdest;
     int sideband_tuser;
+    int in_gap_len;
+    int in_burst_len;
+    int inter_image_gap;
+    int num_images_seen;
 
     // Covers packet shapes for streamed images, including partial final beats.
     covergroup image_coverage;
@@ -563,6 +646,50 @@ class bnn_input_coverage extends uvm_component;
         }
     endgroup
 
+    // Covers cycle-level TVALID gaps/bursts during image transfers.
+    covergroup input_handshake_coverage;
+        gap_len_cp: coverpoint in_gap_len {
+            bins zero = {0};
+            bins short_gap = {[1:3]};
+            bins medium_gap = {[4:15]};
+            bins long_gap = {[16:$]};
+        }
+
+        burst_len_cp: coverpoint in_burst_len {
+            bins one = {1};
+            bins short_burst = {[2:4]};
+            bins long_burst = {[5:32]};
+            bins huge_burst = {[33:$]};
+        }
+    endgroup
+
+    // Covers spacing between completed images.
+    covergroup input_image_spacing_coverage;
+        inter_image_gap_cp: coverpoint inter_image_gap {
+            bins zero = {0};
+            bins short_gap = {[1:5]};
+            bins medium_gap = {[6:20]};
+            bins long_gap = {[21:$]};
+        }
+    endgroup
+
+    // Covers live valid/ready/backpressure observations on the input stream.
+    covergroup input_interface_coverage;
+        valid_cp: coverpoint in_vif.tvalid { bins hi = {1}; bins lo = {0}; }
+        ready_cp: coverpoint in_vif.tready { bins hi = {1}; bins lo = {0}; }
+        backpressure_cp: coverpoint (!in_vif.tready && in_vif.tvalid) { bins seen = {1}; }
+    endgroup
+
+    // Covers the running workload size across a test.
+    covergroup workload_coverage;
+        num_images_cp: coverpoint num_images_seen {
+            bins few = {[1:5]};
+            bins some = {[6:20]};
+            bins many = {[21:100]};
+            bins stress = {[101:$]};
+        }
+    endgroup
+
     // Manual toggle coverage for the bits of each input pixel.
     input_toggle_coverage pixel_toggle_cov;
 
@@ -572,7 +699,12 @@ class bnn_input_coverage extends uvm_component;
         image_coverage = new();
         pixel_coverage = new();
         sideband_coverage = new();
+        input_handshake_coverage = new();
+        input_image_spacing_coverage = new();
+        input_interface_coverage = new();
+        workload_coverage = new();
         pixel_toggle_cov = new();
+        num_images_seen = 0;
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -581,6 +713,9 @@ class bnn_input_coverage extends uvm_component;
         // Create the export and FIFO.
         in_ae = new("in_ae", this);
         in_fifo = new("in_fifo", this);
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH))::get(this, "", "in_vif", in_vif))
+            `uvm_warning("INPUT_COV_NO_VIF", "Could not get in_vif for input interface coverage.")
     endfunction
 
     function void connect_phase(uvm_phase phase);
@@ -630,7 +765,68 @@ class bnn_input_coverage extends uvm_component;
         end
     endfunction
 
-    task run_phase(uvm_phase phase);
+    task sample_input_interface();
+        int gap_cnt;
+        int burst_cnt;
+        int image_gap_cnt;
+        bit waiting_for_image_start;
+
+        if (in_vif == null)
+            return;
+
+        gap_cnt = 0;
+        burst_cnt = 0;
+        image_gap_cnt = 0;
+        waiting_for_image_start = 0;
+
+        forever begin
+            @(posedge in_vif.aclk);
+
+            if (!in_vif.aresetn) begin
+                gap_cnt = 0;
+                burst_cnt = 0;
+                image_gap_cnt = 0;
+                waiting_for_image_start = 0;
+                continue;
+            end
+
+            input_interface_coverage.sample();
+
+            if (in_vif.tvalid && in_vif.tready) begin
+                in_gap_len = gap_cnt;
+                in_burst_len = burst_cnt + 1;
+                input_handshake_coverage.sample();
+
+                if (waiting_for_image_start) begin
+                    inter_image_gap = image_gap_cnt;
+                    input_image_spacing_coverage.sample();
+                    image_gap_cnt = 0;
+                    waiting_for_image_start = 0;
+                end
+
+                burst_cnt++;
+                gap_cnt = 0;
+
+                if (in_vif.tlast) begin
+                    waiting_for_image_start = 1;
+                    image_gap_cnt = 0;
+                end
+            end
+            else if (in_vif.tvalid && !in_vif.tready) begin
+                // Keep the current burst active until the beat transfers.
+            end
+            else begin
+                if (burst_cnt > 0)
+                    burst_cnt = 0;
+                gap_cnt++;
+
+                if (waiting_for_image_start)
+                    image_gap_cnt++;
+            end
+        end
+    endtask
+
+    task sample_input_transactions();
         axi_item_t in_pkt;
         bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
 
@@ -653,9 +849,11 @@ class bnn_input_coverage extends uvm_component;
             sideband_tid = in_pkt.tid;
             sideband_tdest = in_pkt.tdest;
             sideband_tuser = in_pkt.tuser;
+            num_images_seen++;
 
             image_coverage.sample();
             sideband_coverage.sample();
+            workload_coverage.sample();
 
             // Sample both value coverage and per-bit toggle coverage for every
             // reconstructed pixel.
@@ -667,6 +865,13 @@ class bnn_input_coverage extends uvm_component;
                     pixel_toggle_cov.sample(bit_idx, current_img[i][bit_idx]);
             end
         end
+    endtask
+
+    task run_phase(uvm_phase phase);
+        fork
+            sample_input_interface();
+            sample_input_transactions();
+        join
     endtask
 endclass
 
@@ -683,6 +888,7 @@ class bnn_output_coverage extends uvm_component;
     // Analysis export/FIFO pair for observed outputs.
     uvm_analysis_export #(axi_item_t) out_ae;
     uvm_tlm_analysis_fifo #(axi_item_t) out_fifo;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH) out_vif;
 
     // State sampled by the covergroups.
     int output_class;
@@ -691,6 +897,10 @@ class bnn_output_coverage extends uvm_component;
     int sideband_tid;
     int sideband_tdest;
     int sideband_tuser;
+    int out_stall_len;
+    int out_ready_burst_len;
+    int output_backpressure_bin;
+    int repeat_run_len;
 
     bit prev_output_valid;
     int prev_output_class;
@@ -713,7 +923,14 @@ class bnn_output_coverage extends uvm_component;
             illegal_bins empty = {0};
         }
 
+        backpressure_cp: coverpoint output_backpressure_bin {
+            bins none = {0};
+            bins light = {1};
+            bins heavy = {2};
+        }
+
         class_transition_cross: cross class_cp, transition_cp;
+        class_backpressure_cross: cross class_cp, backpressure_cp;
     endgroup
 
     // Covers the AXI sideband fields on the output stream.
@@ -734,6 +951,39 @@ class bnn_output_coverage extends uvm_component;
         }
     endgroup
 
+    // Covers observed TREADY stall and burst patterns on the output stream.
+    covergroup output_backpressure_coverage;
+        stall_len_cp: coverpoint out_stall_len {
+            bins zero = {0};
+            bins short_stall = {[1:3]};
+            bins medium_stall = {[4:15]};
+            bins long_stall = {[16:$]};
+        }
+
+        ready_burst_cp: coverpoint out_ready_burst_len {
+            bins one = {1};
+            bins short_burst = {[2:5]};
+            bins long_burst = {[6:$]};
+        }
+    endgroup
+
+    // Covers live valid/ready/backpressure observations on the output stream.
+    covergroup output_interface_coverage;
+        valid_cp: coverpoint out_vif.tvalid { bins hi = {1}; bins lo = {0}; }
+        ready_cp: coverpoint out_vif.tready { bins hi = {1}; bins lo = {0}; }
+        backpressure_cp: coverpoint (!out_vif.tready && out_vif.tvalid) { bins seen = {1}; }
+    endgroup
+
+    // Covers repeated output-class run lengths.
+    covergroup output_pattern_coverage;
+        repeat_len_cp: coverpoint repeat_run_len {
+            bins single = {1};
+            bins short_run = {[2:3]};
+            bins medium_run = {[4:10]};
+            bins long_run = {[11:$]};
+        }
+    endgroup
+
     // Manual toggle coverage for the output classification bits.
     output_toggle_coverage output_toggle_cov;
 
@@ -742,9 +992,14 @@ class bnn_output_coverage extends uvm_component;
 
         output_coverage = new();
         sideband_coverage = new();
+        output_backpressure_coverage = new();
+        output_interface_coverage = new();
+        output_pattern_coverage = new();
         output_toggle_cov = new();
         prev_output_valid = 1'b0;
         prev_output_class = 0;
+        repeat_run_len = 0;
+        output_backpressure_bin = 0;
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -753,6 +1008,9 @@ class bnn_output_coverage extends uvm_component;
         // Create the export and FIFO.
         out_ae = new("out_ae", this);
         out_fifo = new("out_fifo", this);
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH))::get(this, "", "out_vif", out_vif))
+            `uvm_warning("OUTPUT_COV_NO_VIF", "Could not get out_vif for output interface coverage.")
     endfunction
 
     function void connect_phase(uvm_phase phase);
@@ -774,7 +1032,54 @@ class bnn_output_coverage extends uvm_component;
         return count;
     endfunction
 
-    task run_phase(uvm_phase phase);
+    task sample_output_interface();
+        int stall_cnt;
+        int ready_cnt;
+
+        if (out_vif == null)
+            return;
+
+        stall_cnt = 0;
+        ready_cnt = 0;
+
+        forever begin
+            @(posedge out_vif.aclk);
+
+            if (!out_vif.aresetn) begin
+                stall_cnt = 0;
+                ready_cnt = 0;
+                output_backpressure_bin = 0;
+                continue;
+            end
+
+            output_interface_coverage.sample();
+
+            if (out_vif.tready) begin
+                ready_cnt++;
+
+                if (stall_cnt > 0) begin
+                    out_stall_len = stall_cnt;
+                    output_backpressure_coverage.sample();
+                    output_backpressure_bin = (stall_cnt < 5) ? 1 : 2;
+                    stall_cnt = 0;
+                end
+                else begin
+                    output_backpressure_bin = 0;
+                end
+            end
+            else begin
+                stall_cnt++;
+
+                if (ready_cnt > 0) begin
+                    out_ready_burst_len = ready_cnt;
+                    output_backpressure_coverage.sample();
+                    ready_cnt = 0;
+                end
+            end
+        end
+    endtask
+
+    task sample_output_transactions();
         axi_item_t out_pkt;
 
         out_pkt = new();
@@ -799,6 +1104,15 @@ class bnn_output_coverage extends uvm_component;
             output_coverage.sample();
             sideband_coverage.sample();
 
+            if (!prev_output_valid || output_class != prev_output_class) begin
+                if (prev_output_valid && repeat_run_len > 0)
+                    output_pattern_coverage.sample();
+                repeat_run_len = 1;
+            end
+            else begin
+                repeat_run_len++;
+            end
+
             // Manually sample bit-toggle coverage for the classification code.
             for (int bit_idx = 0; bit_idx < bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH; bit_idx++)
                 output_toggle_cov.sample(bit_idx, output_class[bit_idx]);
@@ -806,6 +1120,179 @@ class bnn_output_coverage extends uvm_component;
             prev_output_valid = 1'b1;
             prev_output_class = output_class;
         end
+    endtask
+
+    task run_phase(uvm_phase phase);
+        fork
+            sample_output_interface();
+            sample_output_transactions();
+        join
+    endtask
+endclass
+
+
+class bnn_system_coverage extends uvm_component;
+    `uvm_component_utils(bnn_system_coverage)
+
+    typedef axi4_stream_seq_item #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH) in_axi_item_t;
+
+    uvm_analysis_export #(in_axi_item_t) in_ae;
+    uvm_tlm_analysis_fifo #(in_axi_item_t) in_fifo;
+
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_vif;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH) in_vif;
+    virtual axi4_stream_if #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH) out_vif;
+    virtual bnn_fcc_ctrl_if ctrl_vif;
+
+    int reconfig_type;
+    int layers_touched;
+    int reset_phase;
+    int reset_count;
+    int workload_before_reset;
+    bit post_reset_same_cfg;
+    int images_since_reset;
+
+    covergroup reconfig_coverage;
+        type_cp: coverpoint reconfig_type {
+            bins full = {bnn_fcc_uvm_pkg::BNN_RECONFIG_FULL};
+            bins weights_only = {bnn_fcc_uvm_pkg::BNN_RECONFIG_WEIGHTS_ONLY};
+            bins thresh_only = {bnn_fcc_uvm_pkg::BNN_RECONFIG_THRESH_ONLY};
+            bins partial = {bnn_fcc_uvm_pkg::BNN_RECONFIG_PARTIAL};
+        }
+
+        layers_cp: coverpoint layers_touched {
+            bins one = {1};
+            bins some = {[2:3]};
+            bins all = {[4:$]};
+        }
+    endgroup
+
+    covergroup reset_coverage;
+        phase_cp: coverpoint reset_phase {
+            bins idle = {bnn_fcc_uvm_pkg::BNN_RESET_IDLE};
+            bins during_config = {bnn_fcc_uvm_pkg::BNN_RESET_DURING_CONFIG};
+            bins during_image = {bnn_fcc_uvm_pkg::BNN_RESET_DURING_IMAGE};
+            bins during_output = {bnn_fcc_uvm_pkg::BNN_RESET_DURING_OUTPUT};
+            bins at_tlast = {bnn_fcc_uvm_pkg::BNN_RESET_AT_TLAST};
+        }
+
+        count_cp: coverpoint reset_count {
+            bins one = {1};
+            bins few = {[2:3]};
+            bins many = {[4:$]};
+        }
+
+        workload_cp: coverpoint workload_before_reset {
+            bins zero = {0};
+            bins few = {[1:5]};
+            bins some = {[6:20]};
+            bins many = {[21:$]};
+        }
+
+        phase_count_cross: cross phase_cp, count_cp;
+    endgroup
+
+    covergroup reset_post_coverage;
+        same_cfg_cp: coverpoint post_reset_same_cfg {
+            bins different = {0};
+            bins same = {1};
+        }
+    endgroup
+
+    function new(string name, uvm_component parent);
+        super.new(name, parent);
+        reconfig_coverage = new();
+        reset_coverage = new();
+        reset_post_coverage = new();
+        images_since_reset = 0;
+        reset_count = 0;
+    endfunction
+
+    function void build_phase(uvm_phase phase);
+        super.build_phase(phase);
+
+        in_ae = new("in_ae", this);
+        in_fifo = new("in_fifo", this);
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH))::get(this, "", "cfg_vif", cfg_vif))
+            `uvm_warning("SYS_COV_NO_CFG_VIF", "Could not get cfg_vif for system coverage.")
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH))::get(this, "", "in_vif", in_vif))
+            `uvm_warning("SYS_COV_NO_IN_VIF", "Could not get in_vif for system coverage.")
+
+        if (!uvm_config_db#(virtual axi4_stream_if #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH))::get(this, "", "out_vif", out_vif))
+            `uvm_warning("SYS_COV_NO_OUT_VIF", "Could not get out_vif for system coverage.")
+
+        if (!uvm_config_db#(virtual bnn_fcc_ctrl_if)::get(this, "", "ctrl_vif", ctrl_vif))
+            `uvm_warning("SYS_COV_NO_CTRL_VIF", "Could not get ctrl_vif for system coverage.")
+    endfunction
+
+    function void connect_phase(uvm_phase phase);
+        super.connect_phase(phase);
+        in_ae.connect(in_fifo.analysis_export);
+    endfunction
+
+    function automatic int classify_reset_phase();
+        if (((cfg_vif != null) && cfg_vif.tvalid && cfg_vif.tready && cfg_vif.tlast) ||
+            ((in_vif != null) && in_vif.tvalid && in_vif.tready && in_vif.tlast) ||
+            ((out_vif != null) && out_vif.tvalid && out_vif.tready && out_vif.tlast))
+            return bnn_fcc_uvm_pkg::BNN_RESET_AT_TLAST;
+
+        if ((cfg_vif != null) && (cfg_vif.tvalid || cfg_vif.tready))
+            return bnn_fcc_uvm_pkg::BNN_RESET_DURING_CONFIG;
+
+        if ((in_vif != null) && (in_vif.tvalid || in_vif.tready))
+            return bnn_fcc_uvm_pkg::BNN_RESET_DURING_IMAGE;
+
+        if ((out_vif != null) && (out_vif.tvalid || out_vif.tready))
+            return bnn_fcc_uvm_pkg::BNN_RESET_DURING_OUTPUT;
+
+        return bnn_fcc_uvm_pkg::BNN_RESET_IDLE;
+    endfunction
+
+    function void sample_reconfig(
+        bnn_fcc_uvm_pkg::bnn_reconfig_kind_e kind,
+        int num_layers
+    );
+        reconfig_type = kind;
+        layers_touched = num_layers;
+        reconfig_coverage.sample();
+    endfunction
+
+    function void sample_post_reset(bit same_cfg);
+        post_reset_same_cfg = same_cfg;
+        reset_post_coverage.sample();
+    endfunction
+
+    task count_input_images();
+        in_axi_item_t in_pkt;
+
+        forever begin
+            in_fifo.get(in_pkt);
+            if (in_pkt.tdata.size() != 0)
+                images_since_reset++;
+        end
+    endtask
+
+    task monitor_resets();
+        if (ctrl_vif == null)
+            return;
+
+        forever begin
+            @(posedge ctrl_vif.rst);
+            reset_count++;
+            reset_phase = classify_reset_phase();
+            workload_before_reset = images_since_reset;
+            reset_coverage.sample();
+            images_since_reset = 0;
+        end
+    endtask
+
+    task run_phase(uvm_phase phase);
+        fork
+            count_input_images();
+            monitor_resets();
+        join
     endtask
 endclass
 

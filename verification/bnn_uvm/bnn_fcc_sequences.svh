@@ -28,6 +28,10 @@ virtual class bnn_fcc_config_base_sequence extends
 
     bit    is_packet_level;
     real   valid_probability;
+    bit    include_weights;
+    bit    include_thresholds;
+    int    selected_layers[$];
+    bnn_fcc_uvm_pkg::bnn_cfg_order_e order_mode;
 
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
     virtual axi4_stream_if #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) cfg_vif;
@@ -37,6 +41,9 @@ virtual class bnn_fcc_config_base_sequence extends
 
     function new(string name = "bnn_fcc_config_base_sequence");
         super.new(name);
+        include_weights = 1'b1;
+        include_thresholds = 1'b1;
+        order_mode = bnn_fcc_uvm_pkg::BNN_CFG_ORDER_LAYER_INTERLEAVED;
     endfunction
 
     // Returns 1 with probability p, mirroring the helper in bnn_fcc_tb.
@@ -48,8 +55,122 @@ virtual class bnn_fcc_config_base_sequence extends
         return ($urandom < (p * (2.0 ** 32)));
     endfunction
 
+    function void select_layers(input int layer_order[$]);
+        selected_layers.delete();
+        foreach (layer_order[i]) selected_layers.push_back(layer_order[i]);
+    endfunction
+
+    function void clear_layer_selection();
+        selected_layers.delete();
+    endfunction
+
+    function automatic int get_layers_touched();
+        if (selected_layers.size() != 0)
+            return selected_layers.size();
+        if (model != null && model.is_loaded)
+            return model.num_layers;
+        return 0;
+    endfunction
+
+    function automatic bnn_fcc_uvm_pkg::bnn_reconfig_kind_e get_reconfig_kind();
+        if (include_weights && include_thresholds)
+            return (selected_layers.size() == 0) ? bnn_fcc_uvm_pkg::BNN_RECONFIG_FULL :
+                                                   bnn_fcc_uvm_pkg::BNN_RECONFIG_PARTIAL;
+        if (include_weights)
+            return bnn_fcc_uvm_pkg::BNN_RECONFIG_WEIGHTS_ONLY;
+        return bnn_fcc_uvm_pkg::BNN_RECONFIG_THRESH_ONLY;
+    endfunction
+
+    protected function automatic void build_default_layer_order(output int layer_order[$]);
+        layer_order.delete();
+        for (int l = 0; l < model.num_layers; l++)
+            layer_order.push_back(l);
+    endfunction
+
+    protected function automatic bit thresholds_valid_for_layer(input int layer_idx);
+        return layer_idx < (model.num_layers - 1);
+    endfunction
+
+    protected function automatic void append_config_segment(
+        ref bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] data_q[$],
+        ref bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] keep_q[$],
+        input int layer_idx,
+        input bit is_threshold
+    );
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] segment_data[];
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] segment_keep[];
+
+        if (layer_idx < 0 || layer_idx >= model.num_layers)
+            `uvm_fatal("BAD_CFG_LAYER",
+                       $sformatf("Requested config for invalid layer %0d (num_layers=%0d).",
+                                 layer_idx, model.num_layers))
+
+        if (is_threshold && !thresholds_valid_for_layer(layer_idx))
+            return;
+
+        model.get_layer_config(layer_idx, is_threshold, segment_data, segment_keep);
+        foreach (segment_data[i]) begin
+            data_q.push_back(segment_data[i]);
+            keep_q.push_back(segment_keep[i]);
+        end
+    endfunction
+
+    protected function automatic void build_config_stream();
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] data_q[$];
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] keep_q[$];
+        int layer_order[$];
+
+        if (!include_weights && !include_thresholds)
+            `uvm_fatal("EMPTY_CFG_PLAN", "Configuration sequence disabled both weights and thresholds.")
+
+        if (selected_layers.size() == 0)
+            build_default_layer_order(layer_order);
+        else
+            foreach (selected_layers[i]) layer_order.push_back(selected_layers[i]);
+
+        case (order_mode)
+            bnn_fcc_uvm_pkg::BNN_CFG_ORDER_LAYER_INTERLEAVED: begin
+                foreach (layer_order[i]) begin
+                    if (include_weights)
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b0);
+                    if (include_thresholds)
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b1);
+                end
+            end
+            bnn_fcc_uvm_pkg::BNN_CFG_ORDER_WEIGHTS_THEN_THRESH: begin
+                if (include_weights)
+                    foreach (layer_order[i])
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b0);
+                if (include_thresholds)
+                    foreach (layer_order[i])
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b1);
+            end
+            bnn_fcc_uvm_pkg::BNN_CFG_ORDER_THRESH_THEN_WEIGHTS: begin
+                if (include_thresholds)
+                    foreach (layer_order[i])
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b1);
+                if (include_weights)
+                    foreach (layer_order[i])
+                        append_config_segment(data_q, keep_q, layer_order[i], 1'b0);
+            end
+            default:
+                `uvm_fatal("BAD_CFG_ORDER",
+                           $sformatf("Unsupported config order mode %0d.", order_mode))
+        endcase
+
+        if (data_q.size() == 0)
+            `uvm_fatal("EMPTY_CONFIG", "Configuration plan created an empty config stream.")
+
+        config_bus_data_stream = new[data_q.size()];
+        config_bus_keep_stream = new[keep_q.size()];
+        foreach (data_q[i]) begin
+            config_bus_data_stream[i] = data_q[i];
+            config_bus_keep_stream[i] = keep_q[i];
+        end
+    endfunction
+
     // Pull the shared model handle from config_db and build the config stream.
-    function void load_sequence_config();
+    virtual function void load_sequence_config();
         if (!uvm_config_db#(real)::get(null, "", "config_valid_probability", valid_probability))
             valid_probability = 1.0;
 
@@ -64,10 +185,7 @@ virtual class bnn_fcc_config_base_sequence extends
         if (!model.is_loaded)
             `uvm_fatal("MODEL_NOT_LOADED", "Configuration sequence received an unloaded model handle.")
 
-        model.encode_configuration(config_bus_data_stream, config_bus_keep_stream);
-
-        if (config_bus_data_stream.size() == 0)
-            `uvm_fatal("EMPTY_CONFIG", "Configuration sequence created an empty config stream.")
+        build_config_stream();
     endfunction
 
     // Wait for a cycle where the producer is allowed to assert TVALID.

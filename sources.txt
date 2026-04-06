@@ -1,5 +1,6 @@
 verification/bnn_uvm/axi4_stream_pkg.sv
 verification/bnn_uvm/axi4_stream_if.sv
+verification/bnn_uvm/bnn_fcc_ctrl_if.sv
 verification/bnn_fcc_tb_pkg.sv
 verification/bnn_uvm/bnn_fcc_uvm_pkg.sv
 rtl/delay.sv

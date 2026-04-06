@@ -25,6 +25,19 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
 
     // Reference model
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
+    BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) active_model;
+
+    virtual bnn_fcc_ctrl_if ctrl_vif;
+
+    semaphore state_sem;
+    int expected_pred_q[$];
+    int expected_image_idx_q[$];
+    int expected_epoch_q[$];
+    int next_input_idx;
+    int config_epoch;
+    int observed_cfg_packets;
+    bit configured;
+    bit drop_outputs_until_configured;
 
     int passed;
     int failed;
@@ -33,6 +46,12 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         super.new(name, parent);
         passed = 0;
         failed = 0;
+        next_input_idx = 0;
+        config_epoch = 0;
+        observed_cfg_packets = 0;
+        configured = 1'b0;
+        drop_outputs_until_configured = 1'b1;
+        state_sem = new(1);
     endfunction
 
     function void build_phase(uvm_phase phase);
@@ -53,6 +72,11 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
 
         if (!model.is_loaded)
             `uvm_fatal("MODEL_NOT_LOADED", "Scoreboard received an unloaded model handle.")
+
+        active_model = new();
+
+        if (!uvm_config_db#(virtual bnn_fcc_ctrl_if)::get(this, "", "ctrl_vif", ctrl_vif))
+            `uvm_warning("NO_CTRL_VIF", "Scoreboard could not find ctrl_vif. Mid-test reset cleanup will be disabled.")
     endfunction
 
     function void connect_phase(uvm_phase phase);
@@ -103,41 +127,142 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         end
     endfunction
 
-    virtual task run_phase(uvm_phase phase);
+    task commit_model(
+        BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model_h,
+        string tag = "configuration"
+    );
+        if (model_h == null)
+            `uvm_fatal("NULL_MODEL", "Scoreboard commit_model() received a null model handle.")
+
+        if (!model_h.is_loaded)
+            `uvm_fatal("UNLOADED_MODEL", "Scoreboard commit_model() received an unloaded model.")
+
+        state_sem.get(1);
+        active_model.copy_from(model_h);
+        config_epoch++;
+        configured = 1'b1;
+        drop_outputs_until_configured = 1'b0;
+        state_sem.put(1);
+
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Committed model for %s at config epoch %0d.", tag, config_epoch),
+                  UVM_LOW)
+    endtask
+
+    task wait_for_idle();
+        forever begin
+            bit is_idle;
+
+            state_sem.get(1);
+            is_idle = (expected_pred_q.size() == 0);
+            state_sem.put(1);
+
+            if (is_idle)
+                break;
+
+            if (ctrl_vif != null)
+                @(posedge ctrl_vif.clk);
+            else
+                #1ns;
+        end
+    endtask
+
+    protected task handle_reset_cleanup();
+        int dropped_outputs;
+
+        state_sem.get(1);
+        dropped_outputs = expected_pred_q.size();
+        expected_pred_q.delete();
+        expected_image_idx_q.delete();
+        expected_epoch_q.delete();
+        configured = 1'b0;
+        drop_outputs_until_configured = 1'b1;
+        state_sem.put(1);
+
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Observed reset. Cleared %0d pending expected outputs and marked scoreboard unconfigured.",
+                            dropped_outputs),
+                  UVM_LOW)
+    endtask
+
+    task monitor_config_stream();
         cfg_axi_item_t cfg_pkt;
-        in_axi_item_t  in_pkt;
-        out_axi_item_t out_pkt;
-
-        bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
-        logic [bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0] actual;
-        logic [bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0] expected;
-
-        int expected_pred;
-        int image_idx;
-
-        image_idx = 0;
-
-        // The config monitor is set to packet level in the env, so a single
-        // get() here means the full configuration stream has completed.
-        cfg_fifo.get(cfg_pkt);
-        `uvm_info("SCOREBOARD", "Configuration stream completed.", UVM_LOW)
 
         forever begin
-            // Read one input packet and one output packet, like the mult example.
+            cfg_fifo.get(cfg_pkt);
+            observed_cfg_packets++;
+            `uvm_info("SCOREBOARD",
+                      $sformatf("Observed configuration packet %0d with %0d beats.",
+                                observed_cfg_packets, cfg_pkt.tdata.size()),
+                      UVM_HIGH)
+        end
+    endtask
+
+    task monitor_resets();
+        if (ctrl_vif == null)
+            return;
+
+        forever begin
+            @(posedge ctrl_vif.rst);
+            handle_reset_cleanup();
+        end
+    endtask
+
+    task process_inputs();
+        in_axi_item_t in_pkt;
+        bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
+        int expected_pred;
+
+        forever begin
+            int image_idx;
+
             in_fifo.get(in_pkt);
-            out_fifo.get(out_pkt);
+
+            if (in_pkt.tdata.size() == 0) begin
+                `uvm_warning("SCOREBOARD", "Observed input packet with no data beats.")
+                continue;
+            end
 
             unpack_input_image(in_pkt, current_img);
-            if (current_img.size() != model.topology[0]) begin
-                `uvm_error("SCOREBOARD",
-                           $sformatf("Input image %0d had %0d elements, expected %0d.",
-                                     image_idx, current_img.size(), model.topology[0]))
+
+            state_sem.get(1);
+            if (!configured) begin
+                state_sem.put(1);
+                `uvm_error("SCOREBOARD", "Observed input packet before a model was committed to the scoreboard.")
                 failed++;
                 continue;
             end
 
-            expected_pred = model.compute_reference(current_img);
-            expected      = expected_pred[bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0];
+            if (current_img.size() != active_model.topology[0]) begin
+                state_sem.put(1);
+                `uvm_error("SCOREBOARD",
+                           $sformatf("Input image %0d had %0d elements, expected %0d.",
+                                     next_input_idx, current_img.size(), active_model.topology[0]))
+                failed++;
+                continue;
+            end
+
+            expected_pred = active_model.compute_reference(current_img);
+            image_idx = next_input_idx;
+            next_input_idx++;
+            expected_pred_q.push_back(expected_pred);
+            expected_image_idx_q.push_back(image_idx);
+            expected_epoch_q.push_back(config_epoch);
+            state_sem.put(1);
+        end
+    endtask
+
+    task process_outputs();
+        out_axi_item_t out_pkt;
+        logic [bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0] actual;
+        logic [bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0] expected;
+        int expected_pred;
+        int image_idx;
+        int expected_cfg_epoch;
+        bit ignore_output;
+
+        forever begin
+            out_fifo.get(out_pkt);
 
             if (out_pkt.tdata.size() == 0) begin
                 `uvm_error("SCOREBOARD", "Observed output packet with no data beats.")
@@ -145,24 +270,61 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
                 continue;
             end
 
+            state_sem.get(1);
+            ignore_output = drop_outputs_until_configured;
+
+            if (!ignore_output && expected_pred_q.size() != 0) begin
+                expected_pred = expected_pred_q.pop_front();
+                image_idx = expected_image_idx_q.pop_front();
+                expected_cfg_epoch = expected_epoch_q.pop_front();
+            end
+            else begin
+                expected_pred = 0;
+                image_idx = -1;
+                expected_cfg_epoch = -1;
+            end
+
+            state_sem.put(1);
+
+            if (ignore_output) begin
+                `uvm_info("SCOREBOARD",
+                          "Ignoring output packet while scoreboard is waiting for a committed post-reset configuration.",
+                          UVM_HIGH)
+                continue;
+            end
+
+            if (image_idx < 0) begin
+                `uvm_error("SCOREBOARD", "Observed output packet with no matching expected result queued.")
+                failed++;
+                continue;
+            end
+
+            expected = expected_pred[bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0];
             actual = out_pkt.tdata[0][bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0];
 
             if (actual == expected) begin
                 `uvm_info("SCOREBOARD",
-                          $sformatf("PASS image %0d: actual=%0d expected=%0d",
-                                    image_idx, actual, expected),
+                          $sformatf("PASS image %0d (epoch %0d): actual=%0d expected=%0d",
+                                    image_idx, expected_cfg_epoch, actual, expected),
                           UVM_LOW)
                 passed++;
             end
             else begin
                 `uvm_error("SCOREBOARD",
-                           $sformatf("FAIL image %0d: actual=%0d expected=%0d",
-                                     image_idx, actual, expected))
+                           $sformatf("FAIL image %0d (epoch %0d): actual=%0d expected=%0d",
+                                     image_idx, expected_cfg_epoch, actual, expected))
                 failed++;
             end
-
-            image_idx++;
         end
+    endtask
+
+    virtual task run_phase(uvm_phase phase);
+        fork
+            monitor_config_stream();
+            monitor_resets();
+            process_inputs();
+            process_outputs();
+        join
     endtask
 
     function void report_phase(uvm_phase phase);

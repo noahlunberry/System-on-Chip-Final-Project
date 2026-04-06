@@ -51,6 +51,145 @@ package bnn_fcc_tb_pkg;
             outputs_valid = '0;
         endfunction
 
+        protected function void validate_compatible_topology(BNN_FCC_Model #(BUS_WIDTH) src);
+            if (src == null)
+                $fatal(1, "BNN_FCC_Model: Attempted to compare against a null source model.");
+
+            if (!this.is_loaded || !src.is_loaded)
+                $fatal(1, "BNN_FCC_Model: Both models must be loaded before comparing topology.");
+
+            if (this.num_layers != src.num_layers) begin
+                $fatal(1,
+                       "BNN_FCC_Model: Model layer mismatch. dst has %0d layers, src has %0d.",
+                       this.num_layers,
+                       src.num_layers);
+            end
+
+            if (this.topology.size() != src.topology.size()) begin
+                $fatal(1,
+                       "BNN_FCC_Model: Topology vector size mismatch. dst=%0d src=%0d.",
+                       this.topology.size(),
+                       src.topology.size());
+            end
+
+            foreach (this.topology[i]) begin
+                if (this.topology[i] != src.topology[i]) begin
+                    $fatal(1,
+                           "BNN_FCC_Model: Topology mismatch at index %0d. dst=%0d src=%0d.",
+                           i,
+                           this.topology[i],
+                           src.topology[i]);
+                end
+            end
+        endfunction
+
+        function void copy_from(BNN_FCC_Model #(BUS_WIDTH) src);
+            if (src == null)
+                $fatal(1, "BNN_FCC_Model: copy_from() received a null source model.");
+
+            this.num_layers = src.num_layers;
+
+            this.topology = new[src.topology.size()];
+            foreach (src.topology[i]) this.topology[i] = src.topology[i];
+
+            this.weight = new[src.weight.size()];
+            foreach (src.weight[l]) begin
+                int n;
+
+                this.weight[l] = new[src.weight[l].size()];
+                for (n = 0; n < src.weight[l].size(); n++) begin
+                    int w;
+
+                    this.weight[l][n] = new[src.weight[l][n].size()];
+                    for (w = 0; w < src.weight[l][n].size(); w++)
+                        this.weight[l][n][w] = src.weight[l][n][w];
+                end
+            end
+
+            this.threshold = new[src.threshold.size()];
+            foreach (src.threshold[l]) begin
+                int n;
+
+                this.threshold[l] = new[src.threshold[l].size()];
+                for (n = 0; n < src.threshold[l].size(); n++)
+                    this.threshold[l][n] = src.threshold[l][n];
+            end
+
+            this.layer_outputs = new[0];
+            this.last_input = new[0];
+            this.is_loaded = src.is_loaded;
+            this.outputs_valid = 1'b0;
+        endfunction
+
+        function automatic BNN_FCC_Model #(BUS_WIDTH) clone();
+            BNN_FCC_Model #(BUS_WIDTH) copy_h;
+
+            copy_h = new();
+            copy_h.copy_from(this);
+            return copy_h;
+        endfunction
+
+        function void update_layer_from(
+            BNN_FCC_Model #(BUS_WIDTH) src,
+            int layer_idx,
+            bit update_weights = 1'b1,
+            bit update_thresholds = 1'b1
+        );
+            validate_compatible_topology(src);
+
+            if (layer_idx < 0 || layer_idx >= this.num_layers) begin
+                $fatal(1,
+                       "BNN_FCC_Model: Layer index %0d out of bounds for update_layer_from().",
+                       layer_idx);
+            end
+
+            if (!update_weights && !update_thresholds)
+                return;
+
+            if (update_weights) begin
+                int n;
+
+                this.weight[layer_idx] = new[src.weight[layer_idx].size()];
+                for (n = 0; n < src.weight[layer_idx].size(); n++) begin
+                    int w;
+
+                    this.weight[layer_idx][n] = new[src.weight[layer_idx][n].size()];
+                    for (w = 0; w < src.weight[layer_idx][n].size(); w++)
+                        this.weight[layer_idx][n][w] = src.weight[layer_idx][n][w];
+                end
+            end
+
+            if (update_thresholds) begin
+                int n;
+
+                this.threshold[layer_idx] = new[src.threshold[layer_idx].size()];
+                for (n = 0; n < src.threshold[layer_idx].size(); n++)
+                    this.threshold[layer_idx][n] = src.threshold[layer_idx][n];
+            end
+
+            this.outputs_valid = 1'b0;
+            this.layer_outputs = new[0];
+            this.last_input = new[0];
+        endfunction
+
+        function void update_layers_from(
+            BNN_FCC_Model #(BUS_WIDTH) src,
+            int layer_list[$],
+            bit update_weights = 1'b1,
+            bit update_thresholds = 1'b1
+        );
+            validate_compatible_topology(src);
+
+            if (layer_list.size() == 0) begin
+                for (int l = 0; l < this.num_layers; l++)
+                    update_layer_from(src, l, update_weights, update_thresholds);
+                return;
+            end
+
+            foreach (layer_list[i])
+                update_layer_from(src, layer_list[i], update_weights, update_thresholds);
+        endfunction
+
         // Compute the prediction, and the output of each layer, for the provided image.
         // The layer outputs can be used for deeper debugging/testing.
         // Returns the prediction.
