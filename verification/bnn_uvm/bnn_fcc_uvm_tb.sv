@@ -61,12 +61,16 @@ module bnn_fcc_uvm_tb #(
     forever #HALF_CLK_PERIOD clk <= ~clk;
   end
 
+  // Power-on reset is now driven through ctrl_if so UVM tests can reuse the
+  // exact same reset signal for mid-test reset scenarios.
   initial begin
     ctrl_if.rst = 1'b1;
     repeat (5) @(posedge clk);
     ctrl_if.rst = 1'b0;
   end
 
+  // Shared control interface for reset-only coordination between the top TB,
+  // tests, scoreboard, and coverage components.
   bnn_fcc_ctrl_if ctrl_if (
       .clk(clk)
   );
@@ -164,7 +168,8 @@ module bnn_fcc_uvm_tb #(
     foreach (CUSTOM_TOPOLOGY[i])
       topology_cfg_h.custom_topology[i] = CUSTOM_TOPOLOGY[i];
 
-    // Store the virtual interfaces.
+    // Store the virtual interfaces. ctrl_vif is the new piece that lets UVM
+    // code observe and drive reset without reaching into this top module.
     uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(uvm_root::get(), "*", "cfg_vif",
                                                                     config_in_if);
     uvm_config_db#(virtual axi4_stream_if #(CONFIG_BUS_WIDTH))::set(uvm_root::get(), "*", "config_vif",
@@ -205,6 +210,8 @@ module bnn_fcc_uvm_tb #(
     // NOTE: AXI is a little weird and prohibits transmitters from waiting on tready
     // to assert tvalid. Normally, a transmitter treats a ready signal as an enable,
     // but that practice is not AXI-compliant.
+    // Disable these checks during reset because the DUT is allowed to change
+    // interface state while being reinitialized.
     assert property (@(posedge clk) disable iff (ctrl_if.rst) !data_out_if.tready && data_out_if.tvalid |=> $stable(data_out_if.tdata))
     else `uvm_error("ASSERT", "Output changed with tready disabled.");
 

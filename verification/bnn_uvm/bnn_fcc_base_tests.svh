@@ -152,6 +152,9 @@ class bnn_fcc_base_test extends uvm_test;
     endtask
 
     virtual task wait_for_scoreboard_idle();
+        // Stronger than wait_for_scoreboard_done() for multi-phase tests: it
+        // waits for the expectation queue to drain, not just for a fixed image
+        // count to be reached.
         env.scoreboard.wait_for_idle();
     endtask
 
@@ -167,12 +170,17 @@ class bnn_fcc_base_test extends uvm_test;
         layers_touched = (cfg_seq.selected_layers.size() == 0) ? model_to_commit.num_layers :
                                                               cfg_seq.selected_layers.size();
 
+        // start() sends the raw AXI config traffic. commit_model() is the
+        // matching scoreboard-side state transition that tells checking logic
+        // which model snapshot should be used for future inputs.
         cfg_seq.start(env.cfg_agent.sequencer);
         env.scoreboard.commit_model(model_to_commit, tag);
         env.system_coverage.sample_reconfig(cfg_seq.get_reconfig_kind(), layers_touched);
     endtask
 
     virtual task pulse_reset(int cycles = 5, bit same_cfg_after_reset = 1'b1);
+        // Tests use this wrapper instead of talking to ctrl_vif directly so
+        // reset-related coverage is always sampled alongside the actual pulse.
         ctrl_vif.pulse_reset(cycles);
         env.system_coverage.sample_post_reset(same_cfg_after_reset);
     endtask

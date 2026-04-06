@@ -22,6 +22,8 @@ package bnn_fcc_uvm_pkg;
     parameter int PARALLEL_INPUTS = 128;
     parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{256, 64, 10};
 
+    // These enums let tests, coverage, and helper code exchange descriptive
+    // reconfiguration/reset states without relying on ad-hoc integer literals.
     typedef enum int {
         BNN_CFG_ORDER_LAYER_INTERLEAVED = 0,
         BNN_CFG_ORDER_WEIGHTS_THEN_THRESH = 1,
@@ -35,6 +37,7 @@ package bnn_fcc_uvm_pkg;
         BNN_RECONFIG_PARTIAL = 3
     } bnn_reconfig_kind_e;
 
+    // Used by system-level coverage to bucket resets by when they occurred.
     typedef enum int {
         BNN_RESET_IDLE = 0,
         BNN_RESET_DURING_CONFIG = 1,

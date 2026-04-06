@@ -25,6 +25,8 @@ class bnn_fcc_env extends uvm_env;
     bnn_cfg_coverage    cfg_coverage;
     bnn_input_coverage  input_coverage;
     bnn_output_coverage output_coverage;
+    // System-level coverage watches relationships between config, input, and
+    // reset activity that do not belong to any one AXI stream component.
     bnn_system_coverage system_coverage;
 
     // Virtual interfaces
@@ -107,6 +109,8 @@ class bnn_fcc_env extends uvm_env;
         cfg_agent.monitor.ap.connect(cfg_coverage.cfg_ae);
         in_agent.monitor.ap.connect(input_coverage.in_ae);
         out_agent.monitor.ap.connect(output_coverage.out_ae);
+        // system_coverage only needs input transactions directly; reset and
+        // interface timing come from the shared virtual interfaces.
         in_agent.monitor.ap.connect(system_coverage.in_ae);
 
         // Driver delay configuration

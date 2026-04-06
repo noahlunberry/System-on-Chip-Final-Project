@@ -29,13 +29,23 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
 
     virtual bnn_fcc_ctrl_if ctrl_vif;
 
+    // Reset/reconfiguration support is based on queueing expectations at input
+    // time instead of assuming a strict "next input immediately matches next
+    // output" flow. Each queued entry records the prediction, the logical
+    // image index, and the configuration epoch that produced it.
     semaphore state_sem;
     int expected_pred_q[$];
     int expected_image_idx_q[$];
     int expected_epoch_q[$];
     int next_input_idx;
+    // config_epoch increments every time a new configuration is committed to
+    // the scoreboard. This lets logs show which model snapshot produced each
+    // checked output.
     int config_epoch;
     int observed_cfg_packets;
+    // configured/drop_outputs_until_configured gate scoreboard checking across
+    // reset boundaries. After reset, outputs are ignored until the test tells
+    // the scoreboard which model should now be considered active.
     bit configured;
     bit drop_outputs_until_configured;
 
@@ -131,6 +141,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model_h,
         string tag = "configuration"
     );
+        // Tests call commit_model() after sending configuration traffic. The
+        // scoreboard copies the model rather than storing the handle directly
+        // so later test-side edits cannot retroactively change expectations.
         if (model_h == null)
             `uvm_fatal("NULL_MODEL", "Scoreboard commit_model() received a null model handle.")
 
@@ -150,6 +163,8 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     endtask
 
     task wait_for_idle();
+        // Used by tests that need to know when all predictions computed so far
+        // have either been matched to outputs or dropped due to reset.
         forever begin
             bit is_idle;
 
@@ -170,6 +185,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     protected task handle_reset_cleanup();
         int dropped_outputs;
 
+        // Any queued expectations were created under the pre-reset model and
+        // can no longer be trusted once reset fires, so we throw them away and
+        // force the test to commit a fresh post-reset model.
         state_sem.get(1);
         dropped_outputs = expected_pred_q.size();
         expected_pred_q.delete();
@@ -188,6 +206,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     task monitor_config_stream();
         cfg_axi_item_t cfg_pkt;
 
+        // The scoreboard does not decode configuration packets itself. This
+        // thread exists mainly for visibility and debugging so we can tell
+        // whether configuration traffic was observed when expected.
         forever begin
             cfg_fifo.get(cfg_pkt);
             observed_cfg_packets++;
@@ -202,6 +223,8 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         if (ctrl_vif == null)
             return;
 
+        // Reset observation is separate from input/output processing so the
+        // cleanup happens immediately when reset asserts.
         forever begin
             @(posedge ctrl_vif.rst);
             handle_reset_cleanup();
@@ -213,6 +236,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
         int expected_pred;
 
+        // Input packets are converted into queued expectations as soon as they
+        // arrive. This decouples prediction generation from when the DUT later
+        // emits the classification result.
         forever begin
             int image_idx;
 
@@ -242,6 +268,8 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
                 continue;
             end
 
+            // Snapshot the prediction using the currently committed model and
+            // remember which configuration epoch it belongs to.
             expected_pred = active_model.compute_reference(current_img);
             image_idx = next_input_idx;
             next_input_idx++;
@@ -261,6 +289,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         int expected_cfg_epoch;
         bit ignore_output;
 
+        // Outputs consume the queued expectations in order. If reset happened
+        // and no new model has been committed yet, outputs are intentionally
+        // ignored rather than compared against stale pre-reset predictions.
         forever begin
             out_fifo.get(out_pkt);
 
@@ -299,6 +330,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
                 continue;
             end
 
+            // The DUT only returns the compact classification code, so the
+            // full integer prediction from the reference model is truncated to
+            // the configured output width before comparison.
             expected = expected_pred[bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0];
             actual = out_pkt.tdata[0][bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH-1:0];
 
@@ -319,6 +353,9 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     endtask
 
     virtual task run_phase(uvm_phase phase);
+        // Keep configuration observation, reset tracking, expectation creation,
+        // and output comparison in independent threads so they can react to
+        // traffic concurrently.
         fork
             monitor_config_stream();
             monitor_resets();

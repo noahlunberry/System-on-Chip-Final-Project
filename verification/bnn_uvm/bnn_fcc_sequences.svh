@@ -28,6 +28,13 @@ virtual class bnn_fcc_config_base_sequence extends
 
     bit    is_packet_level;
     real   valid_probability;
+    // These knobs describe the "configuration plan" for the next sequence.
+    // Together they let one shared base sequence emit:
+    // 1. full config
+    // 2. weights-only config
+    // 3. thresholds-only config
+    // 4. partial-layer config
+    // 5. alternate message orderings
     bit    include_weights;
     bit    include_thresholds;
     int    selected_layers[$];
@@ -56,6 +63,8 @@ virtual class bnn_fcc_config_base_sequence extends
     endfunction
 
     function void select_layers(input int layer_order[$]);
+        // Preserve caller order so tests can intentionally stress both which
+        // layers are touched and the order in which they appear on the stream.
         selected_layers.delete();
         foreach (layer_order[i]) selected_layers.push_back(layer_order[i]);
     endfunction
@@ -65,6 +74,9 @@ virtual class bnn_fcc_config_base_sequence extends
     endfunction
 
     function automatic int get_layers_touched();
+        // Full reconfiguration is represented by an empty selected_layers list.
+        // This helper converts that convention into an actual layer count for
+        // coverage sampling and test-side reporting.
         if (selected_layers.size() != 0)
             return selected_layers.size();
         if (model != null && model.is_loaded)
@@ -73,6 +85,8 @@ virtual class bnn_fcc_config_base_sequence extends
     endfunction
 
     function automatic bnn_fcc_uvm_pkg::bnn_reconfig_kind_e get_reconfig_kind();
+        // Convert the sequence plan into a coarse semantic label so coverage
+        // can classify the run without needing to decode the packet stream.
         if (include_weights && include_thresholds)
             return (selected_layers.size() == 0) ? bnn_fcc_uvm_pkg::BNN_RECONFIG_FULL :
                                                    bnn_fcc_uvm_pkg::BNN_RECONFIG_PARTIAL;
@@ -82,12 +96,16 @@ virtual class bnn_fcc_config_base_sequence extends
     endfunction
 
     protected function automatic void build_default_layer_order(output int layer_order[$]);
+        // Default to the DUT's natural layer order when the test did not ask
+        // for a partial or reordered configuration.
         layer_order.delete();
         for (int l = 0; l < model.num_layers; l++)
             layer_order.push_back(l);
     endfunction
 
     protected function automatic bit thresholds_valid_for_layer(input int layer_idx);
+        // The output layer is compared with argmax/popcount semantics in this
+        // design, so threshold messages are only meaningful for hidden layers.
         return layer_idx < (model.num_layers - 1);
     endfunction
 
@@ -108,6 +126,8 @@ virtual class bnn_fcc_config_base_sequence extends
         if (is_threshold && !thresholds_valid_for_layer(layer_idx))
             return;
 
+        // Reuse the reference-model encoder to generate exactly the same bytes
+        // the old TB would have produced for this one layer/message type pair.
         model.get_layer_config(layer_idx, is_threshold, segment_data, segment_keep);
         foreach (segment_data[i]) begin
             data_q.push_back(segment_data[i]);
@@ -128,6 +148,7 @@ virtual class bnn_fcc_config_base_sequence extends
         else
             foreach (selected_layers[i]) layer_order.push_back(selected_layers[i]);
 
+        // Build the final stream according to the selected ordering policy.
         case (order_mode)
             bnn_fcc_uvm_pkg::BNN_CFG_ORDER_LAYER_INTERLEAVED: begin
                 foreach (layer_order[i]) begin
@@ -185,6 +206,8 @@ virtual class bnn_fcc_config_base_sequence extends
         if (!model.is_loaded)
             `uvm_fatal("MODEL_NOT_LOADED", "Configuration sequence received an unloaded model handle.")
 
+        // The sequence payload is derived lazily here so tests are free to
+        // change model_h in config_db between different reconfiguration phases.
         build_config_stream();
     endfunction
 

@@ -226,6 +226,9 @@ class bnn_cfg_coverage extends uvm_component;
     endgroup
 
     // Covers cycle-level TVALID gap/burst behavior on the config interface.
+    // This complements the packet-level header/content coverage above; it is
+    // specifically aimed at the coverage-plan items about handshake timing and
+    // intermittent versus bursty TVALID patterns.
     covergroup cfg_handshake_coverage;
         gap_len_cp: coverpoint cfg_gap_len {
             bins zero = {0};
@@ -1144,6 +1147,10 @@ class bnn_system_coverage extends uvm_component;
     virtual axi4_stream_if #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH) out_vif;
     virtual bnn_fcc_ctrl_if ctrl_vif;
 
+    // This component gathers cross-stream events that are awkward to infer
+    // from a single monitor alone: what kind of reconfiguration was intended,
+    // when reset occurred relative to live traffic, and how much work had been
+    // issued before the reset happened.
     int reconfig_type;
     int layers_touched;
     int reset_phase;
@@ -1233,6 +1240,9 @@ class bnn_system_coverage extends uvm_component;
     endfunction
 
     function automatic int classify_reset_phase();
+        // Infer the most useful reset bucket from the live interface state at
+        // the instant reset asserts. "AT_TLAST" takes priority because it is a
+        // more specific and more interesting case than generic config/image/output.
         if (((cfg_vif != null) && cfg_vif.tvalid && cfg_vif.tready && cfg_vif.tlast) ||
             ((in_vif != null) && in_vif.tvalid && in_vif.tready && in_vif.tlast) ||
             ((out_vif != null) && out_vif.tvalid && out_vif.tready && out_vif.tlast))
@@ -1254,12 +1264,17 @@ class bnn_system_coverage extends uvm_component;
         bnn_fcc_uvm_pkg::bnn_reconfig_kind_e kind,
         int num_layers
     );
+        // Tests call this directly after issuing a configuration phase. That
+        // avoids having the coverage component reverse-engineer intent from the
+        // packet stream when the test already knows the scenario.
         reconfig_type = kind;
         layers_touched = num_layers;
         reconfig_coverage.sample();
     endfunction
 
     function void sample_post_reset(bit same_cfg);
+        // Sample whether the post-reset configuration intentionally reused the
+        // previous model or switched to a different one.
         post_reset_same_cfg = same_cfg;
         reset_post_coverage.sample();
     endfunction
@@ -1267,6 +1282,8 @@ class bnn_system_coverage extends uvm_component;
     task count_input_images();
         in_axi_item_t in_pkt;
 
+        // Keep a running count of images launched since the last reset so the
+        // reset covergroup can bucket resets by workload already in flight.
         forever begin
             in_fifo.get(in_pkt);
             if (in_pkt.tdata.size() != 0)
@@ -1278,6 +1295,8 @@ class bnn_system_coverage extends uvm_component;
         if (ctrl_vif == null)
             return;
 
+        // Reset sampling runs independently so the phase/workload snapshot is
+        // taken immediately on reset assertion.
         forever begin
             @(posedge ctrl_vif.rst);
             reset_count++;

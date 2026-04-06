@@ -51,6 +51,9 @@ package bnn_fcc_tb_pkg;
             outputs_valid = '0;
         endfunction
 
+        // Reconfiguration tests build "expected post-reconfig" models by
+        // merging an existing model with data from another model. That merge
+        // is only meaningful if both models describe the same topology.
         protected function void validate_compatible_topology(BNN_FCC_Model #(BUS_WIDTH) src);
             if (src == null)
                 $fatal(1, "BNN_FCC_Model: Attempted to compare against a null source model.");
@@ -83,6 +86,8 @@ package bnn_fcc_tb_pkg;
             end
         endfunction
 
+        // Deep-copy the model so the scoreboard can track a committed snapshot
+        // without sharing mutable arrays with the source model.
         function void copy_from(BNN_FCC_Model #(BUS_WIDTH) src);
             if (src == null)
                 $fatal(1, "BNN_FCC_Model: copy_from() received a null source model.");
@@ -121,6 +126,8 @@ package bnn_fcc_tb_pkg;
             this.outputs_valid = 1'b0;
         endfunction
 
+        // Convenience wrapper used heavily by tests when they need to start
+        // from the current model and then selectively replace some layers.
         function automatic BNN_FCC_Model #(BUS_WIDTH) clone();
             BNN_FCC_Model #(BUS_WIDTH) copy_h;
 
@@ -129,6 +136,9 @@ package bnn_fcc_tb_pkg;
             return copy_h;
         endfunction
 
+        // Copy only the requested portion of one layer from src into this
+        // model. This is the key helper for weights-only, thresholds-only,
+        // and partial-layer reconfiguration expectations.
         function void update_layer_from(
             BNN_FCC_Model #(BUS_WIDTH) src,
             int layer_idx,
@@ -172,6 +182,10 @@ package bnn_fcc_tb_pkg;
             this.last_input = new[0];
         endfunction
 
+        // Apply update_layer_from() across either an explicit layer list or
+        // all layers when the list is empty. An empty list is intentionally
+        // treated as "full model update" because the sequence layer uses the
+        // same convention for full reconfiguration.
         function void update_layers_from(
             BNN_FCC_Model #(BUS_WIDTH) src,
             int layer_list[$],

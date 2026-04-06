@@ -45,6 +45,8 @@ class bnn_fcc_single_beat_test extends bnn_fcc_base_test;
         cfg_seq = bnn_fcc_config_beat_sequence::type_id::create("cfg_seq");
         img_seq = bnn_fcc_image_beat_sequence::type_id::create("img_seq");
 
+        // Use the shared helper so the raw config traffic, scoreboard model
+        // commit, and reconfiguration coverage stay in sync.
         run_config_sequence(cfg_seq, model, "initial full configuration");
 
         if (debug)
