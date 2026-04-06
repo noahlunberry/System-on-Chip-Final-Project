@@ -38,6 +38,9 @@ class bnn_fcc_single_beat_test extends bnn_fcc_base_test;
         bnn_fcc_image_beat_sequence  img_seq;
 
         phase.raise_objection(this);
+        `uvm_info(get_type_name(),
+                  "Starting single-beat baseline test.",
+                  UVM_LOW)
 
         if (verify_model && !use_custom_topology)
             verify_reference_model();

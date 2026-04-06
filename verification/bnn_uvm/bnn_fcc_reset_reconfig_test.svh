@@ -30,6 +30,9 @@ class bnn_fcc_reset_reconfig_test extends bnn_fcc_reconfig_base_test;
         int wait_cycles;
 
         phase.raise_objection(this);
+        `uvm_info(get_type_name(),
+                  "Starting reset-then-reconfigure test.",
+                  UVM_LOW)
 
         if (verify_model && !use_custom_topology)
             verify_reference_model();

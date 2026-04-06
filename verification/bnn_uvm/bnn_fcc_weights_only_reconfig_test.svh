@@ -31,6 +31,9 @@ class bnn_fcc_weights_only_reconfig_test extends bnn_fcc_reconfig_base_test;
         int total_images;
 
         phase.raise_objection(this);
+        `uvm_info(get_type_name(),
+                  "Starting weights-only reconfiguration test.",
+                  UVM_LOW)
 
         if (verify_model && !use_custom_topology)
             verify_reference_model();
