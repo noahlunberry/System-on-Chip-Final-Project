@@ -43,6 +43,13 @@ DEBUG ?= 0
 CLK_PERIOD ?= 10ns
 TIMEOUT ?= 100ms
 
+# Functional coverage configuration
+COVERAGE_DIR ?= coverage
+COVERAGE_FILE = $(COVERAGE_DIR)/$(UVM_TESTNAME).ucdb
+VSIM_COVERAGE_FLAGS = -coverage
+VSIM_RUN_DO = coverage save -onexit $(COVERAGE_FILE); run -all
+VSIM_GUI_DO = coverage save -onexit $(COVERAGE_FILE)
+
 TB_GFLAGS = \
 	-gBASE_DIR=\"$(BASE_DIR)\" \
 	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
@@ -76,6 +83,7 @@ VOPT_FLAGS = +acc \
 
 # Simulation flags
 VSIM_FLAGS = -c \
+	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-L $(UVM_LIB) \
 	-voptargs="+acc" \
@@ -83,17 +91,19 @@ VSIM_FLAGS = -c \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
 	$(TB_GFLAGS) \
-	-do "run -all"
+	-do "$(VSIM_RUN_DO)"
 
 # GUI simulation flags
 VSIM_GUI_FLAGS = -gui \
+	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-L $(UVM_LIB) \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
-	$(TB_GFLAGS)
+	$(TB_GFLAGS) \
+	-do "$(VSIM_GUI_DO)"
 
 # Default target
 all: compile optimize
@@ -102,6 +112,9 @@ all: compile optimize
 $(WORK_DIR):
 	vlib $(WORK_DIR)
 	vmap work $(WORK_DIR)
+
+$(COVERAGE_DIR):
+	mkdir -p $(COVERAGE_DIR)
 
 # Read sources from file and compile
 compile: $(WORK_DIR)
@@ -112,7 +125,7 @@ optimize: compile
 	$(VOPT) $(TOP_MODULE) $(VOPT_FLAGS)
 
 # Run simulation in command-line mode
-sim: optimize
+sim: optimize $(COVERAGE_DIR)
 	@if [ "$(UVM_TESTNAME)" = "" ]; then \
 		echo "Error: UVM_TESTNAME is not set. Usage: make sim UVM_TESTNAME=<test_name>"; \
 		exit 1; \
@@ -120,12 +133,20 @@ sim: optimize
 	$(VSIM) $(VSIM_FLAGS) $(OPTIMIZED_TOP)
 
 # Open GUI for interactive simulation
-gui: optimize
+gui: optimize $(COVERAGE_DIR)
 	@if [ "$(UVM_TESTNAME)" = "" ]; then \
 		echo "Error: UVM_TESTNAME is not set. Usage: make gui UVM_TESTNAME=<test_name>"; \
 		exit 1; \
 	fi
 	$(VSIM) $(VSIM_GUI_FLAGS) $(OPTIMIZED_TOP) &
+
+# Open a saved functional coverage database
+viewcov:
+	@if [ ! -f "$(COVERAGE_FILE)" ]; then \
+		echo "Error: Coverage database not found at $(COVERAGE_FILE). Run 'make sim UVM_TESTNAME=$(UVM_TESTNAME)' first."; \
+		exit 1; \
+	fi
+	$(VSIM) -viewcov $(COVERAGE_FILE)
 
 # Clean up generated files
 clean:
@@ -136,6 +157,7 @@ clean:
 	rm -rf *.dbg
 	rm -rf *.vstf
 	rm -rf *.ucdb
+	rm -rf $(COVERAGE_DIR)
 	rm -rf modelsim.ini
 
-.PHONY: all compile optimize sim gui clean
+.PHONY: all compile optimize sim gui viewcov clean
