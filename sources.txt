@@ -28,6 +28,7 @@ verification/bnn_uvm/bnn_fcc_env.sv
 verification/bnn_uvm/bnn_fcc_base_tests.svh
 verification/bnn_uvm/bnn_fcc_reconfig_base_test.svh
 verification/bnn_uvm/bnn_fcc_single_beat_test.svh
+verification/bnn_uvm/bnn_fcc_tkeep_packet_test.svh
 verification/bnn_uvm/bnn_fcc_weights_only_reconfig_test.svh
 verification/bnn_uvm/bnn_fcc_thresh_only_reconfig_test.svh
 verification/bnn_uvm/bnn_fcc_partial_reconfig_test.svh
