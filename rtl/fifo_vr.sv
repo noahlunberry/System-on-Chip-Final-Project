@@ -57,11 +57,13 @@ module fifo_vr #(
         end
     end
 
-    // also updated read to little-endian
+    // Expose the current head element whenever the FIFO is non-empty. This
+    // gives the read side FWFT/show-ahead behavior, which lets downstream
+    // ready/valid interfaces hold data stable while backpressured.
     genvar j;
     generate
         for (j = 0; j <= M - 1; j++) begin
-            assign rd_data[j] = (rst) ? rd_data[M - 1 - j] : ((rd_en && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 'x);
+            assign rd_data[j] = (!rst && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 1'b0;
         end
     endgenerate
 
