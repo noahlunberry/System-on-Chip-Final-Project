@@ -235,6 +235,8 @@ module config_manager #(
       DRAIN: begin
         fifo_rd_en   = 1'b1;
         buffer_wr_en = 1'b0;
+        next_count = '0;
+        next_last_rd = '0;
         if (active_stream_empty) begin
           next_state = READ;
         end
