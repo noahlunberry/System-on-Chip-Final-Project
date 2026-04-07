@@ -32,6 +32,20 @@ module vw_buffer #(
     output logic                  rd_en,
     output logic [RD_BYTES*8-1:0] rd_data
 );
+  initial begin
+    // To avoid long-term overflow, the sustained read bandwidth must be
+    // at least the sustained write bandwidth.
+    if (RD_BYTES < MAX_WR_BYTES) begin
+      $fatal(1, "vw_buffer parameter error: RD_BYTES (%0d) must be >= MAX_WR_BYTES (%0d).",
+             RD_BYTES, MAX_WR_BYTES);
+    end
+
+    // Require at least two full read words of storage.
+    if (DEPTH_BYTES < 2 * RD_BYTES) begin
+      $fatal(1, "vw_buffer parameter error: DEPTH_BYTES (%0d) must be >= 2*RD_BYTES (%0d).",
+             DEPTH_BYTES, 2 * RD_BYTES);
+    end
+  end
 
   // Pointer width needed to address DEPTH_BYTES entries in the circular buffer.
   localparam int PTR_W = (DEPTH_BYTES <= 1) ? 1 : $clog2(DEPTH_BYTES);
