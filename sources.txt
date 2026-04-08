@@ -21,6 +21,9 @@ rtl/parser_controller.sv
 rtl/config_manager.sv
 rtl/bnn_layer.sv
 rtl/bnn.sv
+rtl/tkeep_byte_compactor.sv
+rtl/vw_buffer.sv
+rtl/data_in_manager.sv
 rtl/bnn_fcc.sv
 verification/bnn_uvm/bnn_fcc_sequences.svh
 verification/bnn_uvm/bnn_fcc_scoreboard.svh
