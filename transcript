@@ -1,5 +1,4 @@
-# vsim -c -coverage -debugDB -L mtiUvm -voptargs="+acc" "+UVM_NO_RELNOTES" "+UVM_VERBOSITY=UVM_MEDIUM" "+UVM_TESTNAME=bnn_fcc_reset_reconfig_test" -do "coverage save -onexit coverage/bnn_fcc_reset_reconfig_test.ucdb; run -all" bnn_fcc_uvm_tb_opt -gCLK_PERIOD=10ns -gNUM_TEST_IMAGES=50 -gCONFIG_VALID_PROBABILITY=1.0 -gVERIFY_MODEL=1 -gBASE_DIR="/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python" -gTOGGLE_DATA_OUT_READY=1 -gTIMEOUT=100ms -gDEBUG=0 -gDATA_IN_VALID_PROBABILITY=0.95 
-# Start time: 23:53:28 on Apr 05,2026
+# Reading pref.tcl
 # //  Questa Sim-64
 # //  Version 2023.3 linux_x86_64 Jul 17 2023
 # //
@@ -14,6 +13,8 @@
 # //  is prohibited from disclosure under the Trade Secrets Act,
 # //  18 U.S.C. Section 1905.
 # //
+# vsim -gui -coverage -debugDB -L mtiUvm -voptargs="+acc" "+UVM_NO_RELNOTES" "+UVM_VERBOSITY=UVM_MEDIUM" "+UVM_TESTNAME=bnn_fcc_single_beat_test" -do "coverage save -onexit coverage/bnn_fcc_single_beat_test.ucdb" bnn_fcc_uvm_tb_opt -gCLK_PERIOD=10ns -gNUM_TEST_IMAGES=50 -gCONFIG_VALID_PROBABILITY=1.0 -gVERIFY_MODEL=1 -gBASE_DIR="/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python" -gTOGGLE_DATA_OUT_READY=1 -gTIMEOUT=100ms -gDEBUG=0 -gDATA_IN_VALID_PROBABILITY=0.95 
+# Start time: 20:48:37 on Apr 07,2026
 # Loading sv_std.std
 # Loading work.axi4_stream_if(fast)
 # Loading work.bnn_fcc_ctrl_if(fast)
@@ -36,6 +37,9 @@
 # Loading work.fifo_vr(fast__1)
 # Loading work.fifo_vr(fast__2)
 # Loading work.fifo_vr(fast__3)
+# Loading work.data_in_manager(fast)
+# Loading work.tkeep_byte_compactor(fast)
+# Loading work.vw_buffer(fast)
 # Loading work.fifo_vr(fast__4)
 # Loading work.bnn(fast)
 # Loading work.bnn_layer(fast)
@@ -82,7 +86,7 @@
 # Loading work.delay(fast__5)
 # Loading work.fifo_vr(fast__5)
 # ** Warning: (vsim-3015) [PCDPC] - Port size (1) does not match connection size (8) for port 'config_keep'. The port definition is at: rtl/config_manager.sv(16).
-#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager File: rtl/bnn_fcc.sv Line: 116
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager File: rtl/bnn_fcc.sv Line: 90
 # ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
 #    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager/fifo_weights_bytes File: rtl/config_manager.sv Line: 258
 # ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
@@ -90,7 +94,7 @@
 # ** Warning: (vsim-3015) [PCDPC] - Port size (32) does not match connection size (10) for port 'rd_data'. The port definition is at: rtl/fifo_vr.sv(18).
 #    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager/fifo_thresholds File: rtl/config_manager.sv Line: 312
 # ** Warning: (vsim-3015) [PCDPC] - Port size (4) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
-#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bin_fifo File: rtl/bnn_fcc.sv Line: 221
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo File: rtl/data_in_manager.sv Line: 242
 # ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
 #    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[0]/u_w_ram File: rtl/bnn_layer.sv Line: 194
 # ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
@@ -112,12 +116,83 @@
 # ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
 #    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[9]/u_w_ram File: rtl/bnn_layer.sv Line: 194
 # ** Warning: (vsim-3015) [PCDPC] - Port size (5) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
-#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/out_fifo File: rtl/bnn_fcc.sv Line: 329
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/out_fifo File: rtl/bnn_fcc.sv Line: 216
 # Loading /apps/reconfig/tools/siemens/questasim/2023.3/uvm-1.1d/linux_x86_64/uvm_dpi.so
 # ** Warning: (vsim-8634) Code was not compiled with coverage options.
-# ** Note: (vsim-8716) Reusing existing debug database vsim.dbg.
-# coverage save -onexit coverage/bnn_fcc_reset_reconfig_test.ucdb
-#  run -all
+# ** Note: (vsim-8900) Creating design debug database vsim.dbg.
+# It appears vopt was not run with -debugdb option on this design.
+# Advanced Causality and Schematic debug features will not be available.
+# coverage save -onexit coverage/bnn_fcc_single_beat_test.ucdb
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/clk
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/rst
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/config_ready
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/config_last
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/data_in_valid
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/data_in_ready
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/data_in_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/data_in_keep
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/data_in_last
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bnn_ready
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bnn_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bnn_data_in
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bnn_data_in_valid
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/compact_wr_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/compact_wr_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/compact_total_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/compact_last_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/frame_byte_count_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/padding_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/pad_remaining_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/frame_total_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/pad_bytes_needed
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/pad_chunk_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_wr_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_wr_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_total_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_rd_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_rd_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo_wr_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo_rd_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo_full
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo_empty
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo_alm_full
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/MAX_WR_BYTES
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/RD_BYTES
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/DEPTH_BYTES
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/PTR_W
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/CNT_W
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/clk
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/rst
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/wr_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/wr_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/total_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/rd_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/rd_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/mem_data_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/next_mem_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/wr_ptr_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/next_wr_ptr
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/rd_ptr_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/next_rd_ptr
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/count_r
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/vw_buffer_i/next_count
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/INPUT_BUS_WIDTH
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/DATA_BYTES
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/COUNT_W
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/clk
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/rst
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/data_in_valid
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/data_in_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/data_in_keep
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/wr_en
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/wr_data
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/total_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/wr_data_next
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/total_bytes_next
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/wr_en_next
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/data_in_bytes
+add wave -position end  sim:/bnn_fcc_uvm_tb/dut/data_in_manager_i/tkeep_byte_compactor_i/wr_data_bytes_next
+run -all
 # ----------------------------------------------------------------
 # UVM-1.1d
 # (C) 2007-2013 Mentor Graphics Corporation
@@ -127,141 +202,504 @@
 # ----------------------------------------------------------------
 # UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(277) @ 0: reporter [Questa UVM] QUESTA_UVM-1.2.3
 # UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(278) @ 0: reporter [Questa UVM]  questa_uvm::init(+struct)
-# UVM_INFO @ 0 ns: reporter [RNTST] Running test bnn_fcc_reset_reconfig_test...
+# UVM_INFO @ 0 ns: reporter [RNTST] Running test bnn_fcc_single_beat_test...
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::weight_density_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::threshold_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::config_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_input_coverage::pixel_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_output_coverage::output_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
-# -------------------------------------------------------------------
-# Name                       Type                         Size  Value
-# -------------------------------------------------------------------
-# uvm_test_top               bnn_fcc_reset_reconfig_test  -     @516 
-#   env                      bnn_fcc_env                  -     @523 
-#     cfg_agent              uvm_agent                    -     @541 
-#       driver               uvm_driver #(REQ,RSP)        -     @714 
-#         rsp_port           uvm_analysis_port            -     @729 
-#         seq_item_port      uvm_seq_item_pull_port       -     @721 
-#       monitor              uvm_monitor                  -     @737 
-#         ap                 uvm_analysis_port            -     @744 
-#       sequencer            uvm_sequencer                -     @605 
-#         rsp_export         uvm_analysis_export          -     @612 
-#         seq_item_export    uvm_seq_item_pull_imp        -     @706 
-#         arbitration_queue  array                        0     -    
-#         lock_queue         array                        0     -    
-#         num_last_reqs      integral                     32    'd1  
-#         num_last_rsps      integral                     32    'd1  
-#     cfg_coverage           bnn_cfg_coverage             -     @569 
-#       cfg_ae               uvm_analysis_export          -     @757 
-#       cfg_fifo             uvm_tlm_analysis_fifo #(T)   -     @765 
-#         analysis_export    uvm_analysis_imp             -     @804 
-#         get_ap             uvm_analysis_port            -     @796 
-#         get_peek_export    uvm_get_peek_imp             -     @780 
-#         put_ap             uvm_analysis_port            -     @788 
-#         put_export         uvm_put_imp                  -     @772 
-#     in_agent               uvm_agent                    -     @548 
-#       driver               uvm_driver #(REQ,RSP)        -     @923 
-#         rsp_port           uvm_analysis_port            -     @938 
-#         seq_item_port      uvm_seq_item_pull_port       -     @930 
-#       monitor              uvm_monitor                  -     @946 
-#         ap                 uvm_analysis_port            -     @953 
-#       sequencer            uvm_sequencer                -     @814 
-#         rsp_export         uvm_analysis_export          -     @821 
-#         seq_item_export    uvm_seq_item_pull_imp        -     @915 
-#         arbitration_queue  array                        0     -    
-#         lock_queue         array                        0     -    
-#         num_last_reqs      integral                     32    'd1  
-#         num_last_rsps      integral                     32    'd1  
-#     input_coverage         bnn_input_coverage           -     @576 
-#       in_ae                uvm_analysis_export          -     @966 
-#       in_fifo              uvm_tlm_analysis_fifo #(T)   -     @974 
-#         analysis_export    uvm_analysis_imp             -     @1013
-#         get_ap             uvm_analysis_port            -     @1005
-#         get_peek_export    uvm_get_peek_imp             -     @989 
-#         put_ap             uvm_analysis_port            -     @997 
-#         put_export         uvm_put_imp                  -     @981 
-#     out_agent              uvm_agent                    -     @555 
-#       monitor              uvm_monitor                  -     @1023
-#         ap                 uvm_analysis_port            -     @1030
-#     output_coverage        bnn_output_coverage          -     @583 
-#       out_ae               uvm_analysis_export          -     @1038
-#       out_fifo             uvm_tlm_analysis_fifo #(T)   -     @1046
-#         analysis_export    uvm_analysis_imp             -     @1085
-#         get_ap             uvm_analysis_port            -     @1077
-#         get_peek_export    uvm_get_peek_imp             -     @1061
-#         put_ap             uvm_analysis_port            -     @1069
-#         put_export         uvm_put_imp                  -     @1053
-#     scoreboard             bnn_fcc_scoreboard           -     @562 
-#       cfg_ae               uvm_analysis_export          -     @1094
-#       cfg_fifo             uvm_tlm_analysis_fifo #(T)   -     @1118
-#         analysis_export    uvm_analysis_imp             -     @1157
-#         get_ap             uvm_analysis_port            -     @1149
-#         get_peek_export    uvm_get_peek_imp             -     @1133
-#         put_ap             uvm_analysis_port            -     @1141
-#         put_export         uvm_put_imp                  -     @1125
-#       in_ae                uvm_analysis_export          -     @1102
-#       in_fifo              uvm_tlm_analysis_fifo #(T)   -     @1165
-#         analysis_export    uvm_analysis_imp             -     @1204
-#         get_ap             uvm_analysis_port            -     @1196
-#         get_peek_export    uvm_get_peek_imp             -     @1180
-#         put_ap             uvm_analysis_port            -     @1188
-#         put_export         uvm_put_imp                  -     @1172
-#       out_ae               uvm_analysis_export          -     @1110
-#       out_fifo             uvm_tlm_analysis_fifo #(T)   -     @1212
-#         analysis_export    uvm_analysis_imp             -     @1251
-#         get_ap             uvm_analysis_port            -     @1243
-#         get_peek_export    uvm_get_peek_imp             -     @1227
-#         put_ap             uvm_analysis_port            -     @1235
-#         put_export         uvm_put_imp                  -     @1219
-#     system_coverage        bnn_system_coverage          -     @590 
-#       in_ae                uvm_analysis_export          -     @1261
-#       in_fifo              uvm_tlm_analysis_fifo #(T)   -     @1269
-#         analysis_export    uvm_analysis_imp             -     @1308
-#         get_ap             uvm_analysis_port            -     @1300
-#         get_peek_export    uvm_get_peek_imp             -     @1284
-#         put_ap             uvm_analysis_port            -     @1292
-#         put_export         uvm_put_imp                  -     @1276
-# -------------------------------------------------------------------
-# UVM_INFO verification/bnn_uvm/bnn_fcc_reset_reconfig_test.svh(33) @ 0 ns: uvm_test_top [bnn_fcc_reset_reconfig_test] Starting reset-then-reconfigure test.
+# ------------------------------------------------------------------
+# Name                       Type                        Size  Value
+# ------------------------------------------------------------------
+# uvm_test_top               bnn_fcc_single_beat_test    -     @516 
+#   env                      bnn_fcc_env                 -     @523 
+#     cfg_agent              uvm_agent                   -     @541 
+#       driver               uvm_driver #(REQ,RSP)       -     @714 
+#         rsp_port           uvm_analysis_port           -     @729 
+#         seq_item_port      uvm_seq_item_pull_port      -     @721 
+#       monitor              uvm_monitor                 -     @737 
+#         ap                 uvm_analysis_port           -     @744 
+#       sequencer            uvm_sequencer               -     @605 
+#         rsp_export         uvm_analysis_export         -     @612 
+#         seq_item_export    uvm_seq_item_pull_imp       -     @706 
+#         arbitration_queue  array                       0     -    
+#         lock_queue         array                       0     -    
+#         num_last_reqs      integral                    32    'd1  
+#         num_last_rsps      integral                    32    'd1  
+#     cfg_coverage           bnn_cfg_coverage            -     @569 
+#       cfg_ae               uvm_analysis_export         -     @757 
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @765 
+#         analysis_export    uvm_analysis_imp            -     @804 
+#         get_ap             uvm_analysis_port           -     @796 
+#         get_peek_export    uvm_get_peek_imp            -     @780 
+#         put_ap             uvm_analysis_port           -     @788 
+#         put_export         uvm_put_imp                 -     @772 
+#     in_agent               uvm_agent                   -     @548 
+#       driver               uvm_driver #(REQ,RSP)       -     @923 
+#         rsp_port           uvm_analysis_port           -     @938 
+#         seq_item_port      uvm_seq_item_pull_port      -     @930 
+#       monitor              uvm_monitor                 -     @946 
+#         ap                 uvm_analysis_port           -     @953 
+#       sequencer            uvm_sequencer               -     @814 
+#         rsp_export         uvm_analysis_export         -     @821 
+#         seq_item_export    uvm_seq_item_pull_imp       -     @915 
+#         arbitration_queue  array                       0     -    
+#         lock_queue         array                       0     -    
+#         num_last_reqs      integral                    32    'd1  
+#         num_last_rsps      integral                    32    'd1  
+#     input_coverage         bnn_input_coverage          -     @576 
+#       in_ae                uvm_analysis_export         -     @966 
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @974 
+#         analysis_export    uvm_analysis_imp            -     @1013
+#         get_ap             uvm_analysis_port           -     @1005
+#         get_peek_export    uvm_get_peek_imp            -     @989 
+#         put_ap             uvm_analysis_port           -     @997 
+#         put_export         uvm_put_imp                 -     @981 
+#     out_agent              uvm_agent                   -     @555 
+#       monitor              uvm_monitor                 -     @1023
+#         ap                 uvm_analysis_port           -     @1030
+#     output_coverage        bnn_output_coverage         -     @583 
+#       out_ae               uvm_analysis_export         -     @1038
+#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1046
+#         analysis_export    uvm_analysis_imp            -     @1085
+#         get_ap             uvm_analysis_port           -     @1077
+#         get_peek_export    uvm_get_peek_imp            -     @1061
+#         put_ap             uvm_analysis_port           -     @1069
+#         put_export         uvm_put_imp                 -     @1053
+#     scoreboard             bnn_fcc_scoreboard          -     @562 
+#       cfg_ae               uvm_analysis_export         -     @1094
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @1118
+#         analysis_export    uvm_analysis_imp            -     @1157
+#         get_ap             uvm_analysis_port           -     @1149
+#         get_peek_export    uvm_get_peek_imp            -     @1133
+#         put_ap             uvm_analysis_port           -     @1141
+#         put_export         uvm_put_imp                 -     @1125
+#       in_ae                uvm_analysis_export         -     @1102
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1165
+#         analysis_export    uvm_analysis_imp            -     @1204
+#         get_ap             uvm_analysis_port           -     @1196
+#         get_peek_export    uvm_get_peek_imp            -     @1180
+#         put_ap             uvm_analysis_port           -     @1188
+#         put_export         uvm_put_imp                 -     @1172
+#       out_ae               uvm_analysis_export         -     @1110
+#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1212
+#         analysis_export    uvm_analysis_imp            -     @1251
+#         get_ap             uvm_analysis_port           -     @1243
+#         get_peek_export    uvm_get_peek_imp            -     @1227
+#         put_ap             uvm_analysis_port           -     @1235
+#         put_export         uvm_put_imp                 -     @1219
+#     system_coverage        bnn_system_coverage         -     @590 
+#       in_ae                uvm_analysis_export         -     @1261
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1269
+#         analysis_export    uvm_analysis_imp            -     @1308
+#         get_ap             uvm_analysis_port           -     @1300
+#         get_peek_export    uvm_get_peek_imp            -     @1284
+#         put_ap             uvm_analysis_port           -     @1292
+#         put_export         uvm_put_imp                 -     @1276
+# ------------------------------------------------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_single_beat_test.svh(41) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] Starting single-beat baseline test.
 # BNN_FCC_Stimulus: Loaded 100 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(145) @ 0 ns: uvm_test_top [bnn_fcc_reset_reconfig_test] SV model successfully verified against Python outputs.
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(145) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] SV model successfully verified against Python outputs.
 # UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(160) @ 356235 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for initial full configuration at config epoch 1.
-# BNN_FCC_Stimulus: Loaded 6 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 359085 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 0 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 360165 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 1 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 361215 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 2 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 362235 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 3 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 363285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 4 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(200) @ 363285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Observed reset. Cleared 1 pending expected outputs and marked scoreboard unconfigured.
-# Randomizing Layer 0: 784 inputs -> 256 neurons
-# Randomizing Layer 1: 256 inputs -> 256 neurons
-# Randomizing Layer 2: 256 inputs -> 10 neurons
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(160) @ 719505 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for post-reset full reconfiguration at config epoch 2.
-# BNN_FCC_Stimulus: Loaded 4 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 722365 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 6 (epoch 2): actual=8 expected=8
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 723415 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 7 (epoch 2): actual=8 expected=8
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 724455 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 8 (epoch 2): actual=8 expected=8
-# UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_objection.svh(1267) @ 724505 ns: reporter [TEST_DONE] 'run' phase is ready to proceed to the 'extract' phase
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(369) @ 724505 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Scoreboard summary: passed=8 failed=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(203) @ 724505 ns: uvm_test_top [bnn_fcc_reset_reconfig_test] ---------------------------
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(204) @ 724505 ns: uvm_test_top [bnn_fcc_reset_reconfig_test] ---     TEST PASSED     ---
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(205) @ 724505 ns: uvm_test_top [bnn_fcc_reset_reconfig_test] ---------------------------
+# BNN_FCC_Stimulus: Loaded 50 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 358555 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 0 (epoch 1): actual=5 expected=7
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 359665 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 1 (epoch 1): actual=5 expected=2
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 360795 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 2 (epoch 1): actual=2 expected=1
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 361895 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 3 (epoch 1): actual=5 expected=0
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 362985 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 4 (epoch 1): actual=2 expected=4
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 364115 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 5 (epoch 1): actual=2 expected=1
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 365195 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 6 (epoch 1): actual=2 expected=4
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 366265 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 7 (epoch 1): actual=6 expected=9
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 367355 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 8 (epoch 1): actual=2 expected=6
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 368425 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 9 (epoch 1): actual=5 expected=9
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 369525 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 10 (epoch 1): actual=2 expected=0
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 370595 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 11 (epoch 1): actual=5 expected=6
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 371645 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 12 (epoch 1): actual=2 expected=9
+# UVM_ERROR verification/bnn_uvm/bnn_fcc_scoreboard.svh(347) @ 372745 ns: uvm_test_top.env.scoreboard [SCOREBOARD] FAIL image 13 (epoch 1): actual=3 expected=0
+radix unsigned
+# unsigned
+make
+# make[1]: Entering directory '/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest'
+# vlog -sv -mfcu -lint +acc=pr -L mtiUvm -suppress 2275 -timescale "1ns/100ps" +define+UVM_PACKER_MAX_BYTES=1500000 +define+UVM_DISABLE_AUTO_ITEM_RECORDING +incdir+/apps/reconfig/tools/siemens/questasim/2023.3/verilog_src/uvm-1.1d/src +incdir+verification +incdir+verification/bnn_uvm -work work -f sources.txt
+# QuestaSim-64 vlog 2023.3 Compiler 2023.07 Jul 17 2023
+# Start time: 20:55:01 on Apr 07,2026
+# vlog -sv -mfcu -lint "+acc=pr" -L mtiUvm -suppress 2275 -timescale 1ns/100ps "+define+UVM_PACKER_MAX_BYTES=1500000" "+define+UVM_DISABLE_AUTO_ITEM_RECORDING" "+incdir+/apps/reconfig/tools/siemens/questasim/2023.3/verilog_src/uvm-1.1d/src" "+incdir+verification" "+incdir+verification/bnn_uvm" -work work -f sources.txt 
+# -- Compiling package axi4_stream_pkg
+# -- Importing package mtiUvm.uvm_pkg (uvm-1.1d Built-in)
+# -- Compiling interface axi4_stream_if
+# -- Importing package axi4_stream_pkg
+# -- Compiling interface bnn_fcc_ctrl_if
+# -- Compiling package bnn_fcc_tb_pkg
+# -- Compiling package bnn_fcc_uvm_pkg
+# -- Compiling module register
+# -- Compiling module delay
+# -- Compiling module fifo_vr
+# -- Compiling module sync_fifo
+# -- Compiling module replay_buffer
+# -- Compiling module ram_sdp
+# -- Compiling module xnor_add_tree
+# ** Warning: rtl/xnor_add_tree.sv(20): (vlog-13314) Defaulting port 'in1' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# ** Warning: rtl/xnor_add_tree.sv(21): (vlog-13314) Defaulting port 'in2' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# -- Compiling module add_tree
+# ** Warning: rtl/add_tree.sv(11): (vlog-13314) Defaulting port 'inputs' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# -- Compiling module argmax_tree
+# ** Warning: rtl/argmax_tree.sv(13): (vlog-13314) Defaulting port 'inputs' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+# -- Compiling module np_const_w
+# -- Compiling module np_stream_w
+# -- Compiling module np_xnor_neuron
+# -- Compiling module neuron_processor
+# -- Compiling module neuron_controller
+# -- Compiling module config_controller
+# -- Compiling module parser_controller
+# -- Compiling module config_manager
+# -- Compiling module bnn_layer
+# -- Compiling module bnn
+# -- Compiling module tkeep_byte_compactor
+# -- Compiling module vw_buffer
+# -- Compiling module data_in_manager
+# -- Compiling module bnn_fcc
+# -- Compiling package axi4_stream_pkg_sv_unit
+# -- Importing package mtiUvm.uvm_pkg (uvm-1.1d Built-in)
+# -- Importing package axi4_stream_pkg
+# -- Importing package bnn_fcc_tb_pkg
+# -- Importing package bnn_fcc_uvm_pkg
+# -- Compiling module bnn_fcc_uvm_tb
+# 
+# Top level modules:
+# 	sync_fifo
+# 	np_xnor_neuron
+# 	bnn_fcc_uvm_tb
+# End time: 20:55:01 on Apr 07,2026, Elapsed time: 0:00:00
+# Errors: 0, Warnings: 4
+# vopt bnn_fcc_uvm_tb +acc -L mtiUvm -o bnn_fcc_uvm_tb_opt
+# QuestaSim-64 vopt 2023.3 Compiler 2023.07 Jul 17 2023
+# ** Warning: (vopt-10587) Some optimizations are turned off because the +acc switch is in effect. This will cause your simulation to run slowly. Please use -access/-debug to maintain needed visibility.
+# Start time: 20:55:02 on Apr 07,2026
+# vopt bnn_fcc_uvm_tb "+acc" -L mtiUvm -o bnn_fcc_uvm_tb_opt 
+# 
+# Top level modules:
+# 	bnn_fcc_uvm_tb
+# 
+# Analyzing design...
+# -- Loading module bnn_fcc_uvm_tb
+# -- Loading package mtiUvm.questa_uvm_pkg
+# -- Loading interface axi4_stream_if
+# -- Loading interface bnn_fcc_ctrl_if
+# -- Loading module bnn_fcc
+# -- Loading module config_manager
+# -- Loading module parser_controller
+# -- Loading module fifo_vr
+# -- Loading module data_in_manager
+# -- Loading module tkeep_byte_compactor
+# -- Loading module vw_buffer
+# -- Loading module bnn
+# -- Loading module bnn_layer
+# -- Loading module replay_buffer
+# -- Loading module config_controller
+# -- Loading module neuron_controller
+# -- Loading module delay
+# -- Loading module argmax_tree
+# -- Loading module register
+# -- Loading module ram_sdp
+# -- Loading module neuron_processor
+# -- Loading module xnor_add_tree
+# -- Loading module add_tree
+# Incremental compilation check found 66 design-units (out of 67) may be reused.
+# Optimizing 1 design-unit (inlining 0/15833 module instances):
+# -- Optimizing module data_in_manager(fast)
+# Optimized design name is bnn_fcc_uvm_tb_opt
+# End time: 20:55:04 on Apr 07,2026, Elapsed time: 0:00:02
+# Errors: 0, Warnings: 1
+# make[1]: Leaving directory '/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest'
+restart
+# ** Note: (vsim-12125) Error and warning message counts have been reset to '0' because of 'restart'.
+# Loading sv_std.std
+# Loading work.axi4_stream_if(fast)
+# Loading work.bnn_fcc_ctrl_if(fast)
+# Loading mtiUvm.uvm_pkg(fast)
+# Loading work.axi4_stream_pkg(fast)
+# Loading work.bnn_fcc_uvm_pkg(fast)
+# Loading work.bnn_fcc_tb_pkg(fast)
+# Loading work.axi4_stream_pkg_sv_unit(fast)
+# Loading mtiUvm.questa_uvm_pkg(fast)
+# Loading work.bnn_fcc_uvm_tb(fast)
+# ** Warning: (vsim-3852) Invalid override of parameter '/bnn_fcc_uvm_tb/BASE_DIR' whose value may no longer be modified.
+#    Time: 0 ns  Iteration: 0  Instance: /bnn_fcc_uvm_tb File: verification/bnn_uvm/bnn_fcc_uvm_tb.sv
+# Loading work.bnn_fcc_ctrl_if(fast__2)
+# Loading work.axi4_stream_if(fast__4)
+# Loading work.axi4_stream_if(fast__5)
+# Loading work.bnn_fcc(fast)
+# Loading work.config_manager(fast)
+# Loading work.parser_controller(fast)
+# Loading work.fifo_vr(fast)
+# Loading work.fifo_vr(fast__1)
+# Loading work.fifo_vr(fast__2)
+# Loading work.fifo_vr(fast__3)
+# Loading work.data_in_manager(fast)
+# Loading work.tkeep_byte_compactor(fast)
+# Loading work.vw_buffer(fast)
+# Loading work.fifo_vr(fast__4)
+# Loading work.bnn(fast)
+# Loading work.bnn_layer(fast)
+# Loading work.replay_buffer(fast)
+# Loading work.config_controller(fast)
+# Loading work.neuron_controller(fast)
+# Loading work.delay(fast)
+# Loading work.register(fast)
+# Loading work.ram_sdp(fast)
+# Loading work.ram_sdp(fast__1)
+# Loading work.neuron_processor(fast)
+# Loading work.xnor_add_tree(fast)
+# Loading work.add_tree(fast__6)
+# Loading work.add_tree(fast__5)
+# Loading work.add_tree(fast__4)
+# Loading work.add_tree(fast__3)
+# Loading work.add_tree(fast__2)
+# Loading work.add_tree(fast__1)
+# Loading work.add_tree(fast)
+# Loading work.delay(fast__1)
+# Loading work.register(fast__1)
+# Loading work.delay(fast__2)
+# Loading work.register(fast__2)
+# Loading work.bnn_layer(fast__1)
+# Loading work.replay_buffer(fast__1)
+# Loading work.config_controller(fast__1)
+# Loading work.neuron_controller(fast__1)
+# Loading work.ram_sdp(fast__2)
+# Loading work.bnn_layer(fast__2)
+# Loading work.replay_buffer(fast__2)
+# Loading work.config_controller(fast__2)
+# Loading work.neuron_controller(fast__2)
+# Loading work.ram_sdp(fast__3)
+# Loading work.ram_sdp(fast__4)
+# Loading work.neuron_processor(fast__1)
+# Loading work.xnor_add_tree(fast__1)
+# Loading work.delay(fast__3)
+# Loading work.delay(fast__4)
+# Loading work.argmax_tree(fast__4)
+# Loading work.argmax_tree(fast__3)
+# Loading work.argmax_tree(fast__2)
+# Loading work.argmax_tree(fast__1)
+# Loading work.argmax_tree(fast)
+# Loading work.delay(fast__5)
+# Loading work.fifo_vr(fast__5)
+# ** Warning: (vsim-3015) [PCDPC] - Port size (1) does not match connection size (8) for port 'config_keep'. The port definition is at: rtl/config_manager.sv(16).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager File: rtl/bnn_fcc.sv Line: 90
+# ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager/fifo_weights_bytes File: rtl/config_manager.sv Line: 258
+# ** Warning: (vsim-3015) [PCDPC] - Port size (6) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager/fifo_thresholds File: rtl/config_manager.sv Line: 312
+# ** Warning: (vsim-3015) [PCDPC] - Port size (32) does not match connection size (10) for port 'rd_data'. The port definition is at: rtl/fifo_vr.sv(18).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/config_manager/fifo_thresholds File: rtl/config_manager.sv Line: 312
+# ** Warning: (vsim-3015) [PCDPC] - Port size (4) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/data_in_manager_i/bin_fifo File: rtl/data_in_manager.sv Line: 245
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[0]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[1]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[2]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[3]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[4]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[5]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[6]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[7]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[8]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (64) does not match connection size (32) for port 'rd_data'. The port definition is at: rtl/ram_sdp.sv(14).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/bnn_main/u_layer_3/gen_np_mems[9]/u_w_ram File: rtl/bnn_layer.sv Line: 194
+# ** Warning: (vsim-3015) [PCDPC] - Port size (5) does not match connection size (32) for port 'alm_full_thresh'. The port definition is at: rtl/fifo_vr.sv(11).
+#    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/out_fifo File: rtl/bnn_fcc.sv Line: 216
+# Loading /apps/reconfig/tools/siemens/questasim/2023.3/uvm-1.1d/linux_x86_64/uvm_dpi.so
+# ** Warning: (vsim-8634) Code was not compiled with coverage options.
+# ** Note: (vsim-8900) Creating design debug database vsim.dbg.
+# It appears vopt was not run with -debugdb option on this design.
+# Advanced Causality and Schematic debug features will not be available.
+run -all
+# ----------------------------------------------------------------
+# UVM-1.1d
+# (C) 2007-2013 Mentor Graphics Corporation
+# (C) 2007-2013 Cadence Design Systems, Inc.
+# (C) 2006-2013 Synopsys, Inc.
+# (C) 2011-2013 Cypress Semiconductor Corp.
+# ----------------------------------------------------------------
+# UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(277) @ 0: reporter [Questa UVM] QUESTA_UVM-1.2.3
+# UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(278) @ 0: reporter [Questa UVM]  questa_uvm::init(+struct)
+# UVM_INFO @ 0 ns: reporter [RNTST] Running test bnn_fcc_single_beat_test...
+# ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::weight_density_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
+# ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::threshold_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
+# ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::config_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
+# ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_input_coverage::pixel_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
+# ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_output_coverage::output_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
+# ------------------------------------------------------------------
+# Name                       Type                        Size  Value
+# ------------------------------------------------------------------
+# uvm_test_top               bnn_fcc_single_beat_test    -     @516 
+#   env                      bnn_fcc_env                 -     @523 
+#     cfg_agent              uvm_agent                   -     @541 
+#       driver               uvm_driver #(REQ,RSP)       -     @714 
+#         rsp_port           uvm_analysis_port           -     @729 
+#         seq_item_port      uvm_seq_item_pull_port      -     @721 
+#       monitor              uvm_monitor                 -     @737 
+#         ap                 uvm_analysis_port           -     @744 
+#       sequencer            uvm_sequencer               -     @605 
+#         rsp_export         uvm_analysis_export         -     @612 
+#         seq_item_export    uvm_seq_item_pull_imp       -     @706 
+#         arbitration_queue  array                       0     -    
+#         lock_queue         array                       0     -    
+#         num_last_reqs      integral                    32    'd1  
+#         num_last_rsps      integral                    32    'd1  
+#     cfg_coverage           bnn_cfg_coverage            -     @569 
+#       cfg_ae               uvm_analysis_export         -     @757 
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @765 
+#         analysis_export    uvm_analysis_imp            -     @804 
+#         get_ap             uvm_analysis_port           -     @796 
+#         get_peek_export    uvm_get_peek_imp            -     @780 
+#         put_ap             uvm_analysis_port           -     @788 
+#         put_export         uvm_put_imp                 -     @772 
+#     in_agent               uvm_agent                   -     @548 
+#       driver               uvm_driver #(REQ,RSP)       -     @923 
+#         rsp_port           uvm_analysis_port           -     @938 
+#         seq_item_port      uvm_seq_item_pull_port      -     @930 
+#       monitor              uvm_monitor                 -     @946 
+#         ap                 uvm_analysis_port           -     @953 
+#       sequencer            uvm_sequencer               -     @814 
+#         rsp_export         uvm_analysis_export         -     @821 
+#         seq_item_export    uvm_seq_item_pull_imp       -     @915 
+#         arbitration_queue  array                       0     -    
+#         lock_queue         array                       0     -    
+#         num_last_reqs      integral                    32    'd1  
+#         num_last_rsps      integral                    32    'd1  
+#     input_coverage         bnn_input_coverage          -     @576 
+#       in_ae                uvm_analysis_export         -     @966 
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @974 
+#         analysis_export    uvm_analysis_imp            -     @1013
+#         get_ap             uvm_analysis_port           -     @1005
+#         get_peek_export    uvm_get_peek_imp            -     @989 
+#         put_ap             uvm_analysis_port           -     @997 
+#         put_export         uvm_put_imp                 -     @981 
+#     out_agent              uvm_agent                   -     @555 
+#       monitor              uvm_monitor                 -     @1023
+#         ap                 uvm_analysis_port           -     @1030
+#     output_coverage        bnn_output_coverage         -     @583 
+#       out_ae               uvm_analysis_export         -     @1038
+#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1046
+#         analysis_export    uvm_analysis_imp            -     @1085
+#         get_ap             uvm_analysis_port           -     @1077
+#         get_peek_export    uvm_get_peek_imp            -     @1061
+#         put_ap             uvm_analysis_port           -     @1069
+#         put_export         uvm_put_imp                 -     @1053
+#     scoreboard             bnn_fcc_scoreboard          -     @562 
+#       cfg_ae               uvm_analysis_export         -     @1094
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @1118
+#         analysis_export    uvm_analysis_imp            -     @1157
+#         get_ap             uvm_analysis_port           -     @1149
+#         get_peek_export    uvm_get_peek_imp            -     @1133
+#         put_ap             uvm_analysis_port           -     @1141
+#         put_export         uvm_put_imp                 -     @1125
+#       in_ae                uvm_analysis_export         -     @1102
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1165
+#         analysis_export    uvm_analysis_imp            -     @1204
+#         get_ap             uvm_analysis_port           -     @1196
+#         get_peek_export    uvm_get_peek_imp            -     @1180
+#         put_ap             uvm_analysis_port           -     @1188
+#         put_export         uvm_put_imp                 -     @1172
+#       out_ae               uvm_analysis_export         -     @1110
+#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1212
+#         analysis_export    uvm_analysis_imp            -     @1251
+#         get_ap             uvm_analysis_port           -     @1243
+#         get_peek_export    uvm_get_peek_imp            -     @1227
+#         put_ap             uvm_analysis_port           -     @1235
+#         put_export         uvm_put_imp                 -     @1219
+#     system_coverage        bnn_system_coverage         -     @590 
+#       in_ae                uvm_analysis_export         -     @1261
+#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1269
+#         analysis_export    uvm_analysis_imp            -     @1308
+#         get_ap             uvm_analysis_port           -     @1300
+#         get_peek_export    uvm_get_peek_imp            -     @1284
+#         put_ap             uvm_analysis_port           -     @1292
+#         put_export         uvm_put_imp                 -     @1276
+# ------------------------------------------------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_single_beat_test.svh(41) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] Starting single-beat baseline test.
+# BNN_FCC_Stimulus: Loaded 100 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(145) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] SV model successfully verified against Python outputs.
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(160) @ 356235 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for initial full configuration at config epoch 1.
+# BNN_FCC_Stimulus: Loaded 50 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 359155 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 0 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 360275 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 1 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 361395 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 2 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 362505 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 3 (epoch 1): actual=0 expected=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 363595 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 4 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 364725 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 5 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 365815 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 6 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 366895 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 7 (epoch 1): actual=9 expected=9
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 367985 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 8 (epoch 1): actual=6 expected=6
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 369085 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 9 (epoch 1): actual=9 expected=9
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 370195 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 10 (epoch 1): actual=0 expected=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 371285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 11 (epoch 1): actual=6 expected=6
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 372365 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 12 (epoch 1): actual=9 expected=9
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 373435 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 13 (epoch 1): actual=0 expected=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 374555 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 14 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 375625 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 15 (epoch 1): actual=5 expected=5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 376805 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 16 (epoch 1): actual=9 expected=9
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 377935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 17 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 379015 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 18 (epoch 1): actual=3 expected=3
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 380165 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 19 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 381225 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 20 (epoch 1): actual=9 expected=9
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 382305 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 21 (epoch 1): actual=6 expected=6
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 383385 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 22 (epoch 1): actual=6 expected=6
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 384465 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 23 (epoch 1): actual=5 expected=5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 385575 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 24 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 386695 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 25 (epoch 1): actual=0 expected=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 387755 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 26 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 388865 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 27 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 389995 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 28 (epoch 1): actual=0 expected=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 391115 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 29 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 392215 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 30 (epoch 1): actual=3 expected=3
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 393415 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 31 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 394495 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 32 (epoch 1): actual=3 expected=3
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 395635 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 33 (epoch 1): actual=6 expected=6
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 396715 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 34 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 397835 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 35 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 398965 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 36 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 400035 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 37 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 401145 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 38 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 402285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 39 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 403355 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 40 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 404435 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 41 (epoch 1): actual=7 expected=7
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 405515 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 42 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 406655 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 43 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 407795 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 44 (epoch 1): actual=3 expected=3
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 408895 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 45 (epoch 1): actual=5 expected=5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 410045 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 46 (epoch 1): actual=1 expected=1
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 411065 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 47 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 412205 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 48 (epoch 1): actual=4 expected=4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(340) @ 413355 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 49 (epoch 1): actual=4 expected=4
+# UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_objection.svh(1267) @ 413405 ns: reporter [TEST_DONE] 'run' phase is ready to proceed to the 'extract' phase
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(369) @ 413405 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Scoreboard summary: passed=50 failed=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(203) @ 413405 ns: uvm_test_top [bnn_fcc_single_beat_test] ---------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(204) @ 413405 ns: uvm_test_top [bnn_fcc_single_beat_test] ---     TEST PASSED     ---
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(205) @ 413405 ns: uvm_test_top [bnn_fcc_single_beat_test] ---------------------------
 # 
 # --- UVM Report Summary ---
 # 
 # ** Report counts by severity
-# UVM_INFO :   21
+# UVM_INFO :   61
 # UVM_WARNING :    0
 # UVM_ERROR :    0
 # UVM_FATAL :    0
 # ** Report counts by id
 # [Questa UVM]     2
 # [RNTST]     1
-# [SCOREBOARD]    12
+# [SCOREBOARD]    52
 # [TEST_DONE]     1
-# [bnn_fcc_reset_reconfig_test]     5
+# [bnn_fcc_single_beat_test]     5
 # ** Note: $finish    : /apps/reconfig/tools/siemens/questasim/2023.3/linux_x86_64/../verilog_src/uvm-1.1d/src/base/uvm_root.svh(430)
-#    Time: 724505 ns  Iteration: 56  Instance: /bnn_fcc_uvm_tb
-# Saving coverage database on exit...
-# End time: 23:53:34 on Apr 05,2026, Elapsed time: 0:00:06
-# Errors: 0, Warnings: 23
+#    Time: 413405 ns  Iteration: 55  Instance: /bnn_fcc_uvm_tb
+# 1
+# Break in Task uvm_pkg/uvm_root::run_test at /apps/reconfig/tools/siemens/questasim/2023.3/linux_x86_64/../verilog_src/uvm-1.1d/src/base/uvm_root.svh line 430

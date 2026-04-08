@@ -93,6 +93,7 @@ module data_in_manager #(
     end
   end
 
+
   // Registered outputs of the TKEEP compactor. These correspond to the beat
   // accepted on the previous cycle.
   logic                       compact_wr_en;
@@ -134,6 +135,9 @@ module data_in_manager #(
   logic                           bin_fifo_full;
   logic                           bin_fifo_empty;
   logic                           bin_fifo_alm_full;
+  logic                           input_accept;
+
+  assign input_accept = data_in_valid && data_in_ready;
 
 
   // The compactor only sees accepted beats. Because it is registered, its
@@ -143,7 +147,7 @@ module data_in_manager #(
   ) tkeep_byte_compactor_i (
       .clk          (clk),
       .rst          (rst),
-      .data_in_valid(data_in_valid),
+      .data_in_valid(input_accept),
       .data_in_data (data_in_data),
       .data_in_keep (data_in_keep),
       .wr_en        (compact_wr_en),
