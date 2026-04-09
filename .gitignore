@@ -1,7 +1,9 @@
 
 # Vivado / OpenFlex build artifacts
-openflex/build_vivado/
+openflex/build_vivado/**/*
 *.dcp
+!openflex/build_vivado/**/
+!openflex/build_vivado/**/*.rpt
 
 # sim
 verification/bnn_uvm/work
