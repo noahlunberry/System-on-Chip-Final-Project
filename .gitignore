@@ -12,3 +12,4 @@ vsim.dbg
 .codex
 wlftorkTRp
 *.ucdb
+coverage/logs
