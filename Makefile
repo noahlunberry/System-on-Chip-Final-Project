@@ -34,6 +34,7 @@ VCOVER = vcover
 WORK_DIR = work
 TOP_MODULE = bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
+EXTRA_RTL_SOURCES = rtl/fifo_vw.sv
 
 # UVM configuration
 UVM_TESTNAME ?= bnn_fcc_single_beat_test
@@ -174,7 +175,7 @@ $(COVERAGE_DIR):
 
 # Read sources from file and compile
 compile: $(WORK_DIR)
-	$(VLOG) $(VLOG_FLAGS) -f sources.txt
+	$(VLOG) $(VLOG_FLAGS) -f sources.txt $(EXTRA_RTL_SOURCES)
 
 # Optimize design while maintaining full visibility
 optimize: compile

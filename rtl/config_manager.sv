@@ -10,11 +10,11 @@ module config_manager #(
     input logic rst,
 
     // AXI streaming configuration interface (consumer)
-    input  logic                 config_valid,
-    output logic                 config_ready,
-    input  logic [BUS_WIDTH-1:0] config_data_in,
-    input  logic                 config_keep,
-    input  logic                 config_last,
+    input  logic                    config_valid,
+    output logic                    config_ready,
+    input  logic [    BUS_WIDTH-1:0] config_data_in,
+    input  logic [BUS_WIDTH/8-1:0]   config_keep,
+    input  logic                    config_last,
 
     // RAM Write Interfaces
     output logic [ MAX_PARALLEL_INPUTS-1:0] weight_ram_wr_data,
@@ -26,18 +26,12 @@ module config_manager #(
   // =========================================================================
   // Local Parameters
   // =========================================================================
-  localparam int THRESH_RD_BYTES = THRESHOLD_DATA_WIDTH / 8;
+  localparam int BUS_BYTES         = BUS_WIDTH / 8;
+  localparam int THRESH_WORD_BYTES = 4;
 
-  // FIFO Sizing & Workarounds
+  // FIFO sizing
   localparam int WEIGHT_FIFO_DEPTH = 64;
-  localparam int WEIGHT_FIFO_HEADROOM = 16;
-  localparam int W_FIFO_SIZE = 1 << $clog2(WEIGHT_FIFO_DEPTH);
-  localparam int W_WORKAROUND_THRESH = W_FIFO_SIZE - (((W_FIFO_SIZE - WEIGHT_FIFO_HEADROOM) * 8) / BUS_WIDTH);
-
   localparam int THRESH_FIFO_DEPTH = 64;
-  localparam int THRESH_FIFO_HEADROOM = 16;
-  localparam int T_FIFO_SIZE = 1 << $clog2(THRESH_FIFO_DEPTH);
-  localparam int T_WORKAROUND_THRESH  = T_FIFO_SIZE - (((T_FIFO_SIZE - THRESH_FIFO_HEADROOM) * 32) / BUS_WIDTH);
 
   // =========================================================================
   // Signal Declarations
@@ -50,12 +44,19 @@ module config_manager #(
   logic [       1:0] layer_id_r;
   logic [      31:0] total_bytes_r;
   logic [      15:0] bytes_per_neuron_r;
+  logic              payload_accept;
+  logic              compact_wr_en;
+  logic [BUS_WIDTH-1:0] compact_wr_data;
+  logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
+  logic              compact_inflight;
 
   // FIFO Status
   logic              w_empty;
   logic              t_empty;
   logic              w_alm_full;
   logic              t_alm_full;
+  logic              w_wr_ready;
+  logic              t_wr_ready;
   logic              w_rd_en;
   logic              w_wr_en;
   logic              t_rd_en;
@@ -86,6 +87,7 @@ module config_manager #(
   // Data Routing & Padding
   logic [7:0] data;
   logic [7:0] w_byte_data;
+  logic [31:0] threshold_fifo_rd_data;
   logic [7:0] bytes_per_word;
   logic [7:0] pad_remainder;
   logic [7:0] bytes_to_pad;
@@ -94,17 +96,21 @@ module config_manager #(
   // =========================================================================
   // Combinational Assignments & Top-Level Logic
   // =========================================================================
+  assign payload_accept     = fifo_wr_en_r;
+  assign compact_inflight   = payload_accept || compact_wr_en;
   assign all_packers_empty   = &packer_empty;
   assign active_stream_empty = msg_type_r ? t_empty : w_empty;
 
-  // The config FSM waits for all underlying FIFOs to process their stream
-  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ);
+  // The config FSM waits for all underlying FIFOs to process their stream and
+  // for the one-cycle compactor pipeline to go idle after the final payload beat.
+  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ)
+                             && !compact_inflight;
   assign config_ready        = !w_alm_full && !t_alm_full && parser_ready;
 
   assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
-  assign w_wr_en             = fifo_wr_en_r && !msg_type_r;
-  assign t_wr_en             = fifo_wr_en_r && msg_type_r;
+  assign w_wr_en             = compact_wr_en && !msg_type_r;
+  assign t_wr_en             = compact_wr_en && msg_type_r;
 
   // =========================================================================
   // Padding Calculation (Dynamic per-layer)
@@ -134,12 +140,29 @@ module config_manager #(
       .valid           (config_valid && config_ready),
       .data            (config_data_in),
       .empty           (empty),
+      .payload_count_valid(compact_wr_en),
+      .payload_count_bytes(compact_total_bytes),
       .ready           (parser_ready),
       .wr_en           (fifo_wr_en_r),
       .msg_type        (msg_type_r),
       .layer_id        (layer_id_r),
       .total_bytes     (total_bytes_r),
       .bytes_per_neuron(bytes_per_neuron_r)
+  );
+
+  // Compact only accepted payload beats so partial final beats respect TKEEP
+  // before entering the variable-write FIFOs.
+  tkeep_byte_compactor #(
+      .INPUT_BUS_WIDTH(BUS_WIDTH)
+  ) config_tkeep_byte_compactor_i (
+      .clk          (clk),
+      .rst          (rst),
+      .data_in_valid(payload_accept),
+      .data_in_data (config_data_in),
+      .data_in_keep (config_keep),
+      .wr_en        (compact_wr_en),
+      .wr_data      (compact_wr_data),
+      .total_bytes  (compact_total_bytes)
   );
 
   // =========================================================================
@@ -182,7 +205,7 @@ module config_manager #(
         if (msg_type_r == 0) begin
           next_rd_count = total_bytes_r;  // bytes for weights
         end else begin
-          next_rd_count = total_bytes_r / 4;  // 32-bit words for thresholds
+          next_rd_count = total_bytes_r / THRESH_WORD_BYTES;  // 32-bit words for thresholds
         end
 
         // Continuously read while buffer is not empty
@@ -250,24 +273,26 @@ module config_manager #(
   // Datapath & FIFOs
   // =========================================================================
 
-  // Weight Byte FIFO: Assymetric FIFO to convert bus stream to individual bytes
-  fifo_vr #(
-      .N(BUS_WIDTH),                 // Write width
-      .M(8),                         // Read width
-      .P($clog2(WEIGHT_FIFO_DEPTH))  // Depth
+  // Weight byte FIFO: compact payload bytes are written in variable-length
+  // chunks and read back one byte at a time for the existing padding/packer path.
+  fifo_vw #(
+      .MAX_WR_BYTES(BUS_BYTES),
+      .RD_BYTES    (1),
+      .N           ($clog2(WEIGHT_FIFO_DEPTH))
   ) fifo_weights_bytes (
-      .clk             (clk),
-      .rst             (rst),
-      .rd_en           (w_rd_en),
-      .wr_en           (w_wr_en),
-      .wr_data         (config_data_in),
-      .alm_full_thresh (W_WORKAROUND_THRESH),
-      .alm_empty_thresh('0),
-      .alm_full        (w_alm_full),
-      .alm_empty       (),
-      .full            (),
-      .empty           (w_empty),
-      .rd_data         (w_byte_data)
+      .clk       (clk),
+      .rst       (rst),
+      .wr_en     (w_wr_en),
+      .wr_data   (compact_wr_data),
+      .total_bytes(compact_total_bytes),
+      .wr_ready  (w_wr_ready),
+      .rd_en     (w_rd_en),
+      .rd_valid  (),
+      .rd_data   (w_byte_data),
+      .alm_full  (w_alm_full),
+      .full      (),
+      .alm_empty (),
+      .empty     (w_empty)
   );
 
   // Packer FIFOs: Unpack bytes into dynamically parameterized output interfaces
@@ -304,25 +329,29 @@ module config_manager #(
     end
   endgenerate
 
-  // Thresholds FIFO
-  fifo_vr #(
-      .N(BUS_WIDTH),                 // Write width
-      .M(32),                        // Read 32-bit threshold word
-      .P($clog2(THRESH_FIFO_DEPTH))  // Depth
+  // Thresholds FIFO: compact payload bytes are written in variable-length
+  // chunks and emitted directly as 32-bit threshold words.
+  fifo_vw #(
+      .MAX_WR_BYTES(BUS_BYTES),
+      .RD_BYTES    (THRESH_WORD_BYTES),
+      .N           ($clog2(THRESH_FIFO_DEPTH))
   ) fifo_thresholds (
-      .clk             (clk),
-      .rst             (rst),
-      .rd_en           (t_rd_en),
-      .wr_en           (t_wr_en),
-      .wr_data         (config_data_in),
-      .alm_full_thresh (T_WORKAROUND_THRESH),
-      .alm_empty_thresh('0),
-      .alm_full        (t_alm_full),
-      .alm_empty       (),
-      .full            (),
-      .empty           (t_empty),
-      .rd_data         (threshold_ram_wr_data)  // Direct alignment for thresholds
+      .clk       (clk),
+      .rst       (rst),
+      .wr_en     (t_wr_en),
+      .wr_data   (compact_wr_data),
+      .total_bytes(compact_total_bytes),
+      .wr_ready  (t_wr_ready),
+      .rd_en     (t_rd_en),
+      .rd_valid  (),
+      .rd_data   (threshold_fifo_rd_data),
+      .alm_full  (t_alm_full),
+      .full      (),
+      .alm_empty (),
+      .empty     (t_empty)
   );
+
+  assign threshold_ram_wr_data = threshold_fifo_rd_data[THRESHOLD_DATA_WIDTH-1:0];
 
   // =========================================================================
   // Layer RAM Output Alignment
@@ -345,6 +374,20 @@ module config_manager #(
         weight_ram_wr_en[j] = 1'b1;
         weight_ram_wr_data  = packer_rd_data[j];
       end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (!rst && w_wr_en) begin
+      assert (w_wr_ready)
+        else $fatal(1,
+                    "config_manager overflow: weight fifo_vw rejected a compacted payload beat.");
+    end
+
+    if (!rst && t_wr_en) begin
+      assert (t_wr_ready)
+        else $fatal(1,
+                    "config_manager overflow: threshold fifo_vw rejected a compacted payload beat.");
     end
   end
 
