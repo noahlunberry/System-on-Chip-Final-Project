@@ -29,7 +29,18 @@ module config_manager #(
   localparam int BUS_BYTES              = BUS_WIDTH / 8;
   localparam int THRESH_WORD_BYTES      = 4;
   localparam int HEADER_BYTES           = 16;
-  localparam int CONFIG_BYTE_FIFO_DEPTH = 1024;
+  localparam int CONFIG_BYTE_FIFO_DEPTH_LOG2 = 6;
+  localparam int CONFIG_BYTE_FIFO_DEPTH = 1 << CONFIG_BYTE_FIFO_DEPTH_LOG2;
+  localparam int CONFIG_BYTE_FIFO_WRITE_CAPACITY = CONFIG_BYTE_FIFO_DEPTH / BUS_BYTES;
+  localparam int CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS = 3;
+  // `fifo_vr` measures alm_full in terms of whole write words when N > M. Pick
+  // a threshold that leaves enough room for:
+  // 1. all full words already buffered inside `vw_buffer`, and
+  // 2. one more word still in flight from the registered TKEEP compactor.
+  localparam logic [CONFIG_BYTE_FIFO_DEPTH_LOG2-1:0] CONFIG_BYTE_FIFO_ALM_FULL_THRESH =
+      CONFIG_BYTE_FIFO_DEPTH_LOG2'(
+          CONFIG_BYTE_FIFO_DEPTH - CONFIG_BYTE_FIFO_WRITE_CAPACITY + CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS
+      );
 
   // FIFO sizing
   localparam int WEIGHT_FIFO_DEPTH = 64;
@@ -62,20 +73,21 @@ module config_manager #(
   logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
   logic [31:0]       payload_count_r, next_payload_count;
   logic              cfg_byte_rd_en;
-  logic              cfg_byte_wr_ready;
   logic              cfg_byte_empty;
   logic              cfg_byte_alm_full;
+  logic              cfg_vw_rd_en;
+  logic              cfg_byte_full;
+  logic [BUS_WIDTH-1:0] cfg_vw_rd_data;
   logic [7:0]        cfg_byte_data;
   logic              payload_byte_valid;
   logic              payload_byte_is_thresh;
   logic [7:0]        payload_byte_data;
-  logic              payload_byte_count;
 
   // FIFO Status
   logic              w_empty;
   logic              t_empty;
-  logic              w_alm_full;
-  logic              t_alm_full;
+  logic              w_full;
+  logic              t_full;
   logic              w_wr_ready;
   logic              t_wr_ready;
   logic              w_rd_en;
@@ -141,7 +153,8 @@ module config_manager #(
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
   assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
   assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
-  assign payload_byte_count  = 1'b1;
+  assign w_wr_ready          = !w_full;
+  assign t_wr_ready          = !t_full;
   assign load_rd_count       = (parse_state_r != PARSE_PAYLOAD) && (next_parse_state == PARSE_PAYLOAD);
   assign rd_count_load_value = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
   assign last_read_fire = read_fire && (rd_count_r != 32'd0)
@@ -179,26 +192,53 @@ module config_manager #(
       .total_bytes  (compact_total_bytes)
   );
 
-  // Stage the compacted stream as bytes so the parser can rebuild headers
-  // without worrying about beat boundaries or TKEEP lane placement.
-  fifo_vw #(
+  initial begin
+    if ((CONFIG_BYTE_FIFO_DEPTH % BUS_BYTES) != 0) begin
+      $fatal(1,
+             "config_manager requires CONFIG_BYTE_FIFO_DEPTH (%0d) to be divisible by BUS_BYTES (%0d).",
+             CONFIG_BYTE_FIFO_DEPTH, BUS_BYTES);
+    end
+
+    if (CONFIG_BYTE_FIFO_WRITE_CAPACITY <= CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS) begin
+      $fatal(1,
+             "config_manager requires config byte FIFO write capacity (%0d words) to exceed reserved inflight words (%0d).",
+             CONFIG_BYTE_FIFO_WRITE_CAPACITY, CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS);
+    end
+  end
+
+  // First repack the compacted stream into full BUS_BYTES chunks. This keeps
+  // the variable-size AXI/TKEEP handling localized to the vw_buffer.
+  vw_buffer #(
       .MAX_WR_BYTES(BUS_BYTES),
-      .RD_BYTES    (1),
-      .N           ($clog2(CONFIG_BYTE_FIFO_DEPTH))
-  ) fifo_config_bytes (
+      .RD_BYTES    (BUS_BYTES)
+  ) config_vw_buffer_i (
       .clk       (clk),
       .rst       (rst),
       .wr_en     (compact_wr_en),
       .wr_data   (compact_wr_data),
       .total_bytes(compact_total_bytes),
-      .wr_ready  (cfg_byte_wr_ready),
-      .rd_en     (cfg_byte_rd_en),
-      .rd_valid  (),
-      .rd_data   (cfg_byte_data),
-      .alm_full  (cfg_byte_alm_full),
-      .full      (),
-      .alm_empty (),
-      .empty     (cfg_byte_empty)
+      .rd_en     (cfg_vw_rd_en),
+      .rd_data   (cfg_vw_rd_data)
+  );
+
+  // Then serialize those full words into bytes for the header/payload parser.
+  fifo_vr #(
+      .N(BUS_WIDTH),
+      .M(8),
+      .P(CONFIG_BYTE_FIFO_DEPTH_LOG2)
+  ) fifo_config_bytes (
+      .clk             (clk),
+      .rst             (rst),
+      .rd_en           (cfg_byte_rd_en),
+      .wr_en           (cfg_vw_rd_en && !cfg_byte_full),
+      .wr_data         (cfg_vw_rd_data),
+      .alm_full_thresh (CONFIG_BYTE_FIFO_ALM_FULL_THRESH),
+      .alm_empty_thresh('0),
+      .alm_full        (cfg_byte_alm_full),
+      .alm_empty       (),
+      .full            (cfg_byte_full),
+      .empty           (cfg_byte_empty),
+      .rd_data         (cfg_byte_data)
   );
 
   // Parse the staged byte stream one byte at a time. This keeps header
@@ -427,26 +467,25 @@ module config_manager #(
   // Datapath & FIFOs
   // =========================================================================
 
-  // Weight byte FIFO: compact payload bytes are written in variable-length
-  // chunks and read back one byte at a time for the existing padding/packer path.
-  fifo_vw #(
-      .MAX_WR_BYTES(1),
-      .RD_BYTES    (1),
-      .N           ($clog2(WEIGHT_FIFO_DEPTH))
+  // Weight bytes already arrive one at a time from the parser, so a regular
+  // byte-wide FIFO is enough to decouple parsing from the padding/packer path.
+  fifo_vr #(
+      .N(8),
+      .M(8),
+      .P($clog2(WEIGHT_FIFO_DEPTH))
   ) fifo_weights_bytes (
-      .clk       (clk),
-      .rst       (rst),
-      .wr_en     (w_wr_en),
-      .wr_data   (payload_byte_data),
-      .total_bytes(payload_byte_count),
-      .wr_ready  (w_wr_ready),
-      .rd_en     (w_rd_en),
-      .rd_valid  (),
-      .rd_data   (w_byte_data),
-      .alm_full  (w_alm_full),
-      .full      (),
-      .alm_empty (),
-      .empty     (w_empty)
+      .clk             (clk),
+      .rst             (rst),
+      .rd_en           (w_rd_en),
+      .wr_en           (w_wr_en),
+      .wr_data         (payload_byte_data),
+      .alm_full_thresh ('0),
+      .alm_empty_thresh('0),
+      .alm_full        (),
+      .alm_empty       (),
+      .full            (w_full),
+      .empty           (w_empty),
+      .rd_data         (w_byte_data)
   );
 
   // Packer FIFOs: Unpack bytes into dynamically parameterized output interfaces
@@ -483,26 +522,25 @@ module config_manager #(
     end
   endgenerate
 
-  // Thresholds FIFO: compact payload bytes are written in variable-length
-  // chunks and emitted directly as 32-bit threshold words.
-  fifo_vw #(
-      .MAX_WR_BYTES(1),
-      .RD_BYTES    (THRESH_WORD_BYTES),
-      .N           ($clog2(THRESH_FIFO_DEPTH))
+  // Threshold bytes also arrive one at a time, so use a fixed-width FIFO that
+  // repacks four incoming bytes into one threshold word on the read side.
+  fifo_vr #(
+      .N(8),
+      .M(THRESH_WORD_BYTES * 8),
+      .P($clog2(THRESH_FIFO_DEPTH))
   ) fifo_thresholds (
-      .clk       (clk),
-      .rst       (rst),
-      .wr_en     (t_wr_en),
-      .wr_data   (payload_byte_data),
-      .total_bytes(payload_byte_count),
-      .wr_ready  (t_wr_ready),
-      .rd_en     (t_rd_en),
-      .rd_valid  (),
-      .rd_data   (threshold_fifo_rd_data),
-      .alm_full  (t_alm_full),
-      .full      (),
-      .alm_empty (),
-      .empty     (t_empty)
+      .clk             (clk),
+      .rst             (rst),
+      .rd_en           (t_rd_en),
+      .wr_en           (t_wr_en),
+      .wr_data         (payload_byte_data),
+      .alm_full_thresh ('0),
+      .alm_empty_thresh('0),
+      .alm_full        (),
+      .alm_empty       (),
+      .full            (t_full),
+      .empty           (t_empty),
+      .rd_data         (threshold_fifo_rd_data)
   );
 
   assign threshold_ram_wr_data = threshold_fifo_rd_data[THRESHOLD_DATA_WIDTH-1:0];
@@ -532,22 +570,22 @@ module config_manager #(
   end
 
   always_ff @(posedge clk) begin
-    if (!rst && compact_wr_en) begin
-      assert (cfg_byte_wr_ready)
+    if (!rst && cfg_vw_rd_en) begin
+      assert (!cfg_byte_full)
         else $fatal(1,
-                    "config_manager overflow: config byte staging fifo rejected a compacted beat.");
+                    "config_manager overflow: config byte serializer fifo rejected a vw_buffer word.");
     end
 
     if (!rst && w_wr_en) begin
       assert (w_wr_ready)
         else $fatal(1,
-                    "config_manager overflow: weight fifo_vw rejected a payload byte.");
+                    "config_manager overflow: weight fifo_vr rejected a payload byte.");
     end
 
     if (!rst && t_wr_en) begin
       assert (t_wr_ready)
         else $fatal(1,
-                    "config_manager overflow: threshold fifo_vw rejected a payload byte.");
+                    "config_manager overflow: threshold fifo_vr rejected a payload byte.");
     end
   end
 

@@ -1,5 +1,5 @@
 // Pawin Ruangkanit
-//
+// This module cannot be synthesized into RAM
 // Description:
 //   This module is a byte-addressed circular buffer that supports:
 //

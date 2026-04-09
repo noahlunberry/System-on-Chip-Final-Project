@@ -36,9 +36,7 @@ module data_in_manager #(
     parameter int INPUT_DATA_WIDTH    = 8,
     parameter int INPUT_BUS_WIDTH     = 64,
     parameter int TOTAL_INPUTS        = 784,
-    parameter int MAX_PARALLEL_INPUTS = 8,
-    parameter int VW_DEPTH_BYTES      = 2 * ((MAX_PARALLEL_INPUTS > (INPUT_BUS_WIDTH / 8))
-                                         ? MAX_PARALLEL_INPUTS : (INPUT_BUS_WIDTH / 8))
+    parameter int MAX_PARALLEL_INPUTS = 8
 ) (
     input  logic                           clk,
     input  logic                           rst,
@@ -218,8 +216,7 @@ module data_in_manager #(
 
   vw_buffer #(
       .MAX_WR_BYTES(INPUT_BUS_BYTES),
-      .RD_BYTES    (INPUT_BUS_BYTES),
-      .DEPTH_BYTES (VW_DEPTH_BYTES)
+      .RD_BYTES    (INPUT_BUS_BYTES)
   ) vw_buffer_i (
       .clk       (clk),
       .rst       (rst),

@@ -1,7 +1,6 @@
 module vw_buffer #(
     parameter int MAX_WR_BYTES = 8,  // Maximum number of input bytes accepted in one cycle
-    parameter int RD_BYTES     = 8,  // Number of bytes emitted as one output word
-    parameter int DEPTH_BYTES  = 16  // Total circular buffer capacity in bytes
+    parameter int RD_BYTES     = 8   // Number of bytes emitted as one output word
 ) (
     input logic clk,
     input logic rst,
@@ -32,6 +31,8 @@ module vw_buffer #(
     output logic                  rd_en,
     output logic [RD_BYTES*8-1:0] rd_data
 );
+  localparam int DEPTH_BYTES = 2 * MAX_WR_BYTES;
+
   initial begin
     // To avoid long-term overflow, the sustained read bandwidth must be
     // at least the sustained write bandwidth.
@@ -40,10 +41,12 @@ module vw_buffer #(
              RD_BYTES, MAX_WR_BYTES);
     end
 
-    // Require at least two full read words of storage.
-    if (DEPTH_BYTES < 2 * RD_BYTES) begin
-      $fatal(1, "vw_buffer parameter error: DEPTH_BYTES (%0d) must be >= 2*RD_BYTES (%0d).",
-             DEPTH_BYTES, 2 * RD_BYTES);
+    // This implementation always stores exactly two write-width words. That
+    // fixed storage still needs to be large enough to hold at least one full
+    // read word.
+    if (DEPTH_BYTES < RD_BYTES) begin
+      $fatal(1, "vw_buffer parameter error: fixed DEPTH_BYTES (%0d) must be >= RD_BYTES (%0d).",
+             DEPTH_BYTES, RD_BYTES);
     end
   end
 
