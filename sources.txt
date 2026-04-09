@@ -37,4 +37,7 @@ verification/bnn_uvm/bnn_fcc_weights_only_reconfig_test.svh
 verification/bnn_uvm/bnn_fcc_thresh_only_reconfig_test.svh
 verification/bnn_uvm/bnn_fcc_partial_reconfig_test.svh
 verification/bnn_uvm/bnn_fcc_reset_reconfig_test.svh
+verification/bnn_uvm/bnn_fcc_threshold_preamble_test.svh
+verification/bnn_uvm/bnn_fcc_density_extremes_test.svh
+verification/bnn_uvm/bnn_fcc_input_stress_test.svh
 verification/bnn_uvm/bnn_fcc_uvm_tb.sv

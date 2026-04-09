@@ -39,12 +39,13 @@ EXTRA_RTL_SOURCES = rtl/fifo_vw.sv
 # UVM configuration
 UVM_TESTNAME ?= bnn_fcc_single_beat_test
 UVM_FLAGS = +UVM_TESTNAME=$(UVM_TESTNAME)
-UVM_TESTS ?= \
-	bnn_fcc_single_beat_test \
-	bnn_fcc_weights_only_reconfig_test \
-	bnn_fcc_thresh_only_reconfig_test \
-	bnn_fcc_partial_reconfig_test \
-	bnn_fcc_reset_reconfig_test
+UVM_TEST_DIR ?= verification/bnn_uvm
+# Discover concrete UVM tests from the checked-in test files so regressions
+# automatically stay in sync as new tests are added.
+UVM_TEST_FILES := $(sort $(wildcard $(UVM_TEST_DIR)/bnn_fcc_*_test.svh))
+UVM_TESTS ?= $(basename $(notdir $(filter-out \
+	$(UVM_TEST_DIR)/bnn_fcc_reconfig_base_test.svh, \
+	$(UVM_TEST_FILES))))
 
 # Questa/UVM configuration
 # Default to the built-in Questa UVM that matches the server log
@@ -71,7 +72,9 @@ TIMEOUT ?= 100ms
 
 # Functional coverage configuration
 COVERAGE_DIR ?= coverage
+TEST_LOG_DIR ?= $(COVERAGE_DIR)/logs
 COVERAGE_FILE = $(COVERAGE_DIR)/$(UVM_TESTNAME).ucdb
+TEST_LOG_FILE = $(TEST_LOG_DIR)/$(UVM_TESTNAME).log
 MERGED_COVERAGE_FILE = $(COVERAGE_DIR)/regression_merged.ucdb
 CURRENT_COVERAGE_REPORT = $(COVERAGE_DIR)/$(UVM_TESTNAME)_coverage.txt
 MERGED_COVERAGE_REPORT = $(COVERAGE_DIR)/regression_coverage.txt
@@ -138,6 +141,7 @@ define RUN_BATCH_TEST
 $(VSIM) -c \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
+	-l $(TEST_LOG_DIR)/$(1).log \
 	-L $(UVM_LIB) \
 	-voptargs="+acc" \
 	+UVM_NO_RELNOTES \
@@ -173,6 +177,9 @@ $(WORK_DIR):
 $(COVERAGE_DIR):
 	mkdir -p $(COVERAGE_DIR)
 
+$(TEST_LOG_DIR):
+	mkdir -p $(TEST_LOG_DIR)
+
 # Read sources from file and compile
 compile: $(WORK_DIR)
 	$(VLOG) $(VLOG_FLAGS) -f sources.txt $(EXTRA_RTL_SOURCES)
@@ -181,17 +188,38 @@ compile: $(WORK_DIR)
 optimize: compile
 	$(VOPT) $(TOP_MODULE) $(VOPT_FLAGS)
 
-# Print the built-in test list used by the regression target.
+# Print the discovered test list used by the regression target.
 list-tests:
 	@for test in $(UVM_TESTS); do echo $$test; done
 
 # Internal helper that runs exactly one test using the already optimized image.
-run-test: $(COVERAGE_DIR)
+run-test: $(COVERAGE_DIR) $(TEST_LOG_DIR)
 	@if [ "$(UVM_TESTNAME)" = "" ]; then \
 		echo "Error: UVM_TESTNAME is not set. Usage: make sim UVM_TESTNAME=<test_name>"; \
 		exit 1; \
 	fi
-	$(call RUN_BATCH_TEST,$(UVM_TESTNAME))
+	@set -e; \
+	rm -f "$(TEST_LOG_FILE)"; \
+	test_status=0; \
+	$(call RUN_BATCH_TEST,$(UVM_TESTNAME)) || test_status=$$?; \
+	if [ $$test_status -ne 0 ]; then \
+		echo "[FAIL] $(UVM_TESTNAME) (simulator exit $$test_status, log: $(TEST_LOG_FILE))"; \
+		exit $$test_status; \
+	fi; \
+	if [ ! -f "$(TEST_LOG_FILE)" ]; then \
+		echo "[FAIL] $(UVM_TESTNAME) (missing log: $(TEST_LOG_FILE))"; \
+		exit 1; \
+	fi; \
+	if grep -q "TEST FAILED" "$(TEST_LOG_FILE)"; then \
+		echo "[FAIL] $(UVM_TESTNAME) (see $(TEST_LOG_FILE))"; \
+		exit 1; \
+	fi; \
+	if grep -q "TEST PASSED" "$(TEST_LOG_FILE)"; then \
+		echo "[PASS] $(UVM_TESTNAME)"; \
+	else \
+		echo "[FAIL] $(UVM_TESTNAME) (no TEST PASSED banner found in $(TEST_LOG_FILE))"; \
+		exit 1; \
+	fi
 
 # Run simulation in command-line mode
 sim: optimize $(COVERAGE_DIR)
@@ -213,17 +241,28 @@ gui: optimize $(COVERAGE_DIR)
 gui-%: optimize $(COVERAGE_DIR)
 	$(call RUN_GUI_TEST,$*) &
 
-# Run the built-in regression list and immediately merge/report coverage.
-regress: optimize $(COVERAGE_DIR)
-	@set -e; \
+# Run the discovered regression list and immediately merge/report coverage.
+regress: optimize $(COVERAGE_DIR) $(TEST_LOG_DIR)
+	@set -u; \
+	passed=0; failed=0; total=0; \
 	for test in $(UVM_TESTS); do \
+		total=$$((total + 1)); \
 		echo "=== Running $$test ==="; \
-		$(MAKE) --no-print-directory run-test UVM_TESTNAME=$$test; \
-	done
-	@$(MAKE) --no-print-directory mergecov
-	@$(MAKE) --no-print-directory reportcov-merged
+		if $(MAKE) --no-print-directory run-test UVM_TESTNAME=$$test; then \
+			passed=$$((passed + 1)); \
+		else \
+			failed=$$((failed + 1)); \
+		fi; \
+	done; \
+	echo "=== Regression summary: $$passed/$$total tests passed, $$failed failed ==="; \
+	if [ $$failed -ne 0 ]; then \
+		echo "Per-test logs are in $(TEST_LOG_DIR)"; \
+		exit 1; \
+	fi; \
+	$(MAKE) --no-print-directory mergecov; \
+	$(MAKE) --no-print-directory reportcov-merged
 
-# Merge all per-test UCDBs from the built-in regression list.
+# Merge all per-test UCDBs from the discovered regression list.
 mergecov: $(COVERAGE_DIR)
 	@set -e; \
 	for test in $(UVM_TESTS); do \
@@ -267,8 +306,9 @@ help:
 	@echo "make sim-<test_name>                  Run one test in batch mode"
 	@echo "make gui UVM_TESTNAME=<test_name>     Open one test in the GUI"
 	@echo "make gui-<test_name>                  Open one test in the GUI"
-	@echo "make list-tests                       Show built-in regression tests"
-	@echo "make regress                          Run all built-in tests and merge coverage"
+	@echo "make list-tests                       Show discovered regression tests"
+	@echo "make regress                          Run all discovered tests and merge coverage"
+	@echo "                                      Per-test logs are written under $(TEST_LOG_DIR)"
 	@echo "make viewcov UVM_TESTNAME=<test_name> Open one test's UCDB"
 	@echo "make viewcov-merged                   Open merged regression coverage"
 	@echo "make reportcov UVM_TESTNAME=<test_name> Generate a text report for one UCDB"

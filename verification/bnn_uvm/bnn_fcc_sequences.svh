@@ -742,6 +742,91 @@ endclass
 
 
 // -----------------------------------------------------------------------------
+// Scripted Packet-Level Image Sequence
+// -----------------------------------------------------------------------------
+// Sends a caller-provided list of image indices as packet-level AXI items. This
+// is useful for coverage-directed tests that need a specific first class,
+// repeated outputs, or a deliberate image ordering instead of always consuming
+// the dataset from index 0 upward.
+class bnn_fcc_image_scripted_packet_sequence extends bnn_fcc_image_base_sequence;
+    `uvm_object_utils(bnn_fcc_image_scripted_packet_sequence)
+
+    int image_indices[$];
+
+    function new(string name = "bnn_fcc_image_scripted_packet_sequence");
+        super.new(name);
+        is_packet_level = 1'b1;
+    endfunction
+
+    function void set_indices(input int indices[$]);
+        image_indices.delete();
+        foreach (indices[i]) image_indices.push_back(indices[i]);
+    endfunction
+
+    virtual function void load_sequence_config();
+        string input_path;
+
+        super.load_sequence_config();
+
+        // Scripted tests may need arbitrary dataset indices even when the
+        // runtime image count is small, so reload the full file here.
+        if (!use_custom_topology) begin
+            input_path = $sformatf("%s/%s", base_dir, "test_vectors/inputs.hex");
+            stim.load_from_file(input_path);
+        end
+    endfunction
+
+    virtual task body();
+        bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
+        bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH-1:0] packed_data[];
+        bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH/8-1:0] packed_keep[];
+
+        load_sequence_config();
+
+        if (image_indices.size() == 0)
+            `uvm_fatal("NO_SCRIPTED_IMAGES",
+                       "Scripted image sequence was started without any image indices.")
+
+        foreach (image_indices[list_idx]) begin
+            int image_idx;
+
+            image_idx = image_indices[list_idx];
+
+            if (image_idx < 0 || image_idx >= stim.get_num_vectors())
+                `uvm_fatal("BAD_IMAGE_INDEX",
+                           $sformatf("Requested scripted image index %0d, but only %0d vectors are loaded.",
+                                     image_idx, stim.get_num_vectors()))
+
+            stim.get_vector(image_idx, current_img);
+            pack_image(current_img, packed_data, packed_keep);
+
+            req = in_axi_item_t::type_id::create($sformatf("img_scripted_req%0d", list_idx));
+            wait_for_grant();
+
+            req.tdata = new[packed_data.size()];
+            req.tstrb = new[packed_keep.size()];
+            req.tkeep = new[packed_keep.size()];
+
+            foreach (packed_data[beat_idx]) begin
+                req.tdata[beat_idx] = packed_data[beat_idx];
+                req.tstrb[beat_idx] = packed_keep[beat_idx];
+                req.tkeep[beat_idx] = packed_keep[beat_idx];
+            end
+
+            req.tlast           = 1'bX;
+            req.tid             = '0;
+            req.tdest           = '0;
+            req.tuser           = '0;
+            req.is_packet_level = 1'b1;
+
+            send_request(req);
+            wait_for_item_done();
+        end
+    endtask
+endclass
+
+
+// -----------------------------------------------------------------------------
 // Packet-Level Image TKEEP Sequence
 // -----------------------------------------------------------------------------
 // Sends each image as one packet-level AXI item while redistributing pixels

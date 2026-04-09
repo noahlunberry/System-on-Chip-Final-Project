@@ -1,5 +1,5 @@
-# vsim -c -coverage -debugDB -L mtiUvm -voptargs="+acc" "+UVM_NO_RELNOTES" "+UVM_VERBOSITY=UVM_MEDIUM" "+UVM_TESTNAME=bnn_fcc_single_beat_test" -do "coverage save -onexit coverage/bnn_fcc_single_beat_test.ucdb; run -all" bnn_fcc_uvm_tb_opt -gCLK_PERIOD=10ns -gNUM_TEST_IMAGES=50 -gCONFIG_VALID_PROBABILITY=1.0 -gVERIFY_MODEL=1 -gBASE_DIR="/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python" -gTOGGLE_DATA_OUT_READY=1 -gTIMEOUT=100ms -gDEBUG=0 -gDATA_IN_VALID_PROBABILITY=0.95 
-# Start time: 21:29:07 on Apr 08,2026
+# vsim -c -coverage -debugDB -L mtiUvm -voptargs="+acc" "+UVM_NO_RELNOTES" "+UVM_VERBOSITY=UVM_MEDIUM" "+UVM_TESTNAME=bnn_fcc_weights_only_reconfig_test" -do "coverage save -onexit coverage/bnn_fcc_weights_only_reconfig_test.ucdb; run -all" bnn_fcc_uvm_tb_opt -gCLK_PERIOD=10ns -gNUM_TEST_IMAGES=50 -gCONFIG_VALID_PROBABILITY=1.0 -gVERIFY_MODEL=1 -gBASE_DIR="/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python" -gTOGGLE_DATA_OUT_READY=1 -gTIMEOUT=100ms -gDEBUG=0 -gDATA_IN_VALID_PROBABILITY=0.95 
+# Start time: 21:44:16 on Apr 08,2026
 # //  Questa Sim-64
 # //  Version 2023.3 linux_x86_64 Jul 17 2023
 # //
@@ -26,7 +26,7 @@
 # Loading work.bnn_fcc_uvm_tb(fast)
 # ** Warning: (vsim-3852) Invalid override of parameter '/bnn_fcc_uvm_tb/BASE_DIR' whose value may no longer be modified.
 #    Time: 0 ns  Iteration: 0  Instance: /bnn_fcc_uvm_tb File: verification/bnn_uvm/bnn_fcc_uvm_tb.sv
-# ** Warning: (vsim-3852) Invalid override of parameter '/bnn_fcc_uvm_tb/TOGGLE_DATA_OUT_READY' whose value may no longer be modified.
+# ** Warning: (vsim-3852) Invalid override of parameter '/bnn_fcc_uvm_tb/CONFIG_VALID_PROBABILITY' whose value may no longer be modified.
 #    Time: 0 ns  Iteration: 0  Instance: /bnn_fcc_uvm_tb File: verification/bnn_uvm/bnn_fcc_uvm_tb.sv
 # ** Warning: (vsim-3852) Invalid override of parameter '/bnn_fcc_uvm_tb/DATA_IN_VALID_PROBABILITY' whose value may no longer be modified.
 #    Time: 0 ns  Iteration: 0  Instance: /bnn_fcc_uvm_tb File: verification/bnn_uvm/bnn_fcc_uvm_tb.sv
@@ -114,10 +114,8 @@
 #    Time: 0 ps  Iteration: 0  Instance: /bnn_fcc_uvm_tb/dut/out_fifo File: rtl/bnn_fcc.sv Line: 216
 # Loading /apps/reconfig/tools/siemens/questasim/2023.3/uvm-1.1d/linux_x86_64/uvm_dpi.so
 # ** Warning: (vsim-8634) Code was not compiled with coverage options.
-# ** Note: (vsim-8900) Creating design debug database vsim.dbg.
-# It appears vopt was not run with -debugdb option on this design.
-# Advanced Causality and Schematic debug features will not be available.
-# coverage save -onexit coverage/bnn_fcc_single_beat_test.ucdb
+# ** Note: (vsim-8716) Reusing existing debug database vsim.dbg.
+# coverage save -onexit coverage/bnn_fcc_weights_only_reconfig_test.ucdb
 #  run -all
 # ----------------------------------------------------------------
 # UVM-1.1d
@@ -128,181 +126,144 @@
 # ----------------------------------------------------------------
 # UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(277) @ 0: reporter [Questa UVM] QUESTA_UVM-1.2.3
 # UVM_INFO verilog_src/questa_uvm_pkg-1.2/src/questa_uvm_pkg.sv(278) @ 0: reporter [Questa UVM]  questa_uvm::init(+struct)
-# UVM_INFO @ 0 ns: reporter [RNTST] Running test bnn_fcc_single_beat_test...
+# UVM_INFO @ 0 ns: reporter [RNTST] Running test bnn_fcc_weights_only_reconfig_test...
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::weight_density_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::threshold_coverage ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_cfg_coverage::config_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_input_coverage::pixel_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
 # ** Warning: In instance '\/axi4_stream_pkg_sv_unit::bnn_output_coverage::output_toggle_cov ' the 'option.per_instance' is set to '0' (false). Assignment to members 'weight', 'goal' and 'comment' of 'option' would not have any effect.
-# ------------------------------------------------------------------
-# Name                       Type                        Size  Value
-# ------------------------------------------------------------------
-# uvm_test_top               bnn_fcc_single_beat_test    -     @518 
-#   env                      bnn_fcc_env                 -     @525 
-#     cfg_agent              uvm_agent                   -     @543 
-#       driver               uvm_driver #(REQ,RSP)       -     @716 
-#         rsp_port           uvm_analysis_port           -     @731 
-#         seq_item_port      uvm_seq_item_pull_port      -     @723 
-#       monitor              uvm_monitor                 -     @739 
-#         ap                 uvm_analysis_port           -     @746 
-#       sequencer            uvm_sequencer               -     @607 
-#         rsp_export         uvm_analysis_export         -     @614 
-#         seq_item_export    uvm_seq_item_pull_imp       -     @708 
-#         arbitration_queue  array                       0     -    
-#         lock_queue         array                       0     -    
-#         num_last_reqs      integral                    32    'd1  
-#         num_last_rsps      integral                    32    'd1  
-#     cfg_coverage           bnn_cfg_coverage            -     @571 
-#       cfg_ae               uvm_analysis_export         -     @759 
-#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @767 
-#         analysis_export    uvm_analysis_imp            -     @806 
-#         get_ap             uvm_analysis_port           -     @798 
-#         get_peek_export    uvm_get_peek_imp            -     @782 
-#         put_ap             uvm_analysis_port           -     @790 
-#         put_export         uvm_put_imp                 -     @774 
-#     in_agent               uvm_agent                   -     @550 
-#       driver               uvm_driver #(REQ,RSP)       -     @925 
-#         rsp_port           uvm_analysis_port           -     @940 
-#         seq_item_port      uvm_seq_item_pull_port      -     @932 
-#       monitor              uvm_monitor                 -     @948 
-#         ap                 uvm_analysis_port           -     @955 
-#       sequencer            uvm_sequencer               -     @816 
-#         rsp_export         uvm_analysis_export         -     @823 
-#         seq_item_export    uvm_seq_item_pull_imp       -     @917 
-#         arbitration_queue  array                       0     -    
-#         lock_queue         array                       0     -    
-#         num_last_reqs      integral                    32    'd1  
-#         num_last_rsps      integral                    32    'd1  
-#     input_coverage         bnn_input_coverage          -     @578 
-#       in_ae                uvm_analysis_export         -     @968 
-#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @976 
-#         analysis_export    uvm_analysis_imp            -     @1015
-#         get_ap             uvm_analysis_port           -     @1007
-#         get_peek_export    uvm_get_peek_imp            -     @991 
-#         put_ap             uvm_analysis_port           -     @999 
-#         put_export         uvm_put_imp                 -     @983 
-#     out_agent              uvm_agent                   -     @557 
-#       monitor              uvm_monitor                 -     @1025
-#         ap                 uvm_analysis_port           -     @1032
-#     output_coverage        bnn_output_coverage         -     @585 
-#       out_ae               uvm_analysis_export         -     @1040
-#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1048
-#         analysis_export    uvm_analysis_imp            -     @1087
-#         get_ap             uvm_analysis_port           -     @1079
-#         get_peek_export    uvm_get_peek_imp            -     @1063
-#         put_ap             uvm_analysis_port           -     @1071
-#         put_export         uvm_put_imp                 -     @1055
-#     scoreboard             bnn_fcc_scoreboard          -     @564 
-#       cfg_ae               uvm_analysis_export         -     @1096
-#       cfg_fifo             uvm_tlm_analysis_fifo #(T)  -     @1120
-#         analysis_export    uvm_analysis_imp            -     @1159
-#         get_ap             uvm_analysis_port           -     @1151
-#         get_peek_export    uvm_get_peek_imp            -     @1135
-#         put_ap             uvm_analysis_port           -     @1143
-#         put_export         uvm_put_imp                 -     @1127
-#       in_ae                uvm_analysis_export         -     @1104
-#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1167
-#         analysis_export    uvm_analysis_imp            -     @1206
-#         get_ap             uvm_analysis_port           -     @1198
-#         get_peek_export    uvm_get_peek_imp            -     @1182
-#         put_ap             uvm_analysis_port           -     @1190
-#         put_export         uvm_put_imp                 -     @1174
-#       out_ae               uvm_analysis_export         -     @1112
-#       out_fifo             uvm_tlm_analysis_fifo #(T)  -     @1214
-#         analysis_export    uvm_analysis_imp            -     @1253
-#         get_ap             uvm_analysis_port           -     @1245
-#         get_peek_export    uvm_get_peek_imp            -     @1229
-#         put_ap             uvm_analysis_port           -     @1237
-#         put_export         uvm_put_imp                 -     @1221
-#     system_coverage        bnn_system_coverage         -     @592 
-#       in_ae                uvm_analysis_export         -     @1264
-#       in_fifo              uvm_tlm_analysis_fifo #(T)  -     @1272
-#         analysis_export    uvm_analysis_imp            -     @1311
-#         get_ap             uvm_analysis_port           -     @1303
-#         get_peek_export    uvm_get_peek_imp            -     @1287
-#         put_ap             uvm_analysis_port           -     @1295
-#         put_export         uvm_put_imp                 -     @1279
-# ------------------------------------------------------------------
-# UVM_INFO verification/bnn_uvm/bnn_fcc_single_beat_test.svh(41) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] Starting single-beat baseline test.
+# --------------------------------------------------------------------------
+# Name                       Type                                Size  Value
+# --------------------------------------------------------------------------
+# uvm_test_top               bnn_fcc_weights_only_reconfig_test  -     @518 
+#   env                      bnn_fcc_env                         -     @525 
+#     cfg_agent              uvm_agent                           -     @543 
+#       driver               uvm_driver #(REQ,RSP)               -     @716 
+#         rsp_port           uvm_analysis_port                   -     @731 
+#         seq_item_port      uvm_seq_item_pull_port              -     @723 
+#       monitor              uvm_monitor                         -     @739 
+#         ap                 uvm_analysis_port                   -     @746 
+#       sequencer            uvm_sequencer                       -     @607 
+#         rsp_export         uvm_analysis_export                 -     @614 
+#         seq_item_export    uvm_seq_item_pull_imp               -     @708 
+#         arbitration_queue  array                               0     -    
+#         lock_queue         array                               0     -    
+#         num_last_reqs      integral                            32    'd1  
+#         num_last_rsps      integral                            32    'd1  
+#     cfg_coverage           bnn_cfg_coverage                    -     @571 
+#       cfg_ae               uvm_analysis_export                 -     @759 
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)          -     @767 
+#         analysis_export    uvm_analysis_imp                    -     @806 
+#         get_ap             uvm_analysis_port                   -     @798 
+#         get_peek_export    uvm_get_peek_imp                    -     @782 
+#         put_ap             uvm_analysis_port                   -     @790 
+#         put_export         uvm_put_imp                         -     @774 
+#     in_agent               uvm_agent                           -     @550 
+#       driver               uvm_driver #(REQ,RSP)               -     @925 
+#         rsp_port           uvm_analysis_port                   -     @940 
+#         seq_item_port      uvm_seq_item_pull_port              -     @932 
+#       monitor              uvm_monitor                         -     @948 
+#         ap                 uvm_analysis_port                   -     @955 
+#       sequencer            uvm_sequencer                       -     @816 
+#         rsp_export         uvm_analysis_export                 -     @823 
+#         seq_item_export    uvm_seq_item_pull_imp               -     @917 
+#         arbitration_queue  array                               0     -    
+#         lock_queue         array                               0     -    
+#         num_last_reqs      integral                            32    'd1  
+#         num_last_rsps      integral                            32    'd1  
+#     input_coverage         bnn_input_coverage                  -     @578 
+#       in_ae                uvm_analysis_export                 -     @968 
+#       in_fifo              uvm_tlm_analysis_fifo #(T)          -     @976 
+#         analysis_export    uvm_analysis_imp                    -     @1015
+#         get_ap             uvm_analysis_port                   -     @1007
+#         get_peek_export    uvm_get_peek_imp                    -     @991 
+#         put_ap             uvm_analysis_port                   -     @999 
+#         put_export         uvm_put_imp                         -     @983 
+#     out_agent              uvm_agent                           -     @557 
+#       monitor              uvm_monitor                         -     @1025
+#         ap                 uvm_analysis_port                   -     @1032
+#     output_coverage        bnn_output_coverage                 -     @585 
+#       out_ae               uvm_analysis_export                 -     @1040
+#       out_fifo             uvm_tlm_analysis_fifo #(T)          -     @1048
+#         analysis_export    uvm_analysis_imp                    -     @1087
+#         get_ap             uvm_analysis_port                   -     @1079
+#         get_peek_export    uvm_get_peek_imp                    -     @1063
+#         put_ap             uvm_analysis_port                   -     @1071
+#         put_export         uvm_put_imp                         -     @1055
+#     scoreboard             bnn_fcc_scoreboard                  -     @564 
+#       cfg_ae               uvm_analysis_export                 -     @1096
+#       cfg_fifo             uvm_tlm_analysis_fifo #(T)          -     @1120
+#         analysis_export    uvm_analysis_imp                    -     @1159
+#         get_ap             uvm_analysis_port                   -     @1151
+#         get_peek_export    uvm_get_peek_imp                    -     @1135
+#         put_ap             uvm_analysis_port                   -     @1143
+#         put_export         uvm_put_imp                         -     @1127
+#       in_ae                uvm_analysis_export                 -     @1104
+#       in_fifo              uvm_tlm_analysis_fifo #(T)          -     @1167
+#         analysis_export    uvm_analysis_imp                    -     @1206
+#         get_ap             uvm_analysis_port                   -     @1198
+#         get_peek_export    uvm_get_peek_imp                    -     @1182
+#         put_ap             uvm_analysis_port                   -     @1190
+#         put_export         uvm_put_imp                         -     @1174
+#       out_ae               uvm_analysis_export                 -     @1112
+#       out_fifo             uvm_tlm_analysis_fifo #(T)          -     @1214
+#         analysis_export    uvm_analysis_imp                    -     @1253
+#         get_ap             uvm_analysis_port                   -     @1245
+#         get_peek_export    uvm_get_peek_imp                    -     @1229
+#         put_ap             uvm_analysis_port                   -     @1237
+#         put_export         uvm_put_imp                         -     @1221
+#     system_coverage        bnn_system_coverage                 -     @592 
+#       in_ae                uvm_analysis_export                 -     @1264
+#       in_fifo              uvm_tlm_analysis_fifo #(T)          -     @1272
+#         analysis_export    uvm_analysis_imp                    -     @1311
+#         get_ap             uvm_analysis_port                   -     @1303
+#         get_peek_export    uvm_get_peek_imp                    -     @1287
+#         put_ap             uvm_analysis_port                   -     @1295
+#         put_export         uvm_put_imp                         -     @1279
+# --------------------------------------------------------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_weights_only_reconfig_test.svh(34) @ 0 ns: uvm_test_top [bnn_fcc_weights_only_reconfig_test] Starting weights-only reconfiguration test.
 # BNN_FCC_Stimulus: Loaded 100 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(145) @ 0 ns: uvm_test_top [bnn_fcc_single_beat_test] SV model successfully verified against Python outputs.
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(168) @ 365075 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for initial full configuration at config epoch 1.
-# BNN_FCC_Stimulus: Loaded 50 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(145) @ 0 ns: uvm_test_top [bnn_fcc_weights_only_reconfig_test] SV model successfully verified against Python outputs.
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(168) @ 365005 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for initial full configuration at config epoch 1.
+# BNN_FCC_Stimulus: Loaded 4 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
 # UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 373485 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 0 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 373805 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 1 (epoch 1): actual=2 expected=2
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 373845 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 1 (epoch 1): actual=2 expected=2
 # UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 374125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 2 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 374445 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 3 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 374765 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 4 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 375085 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 5 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 375405 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 6 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 375725 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 7 (epoch 1): actual=9 expected=9
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 376045 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 8 (epoch 1): actual=6 expected=6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 376885 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 9 (epoch 1): actual=9 expected=9
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 377935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 10 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 378985 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 11 (epoch 1): actual=6 expected=6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 380035 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 12 (epoch 1): actual=9 expected=9
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 381085 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 13 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 382135 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 14 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 383185 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 15 (epoch 1): actual=5 expected=5
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 384235 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 16 (epoch 1): actual=9 expected=9
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 385285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 17 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 386335 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 18 (epoch 1): actual=3 expected=3
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 387385 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 19 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 388435 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 20 (epoch 1): actual=9 expected=9
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 389485 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 21 (epoch 1): actual=6 expected=6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 390535 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 22 (epoch 1): actual=6 expected=6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 391585 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 23 (epoch 1): actual=5 expected=5
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 392635 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 24 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 393685 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 25 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 394735 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 26 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 395785 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 27 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 396835 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 28 (epoch 1): actual=0 expected=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 397885 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 29 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 398935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 30 (epoch 1): actual=3 expected=3
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 399985 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 31 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 401035 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 32 (epoch 1): actual=3 expected=3
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 402085 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 33 (epoch 1): actual=6 expected=6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 403135 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 34 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 404185 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 35 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 405235 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 36 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 406285 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 37 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 407335 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 38 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 408385 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 39 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 409435 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 40 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 410485 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 41 (epoch 1): actual=7 expected=7
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 411535 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 42 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 412585 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 43 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 413635 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 44 (epoch 1): actual=3 expected=3
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 414685 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 45 (epoch 1): actual=5 expected=5
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 415735 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 46 (epoch 1): actual=1 expected=1
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 416785 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 47 (epoch 1): actual=2 expected=2
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 417835 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 48 (epoch 1): actual=4 expected=4
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 418885 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 49 (epoch 1): actual=4 expected=4
-# UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_objection.svh(1267) @ 418935 ns: reporter [TEST_DONE] 'run' phase is ready to proceed to the 'extract' phase
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(401) @ 418935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Scoreboard summary: passed=50 failed=0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(404) @ 418935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg latency (cycles) per image: 285.5 cycles
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(407) @ 418935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg latency (time) per image: 2854.6 ns
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(410) @ 418935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg throughput (outputs/sec): 929368.0
-# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(413) @ 418935 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg throughput (cycles/output): 107.6
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(203) @ 418935 ns: uvm_test_top [bnn_fcc_single_beat_test] ---------------------------
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(204) @ 418935 ns: uvm_test_top [bnn_fcc_single_beat_test] ---     TEST PASSED     ---
-# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(205) @ 418935 ns: uvm_test_top [bnn_fcc_single_beat_test] ---------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 374455 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 3 (epoch 1): actual=0 expected=0
+# Randomizing Layer 0: 784 inputs -> 256 neurons
+# Randomizing Layer 1: 256 inputs -> 256 neurons
+# Randomizing Layer 2: 256 inputs -> 10 neurons
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(168) @ 718605 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Committed model for weights-only reconfiguration at config epoch 2.
+# BNN_FCC_Stimulus: Loaded 4 vectors from /home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python/test_vectors/inputs.hex
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 727115 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 4 (epoch 2): actual=5 expected=5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 727435 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 5 (epoch 2): actual=8 expected=8
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 727755 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 6 (epoch 2): actual=5 expected=5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(360) @ 728075 ns: uvm_test_top.env.scoreboard [SCOREBOARD] PASS image 7 (epoch 2): actual=2 expected=2
+# UVM_INFO verilog_src/uvm-1.1d/src/base/uvm_objection.svh(1267) @ 728125 ns: reporter [TEST_DONE] 'run' phase is ready to proceed to the 'extract' phase
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(401) @ 728125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Scoreboard summary: passed=8 failed=0
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(404) @ 728125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg latency (cycles) per image: 675.4 cycles
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(407) @ 728125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg latency (time) per image: 6753.8 ns
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(410) @ 728125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg throughput (outputs/sec): 22043.4
+# UVM_INFO verification/bnn_uvm/bnn_fcc_scoreboard.svh(413) @ 728125 ns: uvm_test_top.env.scoreboard [SCOREBOARD] Avg throughput (cycles/output): 4536.5
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(203) @ 728125 ns: uvm_test_top [bnn_fcc_weights_only_reconfig_test] ---------------------------
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(204) @ 728125 ns: uvm_test_top [bnn_fcc_weights_only_reconfig_test] ---     TEST PASSED     ---
+# UVM_INFO verification/bnn_uvm/bnn_fcc_base_tests.svh(205) @ 728125 ns: uvm_test_top [bnn_fcc_weights_only_reconfig_test] ---------------------------
 # 
 # --- UVM Report Summary ---
 # 
 # ** Report counts by severity
-# UVM_INFO :   65
+# UVM_INFO :   24
 # UVM_WARNING :    0
 # UVM_ERROR :    0
 # UVM_FATAL :    0
 # ** Report counts by id
 # [Questa UVM]     2
 # [RNTST]     1
-# [SCOREBOARD]    56
+# [SCOREBOARD]    15
 # [TEST_DONE]     1
-# [bnn_fcc_single_beat_test]     5
+# [bnn_fcc_weights_only_reconfig_test]     5
 # ** Note: $finish    : /apps/reconfig/tools/siemens/questasim/2023.3/linux_x86_64/../verilog_src/uvm-1.1d/src/base/uvm_root.svh(430)
-#    Time: 418935 ns  Iteration: 55  Instance: /bnn_fcc_uvm_tb
+#    Time: 728125 ns  Iteration: 55  Instance: /bnn_fcc_uvm_tb
 # Saving coverage database on exit...
-# End time: 21:29:29 on Apr 08,2026, Elapsed time: 0:00:22
+# End time: 21:44:24 on Apr 08,2026, Elapsed time: 0:00:08
 # Errors: 0, Warnings: 21
