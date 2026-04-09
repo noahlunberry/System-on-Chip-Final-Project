@@ -26,13 +26,13 @@ files:
   - ../rtl/delay.sv
   - ../rtl/data_in_manager.sv
   - ../rtl/fifo_vr.sv
-  - ../rtl/fifo_vw.sv
+  # - ../rtl/fifo_vw.sv
   - ../rtl/neuron_controller.sv
   - ../rtl/neuron_processor.sv
-  - ../rtl/parser_controller.sv
+  # - ../rtl/parser_controller.sv
   - ../rtl/ram_sdp.sv
   - ../rtl/replay_buffer.sv
-  - ../rtl/sync_fifo.sv
+  # - ../rtl/sync_fifo.sv
   - ../rtl/tkeep_byte_compactor.sv
   - ../rtl/vw_buffer.sv
   - ../rtl/xnor_add_tree.sv
