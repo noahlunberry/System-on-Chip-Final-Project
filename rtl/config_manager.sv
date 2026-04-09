@@ -26,8 +26,10 @@ module config_manager #(
   // =========================================================================
   // Local Parameters
   // =========================================================================
-  localparam int BUS_BYTES         = BUS_WIDTH / 8;
-  localparam int THRESH_WORD_BYTES = 4;
+  localparam int BUS_BYTES              = BUS_WIDTH / 8;
+  localparam int THRESH_WORD_BYTES      = 4;
+  localparam int HEADER_BYTES           = 16;
+  localparam int CONFIG_BYTE_FIFO_DEPTH = 1024;
 
   // FIFO sizing
   localparam int WEIGHT_FIFO_DEPTH = 64;
@@ -37,18 +39,37 @@ module config_manager #(
   // Signal Declarations
   // =========================================================================
   // Parser & Config
-  logic              parser_ready;
   logic              empty;
-  logic              fifo_wr_en_r;
+  typedef enum logic [1:0] {
+    PARSE_HEADER,
+    PARSE_PAYLOAD,
+    PARSE_DONE
+  } parse_state_t;
+
+  parse_state_t       parse_state_r, next_parse_state;
   logic              msg_type_r;
   logic [       1:0] layer_id_r;
   logic [      31:0] total_bytes_r;
   logic [      15:0] bytes_per_neuron_r;
-  logic              payload_accept;
+  logic              next_msg_type;
+  logic [       1:0] next_layer_id;
+  logic [      31:0] next_total_bytes;
+  logic [      15:0] next_bytes_per_neuron;
   logic              compact_wr_en;
   logic [BUS_WIDTH-1:0] compact_wr_data;
   logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
-  logic              compact_inflight;
+  logic [HEADER_BYTES*8-1:0] header_buf_r, next_header_buf;
+  logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
+  logic [31:0]       payload_count_r, next_payload_count;
+  logic              cfg_byte_rd_en;
+  logic              cfg_byte_wr_ready;
+  logic              cfg_byte_empty;
+  logic              cfg_byte_alm_full;
+  logic [7:0]        cfg_byte_data;
+  logic              payload_byte_valid;
+  logic              payload_byte_is_thresh;
+  logic [7:0]        payload_byte_data;
+  logic              payload_byte_count;
 
   // FIFO Status
   logic              w_empty;
@@ -96,21 +117,19 @@ module config_manager #(
   // =========================================================================
   // Combinational Assignments & Top-Level Logic
   // =========================================================================
-  assign payload_accept     = fifo_wr_en_r;
-  assign compact_inflight   = payload_accept || compact_wr_en;
   assign all_packers_empty   = &packer_empty;
   assign active_stream_empty = msg_type_r ? t_empty : w_empty;
 
-  // The config FSM waits for all underlying FIFOs to process their stream and
-  // for the one-cycle compactor pipeline to go idle after the final payload beat.
-  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ)
-                             && !compact_inflight;
-  assign config_ready        = !w_alm_full && !t_alm_full && parser_ready;
+  // The config FSM waits for all downstream FIFOs and packers to finish the
+  // current message before starting the next one.
+  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ);
+  assign config_ready        = !cfg_byte_alm_full;
 
   assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
-  assign w_wr_en             = compact_wr_en && !msg_type_r;
-  assign t_wr_en             = compact_wr_en && msg_type_r;
+  assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
+  assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
+  assign payload_byte_count  = 1'b1;
 
   // =========================================================================
   // Padding Calculation (Dynamic per-layer)
@@ -129,41 +148,142 @@ module config_manager #(
   assign bytes_to_pad  = (pad_remainder == 0) ? 8'd0 : (bytes_per_word - pad_remainder);
   assign pad_en        = (bytes_to_pad != 0);
 
-  // =========================================================================
-  // Configuration Parsing
-  // =========================================================================
-  parser_controller #(
-      .CONFIG_BUS_WIDTH(BUS_WIDTH)
-  ) parser_controller_inst (
-      .clk             (clk),
-      .rst             (rst),
-      .valid           (config_valid && config_ready),
-      .data            (config_data_in),
-      .empty           (empty),
-      .payload_count_valid(compact_wr_en),
-      .payload_count_bytes(compact_total_bytes),
-      .ready           (parser_ready),
-      .wr_en           (fifo_wr_en_r),
-      .msg_type        (msg_type_r),
-      .layer_id        (layer_id_r),
-      .total_bytes     (total_bytes_r),
-      .bytes_per_neuron(bytes_per_neuron_r)
-  );
-
-  // Compact only accepted payload beats so partial final beats respect TKEEP
-  // before entering the variable-write FIFOs.
+  // Compact every accepted config beat first so fragmented headers and payload
+  // bytes are converted into one contiguous byte stream.
   tkeep_byte_compactor #(
       .INPUT_BUS_WIDTH(BUS_WIDTH)
   ) config_tkeep_byte_compactor_i (
       .clk          (clk),
       .rst          (rst),
-      .data_in_valid(payload_accept),
+      .data_in_valid(config_valid && config_ready),
       .data_in_data (config_data_in),
       .data_in_keep (config_keep),
       .wr_en        (compact_wr_en),
       .wr_data      (compact_wr_data),
       .total_bytes  (compact_total_bytes)
   );
+
+  // Stage the compacted stream as bytes so the parser can rebuild headers
+  // without worrying about beat boundaries or TKEEP lane placement.
+  fifo_vw #(
+      .MAX_WR_BYTES(BUS_BYTES),
+      .RD_BYTES    (1),
+      .N           ($clog2(CONFIG_BYTE_FIFO_DEPTH))
+  ) fifo_config_bytes (
+      .clk       (clk),
+      .rst       (rst),
+      .wr_en     (compact_wr_en),
+      .wr_data   (compact_wr_data),
+      .total_bytes(compact_total_bytes),
+      .wr_ready  (cfg_byte_wr_ready),
+      .rd_en     (cfg_byte_rd_en),
+      .rd_valid  (),
+      .rd_data   (cfg_byte_data),
+      .alm_full  (cfg_byte_alm_full),
+      .full      (),
+      .alm_empty (),
+      .empty     (cfg_byte_empty)
+  );
+
+  // Parse the staged byte stream one byte at a time. This keeps header
+  // handling simple while still allowing randomized TKEEP to split headers
+  // across arbitrary beat boundaries.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      parse_state_r      <= PARSE_HEADER;
+      msg_type_r         <= 1'b0;
+      layer_id_r         <= '0;
+      total_bytes_r      <= '0;
+      bytes_per_neuron_r <= '0;
+      header_buf_r       <= '0;
+      header_count_r     <= '0;
+      payload_count_r    <= '0;
+    end else begin
+      parse_state_r      <= next_parse_state;
+      msg_type_r         <= next_msg_type;
+      layer_id_r         <= next_layer_id;
+      total_bytes_r      <= next_total_bytes;
+      bytes_per_neuron_r <= next_bytes_per_neuron;
+      header_buf_r       <= next_header_buf;
+      header_count_r     <= next_header_count;
+      payload_count_r    <= next_payload_count;
+    end
+  end
+
+  always_comb begin
+    logic payload_dst_ready;
+
+    next_parse_state  = parse_state_r;
+    next_msg_type     = msg_type_r;
+    next_layer_id     = layer_id_r;
+    next_total_bytes  = total_bytes_r;
+    next_bytes_per_neuron = bytes_per_neuron_r;
+    next_header_buf   = header_buf_r;
+    next_header_count = header_count_r;
+    next_payload_count = payload_count_r;
+
+    cfg_byte_rd_en         = 1'b0;
+    payload_byte_valid     = 1'b0;
+    payload_byte_is_thresh = msg_type_r;
+    payload_byte_data      = cfg_byte_data;
+    payload_dst_ready      = msg_type_r ? t_wr_ready : w_wr_ready;
+
+    case (parse_state_r)
+      PARSE_HEADER: begin
+        if (!cfg_byte_empty) begin
+          cfg_byte_rd_en = 1'b1;
+          next_header_buf[header_count_r*8 +: 8] = cfg_byte_data;
+
+          if (header_count_r == HEADER_BYTES - 1) begin
+            next_msg_type         = next_header_buf[0];
+            next_layer_id         = next_header_buf[9:8];
+            next_total_bytes      = next_header_buf[95:64];
+            next_bytes_per_neuron = next_header_buf[63:48];
+            next_header_count = '0;
+            next_payload_count = '0;
+
+            if (next_header_buf[95:64] == 32'd0)
+              next_parse_state = PARSE_DONE;
+            else
+              next_parse_state = PARSE_PAYLOAD;
+          end else begin
+            next_header_count = header_count_r + 1'b1;
+          end
+        end
+      end
+
+      PARSE_PAYLOAD: begin
+        if (!cfg_byte_empty && payload_dst_ready) begin
+          cfg_byte_rd_en         = 1'b1;
+          payload_byte_valid     = 1'b1;
+          payload_byte_is_thresh = msg_type_r;
+          payload_byte_data      = cfg_byte_data;
+          next_payload_count     = payload_count_r + 1'b1;
+
+          if ((payload_count_r + 1'b1) >= total_bytes_r) begin
+            next_payload_count = '0;
+            next_header_count  = '0;
+            next_header_buf    = '0;
+            next_parse_state   = PARSE_DONE;
+          end
+        end
+      end
+
+      PARSE_DONE: begin
+        next_payload_count = '0;
+        next_header_count  = '0;
+
+        if (empty) begin
+          next_header_buf  = '0;
+          next_parse_state = PARSE_HEADER;
+        end
+      end
+
+      default: begin
+        next_parse_state = PARSE_HEADER;
+      end
+    endcase
+  end
 
   // =========================================================================
   // Control FSM
@@ -279,15 +399,15 @@ module config_manager #(
   // Weight byte FIFO: compact payload bytes are written in variable-length
   // chunks and read back one byte at a time for the existing padding/packer path.
   fifo_vw #(
-      .MAX_WR_BYTES(BUS_BYTES),
+      .MAX_WR_BYTES(1),
       .RD_BYTES    (1),
       .N           ($clog2(WEIGHT_FIFO_DEPTH))
   ) fifo_weights_bytes (
       .clk       (clk),
       .rst       (rst),
       .wr_en     (w_wr_en),
-      .wr_data   (compact_wr_data),
-      .total_bytes(compact_total_bytes),
+      .wr_data   (payload_byte_data),
+      .total_bytes(payload_byte_count),
       .wr_ready  (w_wr_ready),
       .rd_en     (w_rd_en),
       .rd_valid  (),
@@ -335,15 +455,15 @@ module config_manager #(
   // Thresholds FIFO: compact payload bytes are written in variable-length
   // chunks and emitted directly as 32-bit threshold words.
   fifo_vw #(
-      .MAX_WR_BYTES(BUS_BYTES),
+      .MAX_WR_BYTES(1),
       .RD_BYTES    (THRESH_WORD_BYTES),
       .N           ($clog2(THRESH_FIFO_DEPTH))
   ) fifo_thresholds (
       .clk       (clk),
       .rst       (rst),
       .wr_en     (t_wr_en),
-      .wr_data   (compact_wr_data),
-      .total_bytes(compact_total_bytes),
+      .wr_data   (payload_byte_data),
+      .total_bytes(payload_byte_count),
       .wr_ready  (t_wr_ready),
       .rd_en     (t_rd_en),
       .rd_valid  (),
@@ -381,16 +501,22 @@ module config_manager #(
   end
 
   always_ff @(posedge clk) begin
+    if (!rst && compact_wr_en) begin
+      assert (cfg_byte_wr_ready)
+        else $fatal(1,
+                    "config_manager overflow: config byte staging fifo rejected a compacted beat.");
+    end
+
     if (!rst && w_wr_en) begin
       assert (w_wr_ready)
         else $fatal(1,
-                    "config_manager overflow: weight fifo_vw rejected a compacted payload beat.");
+                    "config_manager overflow: weight fifo_vw rejected a payload byte.");
     end
 
     if (!rst && t_wr_en) begin
       assert (t_wr_ready)
         else $fatal(1,
-                    "config_manager overflow: threshold fifo_vw rejected a compacted payload beat.");
+                    "config_manager overflow: threshold fifo_vw rejected a payload byte.");
     end
   end
 
