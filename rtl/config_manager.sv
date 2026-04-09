@@ -99,6 +99,8 @@ module config_manager #(
   logic [LAYERS-1:0] packer_empty;
   logic              all_packers_empty;
   logic              active_stream_empty;
+  logic [LAYERS-1:0] weight_ram_wr_en_r;
+  logic [MAX_PARALLEL_INPUTS-1:0] weight_ram_wr_data_r;
 
   // FSM Control Signals
   typedef enum logic [1:0] {
@@ -147,8 +149,11 @@ module config_manager #(
   // The config FSM waits for all downstream FIFOs and packers to finish the
   // current message before starting the next one.
   assign empty = w_empty && t_empty && all_packers_empty && !packer_wr_valid_r
+                 && !(|weight_ram_wr_en_r)
                  && (state_r == READ);
   assign config_ready        = !cfg_byte_alm_full;
+  assign weight_ram_wr_en    = weight_ram_wr_en_r;
+  assign weight_ram_wr_data  = weight_ram_wr_data_r;
 
   assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
@@ -601,43 +606,56 @@ module config_manager #(
   // Layer RAM Output Alignment
   // =========================================================================
   always_comb begin
-    weight_ram_wr_en    = '0;
     threshold_ram_wr_en = '0;
     packer_rd_en        = '0;
-    weight_ram_wr_data  = '0;
 
     // Thresholds output directly controlled by the main FSM
     if (t_rd_en && msg_type_r && (layer_id_r < LAYERS)) begin
       threshold_ram_wr_en[layer_id_r] = 1'b1;
     end
 
-    // Weights automatically drain out of the specific packers when sequences arise
+    // Weights automatically drain out of the specific packers when sequences
+    // arise. The selected word is registered below before leaving this module.
     for (int j = 0; j < LAYERS; j++) begin
       if (!packer_empty[j] && (layer_id_r == 2'(j))) begin
-        packer_rd_en[j]     = 1'b1;
-        weight_ram_wr_en[j] = 1'b1;
-        weight_ram_wr_data  = packer_rd_data[j];
+        packer_rd_en[j] = 1'b1;
       end
     end
   end
 
   always_ff @(posedge clk) begin
-    if (!rst && cfg_vw_rd_en) begin
-      assert (!cfg_byte_full)
-        else $fatal(1,
-                    "config_manager overflow: config byte serializer fifo rejected a vw_buffer word.");
-    end
+    if (rst) begin
+      weight_ram_wr_en_r   <= '0;
+      weight_ram_wr_data_r <= '0;
+    end else begin
+      weight_ram_wr_en_r <= '0;
 
-    if (!rst && w_wr_en) begin
-      assert (w_wr_ready)
-        else $fatal(1,
-                    "config_manager overflow: weight fifo_vr rejected a payload byte.");
-    end
+      // Register one more stage at the config_manager output so the long
+      // packer -> layer write-data route is cut before it crosses modules.
+      for (int j = 0; j < LAYERS; j++) begin
+        if (packer_rd_en[j]) begin
+          weight_ram_wr_en_r[j] <= 1'b1;
+          weight_ram_wr_data_r  <= packer_rd_data[j];
+        end
+      end
 
-    if (!rst && t_wr_en) begin
-      assert (t_wr_ready)
-        else $fatal(1,
-                    "config_manager overflow: threshold fifo_vr rejected a payload byte.");
+      if (cfg_vw_rd_en) begin
+        assert (!cfg_byte_full)
+          else $fatal(1,
+                      "config_manager overflow: config byte serializer fifo rejected a vw_buffer word.");
+      end
+
+      if (w_wr_en) begin
+        assert (w_wr_ready)
+          else $fatal(1,
+                      "config_manager overflow: weight fifo_vr rejected a payload byte.");
+      end
+
+      if (t_wr_en) begin
+        assert (t_wr_ready)
+          else $fatal(1,
+                      "config_manager overflow: threshold fifo_vr rejected a payload byte.");
+      end
     end
   end
 
