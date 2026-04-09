@@ -79,6 +79,7 @@ module config_manager #(
   logic              cfg_byte_full;
   logic [BUS_WIDTH-1:0] cfg_vw_rd_data;
   logic [7:0]        cfg_byte_data;
+  logic              cfg_byte_data_valid_r, next_cfg_byte_data_valid;
   logic              payload_byte_valid;
   logic              payload_byte_is_thresh;
   logic [7:0]        payload_byte_data;
@@ -222,10 +223,13 @@ module config_manager #(
   );
 
   // Then serialize those full words into bytes for the header/payload parser.
+  // Use the non-FWFT mode here so the parser sees a registered byte output
+  // instead of the FIFO's internal show-ahead decode cone.
   fifo_vr #(
       .N(BUS_WIDTH),
       .M(8),
-      .P(CONFIG_BYTE_FIFO_DEPTH_LOG2)
+      .P(CONFIG_BYTE_FIFO_DEPTH_LOG2),
+      .FWFT(1'b0)
   ) fifo_config_bytes (
       .clk             (clk),
       .rst             (rst),
@@ -254,6 +258,7 @@ module config_manager #(
       header_buf_r       <= '0;
       header_count_r     <= '0;
       payload_count_r    <= '0;
+      cfg_byte_data_valid_r <= 1'b0;
     end else begin
       parse_state_r      <= next_parse_state;
       msg_type_r         <= next_msg_type;
@@ -263,11 +268,19 @@ module config_manager #(
       header_buf_r       <= next_header_buf;
       header_count_r     <= next_header_count;
       payload_count_r    <= next_payload_count;
+      cfg_byte_data_valid_r <= next_cfg_byte_data_valid;
     end
   end
 
   always_comb begin
     logic payload_dst_ready;
+    logic next_payload_dst_ready;
+    logic cfg_byte_consume;
+    logic cfg_byte_request;
+    logic header_msg_type;
+    logic [1:0] header_layer_id;
+    logic [31:0] header_total_bytes;
+    logic [15:0] header_bytes_per_neuron;
 
     next_parse_state  = parse_state_r;
     next_msg_type     = msg_type_r;
@@ -277,51 +290,82 @@ module config_manager #(
     next_header_buf   = header_buf_r;
     next_header_count = header_count_r;
     next_payload_count = payload_count_r;
+    next_cfg_byte_data_valid = cfg_byte_data_valid_r;
 
     cfg_byte_rd_en         = 1'b0;
     payload_byte_valid     = 1'b0;
     payload_byte_is_thresh = msg_type_r;
     payload_byte_data      = cfg_byte_data;
     payload_dst_ready      = msg_type_r ? t_wr_ready : w_wr_ready;
+    next_payload_dst_ready = next_msg_type ? t_wr_ready : w_wr_ready;
+    cfg_byte_consume       = 1'b0;
+    cfg_byte_request       = 1'b0;
+    header_msg_type        = msg_type_r;
+    header_layer_id        = layer_id_r;
+    header_total_bytes     = total_bytes_r;
+    header_bytes_per_neuron = bytes_per_neuron_r;
 
     case (parse_state_r)
       PARSE_HEADER: begin
-        if (!cfg_byte_empty) begin
-          cfg_byte_rd_en = 1'b1;
+        if (cfg_byte_data_valid_r) begin
+          cfg_byte_consume = 1'b1;
           next_header_buf[header_count_r*8 +: 8] = cfg_byte_data;
 
           if (header_count_r == HEADER_BYTES - 1) begin
-            next_msg_type         = next_header_buf[0];
-            next_layer_id         = next_header_buf[9:8];
-            next_total_bytes      = next_header_buf[95:64];
-            next_bytes_per_neuron = next_header_buf[63:48];
+            header_msg_type         = next_header_buf[0];
+            header_layer_id         = next_header_buf[9:8];
+            header_total_bytes      = next_header_buf[95:64];
+            header_bytes_per_neuron = next_header_buf[63:48];
+
+            next_msg_type         = header_msg_type;
+            next_layer_id         = header_layer_id;
+            next_total_bytes      = header_total_bytes;
+            next_bytes_per_neuron = header_bytes_per_neuron;
             next_header_count = '0;
             next_payload_count = '0;
 
-            if (next_header_buf[95:64] == 32'd0)
+            if (header_total_bytes == 32'd0) begin
               next_parse_state = PARSE_DONE;
-            else
+            end else begin
               next_parse_state = PARSE_PAYLOAD;
+              next_payload_dst_ready = header_msg_type ? t_wr_ready : w_wr_ready;
+
+              if (!cfg_byte_empty && next_payload_dst_ready) begin
+                cfg_byte_request = 1'b1;
+              end
+            end
           end else begin
             next_header_count = header_count_r + 1'b1;
+
+            if (!cfg_byte_empty) begin
+              cfg_byte_request = 1'b1;
+            end
           end
+        end else if (!cfg_byte_empty) begin
+          cfg_byte_request = 1'b1;
         end
       end
 
       PARSE_PAYLOAD: begin
-        if (!cfg_byte_empty && payload_dst_ready) begin
-          cfg_byte_rd_en         = 1'b1;
-          payload_byte_valid     = 1'b1;
-          payload_byte_is_thresh = msg_type_r;
-          payload_byte_data      = cfg_byte_data;
-          next_payload_count     = payload_count_r + 1'b1;
+        if (cfg_byte_data_valid_r) begin
+          if (payload_dst_ready) begin
+            cfg_byte_consume       = 1'b1;
+            payload_byte_valid     = 1'b1;
+            payload_byte_is_thresh = msg_type_r;
+            payload_byte_data      = cfg_byte_data;
+            next_payload_count     = payload_count_r + 1'b1;
 
-          if ((payload_count_r + 1'b1) >= total_bytes_r) begin
-            next_payload_count = '0;
-            next_header_count  = '0;
-            next_header_buf    = '0;
-            next_parse_state   = PARSE_DONE;
+            if ((payload_count_r + 1'b1) >= total_bytes_r) begin
+              next_payload_count = '0;
+              next_header_count  = '0;
+              next_header_buf    = '0;
+              next_parse_state   = PARSE_DONE;
+            end else if (!cfg_byte_empty) begin
+              cfg_byte_request = 1'b1;
+            end
           end
+        end else if (!cfg_byte_empty && payload_dst_ready) begin
+          cfg_byte_request = 1'b1;
         end
       end
 
@@ -339,6 +383,14 @@ module config_manager #(
         next_parse_state = PARSE_HEADER;
       end
     endcase
+
+    if (cfg_byte_consume) begin
+      next_cfg_byte_data_valid = cfg_byte_request;
+    end else if (!cfg_byte_data_valid_r) begin
+      next_cfg_byte_data_valid = cfg_byte_request;
+    end
+
+    cfg_byte_rd_en = cfg_byte_request;
   end
 
   // =========================================================================

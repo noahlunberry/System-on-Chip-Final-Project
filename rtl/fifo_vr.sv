@@ -1,7 +1,8 @@
 module fifo_vr #(
     parameter N = 1, // write width
     parameter M = 1, // read width
-    parameter P = 1 // depth relative to read elements
+    parameter P = 1, // depth relative to read elements
+    parameter bit FWFT = 1'b1 // 1: show-ahead/FWFT, 0: registered read data
 ) (
     input           clk,
     input           rst,
@@ -27,6 +28,8 @@ module fifo_vr #(
     logic [(MEM_SIZE / M) -1 : 0] rdaddr;
     // The FIFO memory
     logic [0 : MEM_SIZE - 1] mem;
+    // Registered output used when FWFT is disabled.
+    logic [(M-1):0] rd_data_r;
     // The number of elements in the FIFO
     // Since M and N can differ, we want to account for us reading just
     // parts of a previous write or writing parts of a future read.
@@ -57,15 +60,28 @@ module fifo_vr #(
         end
     end
 
-    // Expose the current head element whenever the FIFO is non-empty. This
-    // gives the read side FWFT/show-ahead behavior, which lets downstream
-    // ready/valid interfaces hold data stable while backpressured.
+    // Expose either the current head element (FWFT/show-ahead mode) or a
+    // registered read output that updates only after a successful read.
     genvar j;
     generate
-        for (j = 0; j <= M - 1; j++) begin
-            assign rd_data[j] = (!rst && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 1'b0;
+        if (FWFT) begin : g_fwft
+            for (j = 0; j <= M - 1; j++) begin
+                assign rd_data[j] = (!rst && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 1'b0;
+            end
+        end else begin : g_registered_read
+            assign rd_data = rd_data_r;
         end
     endgenerate
+
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            rd_data_r <= '0;
+        end else if (!FWFT && rd_en && !empty) begin
+            for (int i = 0; i <= M - 1; i++) begin
+                rd_data_r[i] <= mem[(i + rdaddr * M) % (MEM_SIZE)];
+            end
+        end
+    end
 
     always @(posedge clk or posedge rst) begin
         // reset the write address for a soft/hard reset
