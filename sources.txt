@@ -5,19 +5,14 @@ verification/bnn_fcc_tb_pkg.sv
 verification/bnn_uvm/bnn_fcc_uvm_pkg.sv
 rtl/delay.sv
 rtl/fifo_vr.sv
-rtl/sync_fifo.sv
 rtl/replay_buffer.sv
 rtl/ram_sdp.sv
 rtl/xnor_add_tree.sv
 rtl/add_tree.sv
 rtl/argmax_tree.sv
-rtl/np_const_w.sv
-rtl/np_stream_w.sv
-rtl/np_simple.sv
 rtl/neuron_processor.sv
 rtl/neuron_controller.sv
 rtl/config_controller.sv
-rtl/parser_controller.sv
 rtl/config_manager.sv
 rtl/bnn_layer.sv
 rtl/bnn.sv
@@ -25,6 +20,14 @@ rtl/tkeep_byte_compactor.sv
 rtl/vw_buffer.sv
 rtl/data_in_manager.sv
 rtl/bnn_fcc.sv
+# Unused RTL moved under rtl/unused/:
+# rtl/unused/fifo_vw.sv
+# rtl/unused/sync_fifo.sv
+# rtl/unused/np_const_w.sv
+# rtl/unused/np_stream_w.sv
+# rtl/unused/np_simple.sv
+# rtl/unused/parser_controller.sv
+# rtl/unused/bnn_constants_pkg.sv
 verification/bnn_uvm/bnn_fcc_sequences.svh
 verification/bnn_uvm/bnn_fcc_scoreboard.svh
 verification/bnn_uvm/bnn_fcc_env.sv

@@ -34,7 +34,9 @@ VCOVER = vcover
 WORK_DIR = work
 TOP_MODULE = bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
-EXTRA_RTL_SOURCES = rtl/fifo_vw.sv
+# Unused RTL moved under rtl/unused/.
+# EXTRA_RTL_SOURCES = rtl/unused/fifo_vw.sv
+EXTRA_RTL_SOURCES =
 
 # UVM configuration
 UVM_TESTNAME ?= bnn_fcc_single_beat_test
@@ -64,8 +66,8 @@ BASE_DIR ?= $(abspath python)
 NUM_TEST_IMAGES ?= 50
 VERIFY_MODEL ?= 1
 TOGGLE_DATA_OUT_READY ?= 1
-CONFIG_VALID_PROBABILITY ?= 1.0
-DATA_IN_VALID_PROBABILITY ?= 0.95
+CONFIG_VALID_PROBABILITY ?= 0.6
+DATA_IN_VALID_PROBABILITY ?= 0.75
 DEBUG ?= 0
 CLK_PERIOD ?= 10ns
 TIMEOUT ?= 100ms
