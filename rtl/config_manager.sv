@@ -208,8 +208,14 @@ module config_manager #(
           next_rd_count = total_bytes_r / THRESH_WORD_BYTES;  // 32-bit words for thresholds
         end
 
+        // Give the final scheduled read one cycle to retire before entering
+        // DRAIN, so the last byte/word is fully handed off downstream first.
+        if (last_rd_r) begin
+          next_state   = DRAIN;
+          next_last_rd = 1'b0;
+        end
         // Continuously read while buffer is not empty
-        if (!active_stream_empty) begin
+        else if (!active_stream_empty) begin
           next_count   = count_r + 1'b1;
           fifo_rd_en   = 1'b1;
           buffer_wr_en = 1'b1;
@@ -229,9 +235,6 @@ module config_manager #(
           if (next_count == rd_count_r) begin
             next_count   = '0;
             next_last_rd = 1'b1;
-            if (next_state != PAD) begin
-              next_state = DRAIN;
-            end
           end
         end
       end
