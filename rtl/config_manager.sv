@@ -96,14 +96,18 @@ module config_manager #(
 
   state_t state_r, next_state;
 
-  logic [31:0] rd_count_r, next_rd_count;
-  logic [31:0] count_r, next_count;
+  logic [31:0] rd_count_r;
+  logic [31:0] count_r;
   logic [8:0] byte_idx_r, next_byte_idx;
   logic [7:0] pad_count_r, next_pad_count;
-  logic last_rd_r, next_last_rd;
+  logic last_rd_r;
 
   logic       buffer_wr_en;
   logic       fifo_rd_en;
+  logic       read_fire;
+  logic       last_read_fire;
+  logic       load_rd_count;
+  logic [31:0] rd_count_load_value;
 
   // Data Routing & Padding
   logic [7:0] data;
@@ -114,6 +118,13 @@ module config_manager #(
   logic [7:0] bytes_to_pad;
   logic       pad_en;
 
+  // Register one cycle of weight-byte traffic before writing into the packers.
+  // This breaks the long combinational path from fifo_weights_bytes show-ahead
+  // data into the downstream packer memories.
+  logic       packer_wr_valid_r;
+  logic [7:0] packer_wr_data_r;
+  logic [1:0] packer_wr_layer_r;
+
   // =========================================================================
   // Combinational Assignments & Top-Level Logic
   // =========================================================================
@@ -122,7 +133,8 @@ module config_manager #(
 
   // The config FSM waits for all downstream FIFOs and packers to finish the
   // current message before starting the next one.
-  assign empty               = w_empty && t_empty && all_packers_empty && (state_r == READ);
+  assign empty = w_empty && t_empty && all_packers_empty && !packer_wr_valid_r
+                 && (state_r == READ);
   assign config_ready        = !cfg_byte_alm_full;
 
   assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
@@ -130,6 +142,10 @@ module config_manager #(
   assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
   assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
   assign payload_byte_count  = 1'b1;
+  assign load_rd_count       = (parse_state_r != PARSE_PAYLOAD) && (next_parse_state == PARSE_PAYLOAD);
+  assign rd_count_load_value = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
+  assign last_read_fire = read_fire && (rd_count_r != 32'd0)
+                          && ((count_r + 32'd1) >= rd_count_r);
 
   // =========================================================================
   // Padding Calculation (Dynamic per-layer)
@@ -291,56 +307,79 @@ module config_manager #(
   always_ff @(posedge clk) begin
     if (rst) begin
       state_r     <= READ;
-      rd_count_r  <= '0;
-      count_r     <= '0;
       byte_idx_r  <= '0;
       pad_count_r <= '0;
-      last_rd_r   <= 1'b0;
     end else begin
       state_r     <= next_state;
-      rd_count_r  <= next_rd_count;
-      count_r     <= next_count;
       byte_idx_r  <= next_byte_idx;
       pad_count_r <= next_pad_count;
-      last_rd_r   <= next_last_rd;
+    end
+  end
+
+  // Keep the message read count and terminal-read decision in a small sequential
+  // block so the state machine no longer feeds back through the same count cone.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      rd_count_r <= '0;
+      count_r    <= '0;
+      last_rd_r  <= 1'b0;
+    end else begin
+      if (load_rd_count) begin
+        rd_count_r <= rd_count_load_value;
+        count_r    <= '0;
+        last_rd_r  <= 1'b0;
+      end else begin
+        if (read_fire) begin
+          count_r <= count_r + 32'd1;
+        end else if (state_r == DRAIN) begin
+          count_r <= '0;
+        end
+
+        if (read_fire) begin
+          last_rd_r <= last_read_fire;
+        end else if (state_r == DRAIN) begin
+          last_rd_r <= 1'b0;
+        end
+      end
+    end
+  end
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      packer_wr_valid_r <= 1'b0;
+      packer_wr_data_r  <= '0;
+      packer_wr_layer_r <= '0;
+    end else begin
+      packer_wr_valid_r <= buffer_wr_en && !msg_type_r;
+
+      if (buffer_wr_en && !msg_type_r) begin
+        packer_wr_data_r  <= data;
+        packer_wr_layer_r <= layer_id_r;
+      end
     end
   end
 
   always_comb begin
     // Default Assignments
     next_state     = state_r;
-    next_rd_count  = rd_count_r;
-    next_count     = count_r;
     next_byte_idx  = byte_idx_r;
     next_pad_count = pad_count_r;
-    next_last_rd   = last_rd_r;
 
     buffer_wr_en   = 1'b0;
     fifo_rd_en     = 1'b0;
+    read_fire      = 1'b0;
     data           = w_byte_data;  // Use live payload byte dynamically
 
     case (state_r)
       READ: begin
-        // Decode message type to find the correct read count
-        if (msg_type_r == 0) begin
-          next_rd_count = total_bytes_r;  // bytes for weights
-        end else begin
-          next_rd_count = total_bytes_r / THRESH_WORD_BYTES;  // 32-bit words for thresholds
-        end
-
-        // Give the final scheduled read one cycle to retire before entering
-        // DRAIN, so the last byte/word is fully handed off downstream first.
         if (last_rd_r) begin
-          next_state   = DRAIN;
-          next_last_rd = 1'b0;
-        end
-        // Continuously read while buffer is not empty
-        else if (!active_stream_empty) begin
-          next_count   = count_r + 1'b1;
-          fifo_rd_en   = 1'b1;
-          buffer_wr_en = 1'b1;
+          next_state = DRAIN;
+        end else if (!active_stream_empty) begin
+          fifo_rd_en = 1'b1;
+          read_fire  = 1'b1;
 
-          if (msg_type_r == 0) begin
+          if (!msg_type_r) begin
+            buffer_wr_en = 1'b1;
             if (byte_idx_r == (bytes_per_neuron_r - 1)) begin
               next_byte_idx = '0;
               if (pad_en) begin
@@ -351,11 +390,6 @@ module config_manager #(
             end
           end
 
-          // Trigger exactly on the cycle we schedule the last byte read
-          if (next_count == rd_count_r) begin
-            next_count   = '0;
-            next_last_rd = 1'b1;
-          end
         end
       end
 
@@ -370,8 +404,7 @@ module config_manager #(
           next_pad_count = '0;
           // After padding the last neuron, drain remaining FIFO data
           if (last_rd_r) begin
-            next_state   = DRAIN;
-            next_last_rd = 1'b0;
+            next_state = DRAIN;
           end else begin
             next_state = READ;
           end
@@ -381,8 +414,6 @@ module config_manager #(
       DRAIN: begin
         fifo_rd_en   = 1'b1;
         buffer_wr_en = 1'b0;
-        next_count = '0;
-        next_last_rd = '0;
         if (active_stream_empty) begin
           next_state = READ;
         end
@@ -436,8 +467,8 @@ module config_manager #(
           .clk             (clk),
           .rst             (rst),
           .rd_en           (packer_rd_en[i]),
-          .wr_en           (buffer_wr_en && !msg_type_r && (layer_id_r == i)),
-          .wr_data         (data),
+          .wr_en           (packer_wr_valid_r && (packer_wr_layer_r == i)),
+          .wr_data         (packer_wr_data_r),
           .alm_full_thresh ('0),
           .alm_empty_thresh('0),
           .alm_full        (),

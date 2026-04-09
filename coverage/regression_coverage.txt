@@ -104,14 +104,14 @@ Assertion Coverage:
 Name                 File(Line)                   Failure      Pass 
                                                   Count        Count
 --------------------------------------------------------------------
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#504/immed__505
-                     rtl/config_manager.sv(505)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#535/immed__536
+                     rtl/config_manager.sv(536)
                                                         0         10
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#510/immed__511
-                     rtl/config_manager.sv(511)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#541/immed__542
+                     rtl/config_manager.sv(542)
                                                         0         10
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#516/immed__517
-                     rtl/config_manager.sv(517)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#547/immed__548
+                     rtl/config_manager.sv(548)
                                                         0         10
 
 =================================================================================
@@ -769,19 +769,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         435249          1          -    Covered              
-        bin lo                                         116827          1          -    Covered              
+        bin hi                                         435260          1          -    Covered              
+        bin lo                                         116835          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         130815          1          -    Covered              
-        bin lo                                         421261          1          -    Covered              
+        bin hi                                         130821          1          -    Covered              
+        bin lo                                         421274          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                       374669          1          -    Covered              
+        bin seen                                       374680          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_input_coverage/image_coverage 
                                                        40.62%        100          -    Uncovered            
     covered/total bins:                                     6         22          -                      
@@ -915,19 +915,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          34431          1          -    Covered              
-        bin lo                                         517645          1          -    Covered              
+        bin hi                                          34432          1          -    Covered              
+        bin lo                                         517663          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          55777          1          -    Covered              
-        bin lo                                         496279          1          -    Covered              
+        bin hi                                          55782          1          -    Covered              
+        bin lo                                         496293          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                         2479          1          -    Covered              
+        bin seen                                         2480          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_input_coverage/workload_coverage 
                                                       100.00%        100          -    Covered              
     covered/total bins:                                     4          4          -                      
@@ -983,9 +983,9 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 3          3          -                      
         missing/total bins:                                 0          3          -                      
         % Hit:                                        100.00%        100          -                      
-        bin none                                           74          1          -    Covered              
+        bin none                                           77          1          -    Covered              
         bin light                                         198          1          -    Covered              
-        bin heavy                                          42          1          -    Covered              
+        bin heavy                                          39          1          -    Covered              
     Cross class_transition_cross                       41.66%        100          -    Uncovered            
         covered/total bins:                                20         48          -                      
         missing/total bins:                                28         48          -                      
@@ -1032,34 +1032,34 @@ Covergroup                                             Metric       Goal       B
         missing/total bins:                                20         48          -                      
         % Hit:                                         58.33%        100          -                      
         Auto, Default and User Defined Bins:
-            bin <classes[3],none>                           5          1          -    Covered              
+            bin <classes[0],none>                           7          1          -    Covered              
             bin <classes[9],heavy>                          4          1          -    Covered              
             bin <classes[7],heavy>                          3          1          -    Covered              
             bin <classes[6],heavy>                          4          1          -    Covered              
-            bin <classes[5],heavy>                          3          1          -    Covered              
-            bin <classes[4],heavy>                          5          1          -    Covered              
-            bin <classes[3],heavy>                          3          1          -    Covered              
+            bin <classes[5],heavy>                          4          1          -    Covered              
+            bin <classes[4],heavy>                          2          1          -    Covered              
+            bin <classes[3],heavy>                          4          1          -    Covered              
             bin <classes[1],heavy>                          4          1          -    Covered              
             bin <classes[0],heavy>                          2          1          -    Covered              
-            bin <classes[9],light>                         16          1          -    Covered              
+            bin <classes[9],light>                         14          1          -    Covered              
             bin <classes[8],light>                          6          1          -    Covered              
-            bin <classes[7],light>                         27          1          -    Covered              
-            bin <classes[6],light>                         17          1          -    Covered              
-            bin <classes[5],light>                         13          1          -    Covered              
-            bin <classes[4],light>                         32          1          -    Covered              
+            bin <classes[7],light>                         25          1          -    Covered              
+            bin <classes[6],light>                         18          1          -    Covered              
+            bin <classes[5],light>                         11          1          -    Covered              
+            bin <classes[4],light>                         33          1          -    Covered              
             bin <classes[3],light>                         16          1          -    Covered              
-            bin <classes[1],light>                         28          1          -    Covered              
-            bin <classes[0],light>                         17          1          -    Covered              
-            bin <classes[9],none>                          12          1          -    Covered              
-            bin <classes[7],none>                           7          1          -    Covered              
-            bin <classes[6],none>                           7          1          -    Covered              
-            bin <classes[5],none>                           7          1          -    Covered              
-            bin <classes[4],none>                           7          1          -    Covered              
-            bin <classes[1],none>                          12          1          -    Covered              
-            bin <classes[0],none>                           9          1          -    Covered              
-            bin <classes[2],heavy>                         14          1          -    Covered              
-            bin <classes[2],light>                         26          1          -    Covered              
-            bin <classes[2],none>                           8          1          -    Covered              
+            bin <classes[1],light>                         29          1          -    Covered              
+            bin <classes[0],light>                         19          1          -    Covered              
+            bin <classes[9],none>                          14          1          -    Covered              
+            bin <classes[7],none>                           9          1          -    Covered              
+            bin <classes[6],none>                           6          1          -    Covered              
+            bin <classes[5],none>                           8          1          -    Covered              
+            bin <classes[4],none>                           9          1          -    Covered              
+            bin <classes[3],none>                           4          1          -    Covered              
+            bin <classes[1],none>                          11          1          -    Covered              
+            bin <classes[2],heavy>                         12          1          -    Covered              
+            bin <classes[2],light>                         27          1          -    Covered              
+            bin <classes[2],none>                           9          1          -    Covered              
             bin <classes[15],*>                             0          1          3    ZERO                 
             bin <classes[14],*>                             0          1          3    ZERO                 
             bin <classes[13],*>                             0          1          3    ZERO                 
@@ -1101,15 +1101,15 @@ Covergroup                                             Metric       Goal       B
         missing/total bins:                                 0          4          -                      
         % Hit:                                        100.00%        100          -                      
         bin zero                                           10          1          -    Covered              
-        bin short_stall                                242882          1          -    Covered              
-        bin medium_stall                                34585          1          -    Covered              
+        bin short_stall                                242889          1          -    Covered              
+        bin medium_stall                                34588          1          -    Covered              
         bin long_stall                                      4          1          -    Covered              
     Coverpoint ready_burst_cp                         100.00%        100          -    Covered              
         covered/total bins:                                 3          3          -                      
         missing/total bins:                                 0          3          -                      
         % Hit:                                        100.00%        100          -                      
-        bin one                                        140100          1          -    Covered              
-        bin short_burst                                129245          1          -    Covered              
+        bin one                                        140103          1          -    Covered              
+        bin short_burst                                129252          1          -    Covered              
         bin long_burst                                   8136          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_output_coverage/output_interface_coverage 
                                                       100.00%        100          -    Covered              
@@ -1120,19 +1120,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                            621          1          -    Covered              
-        bin lo                                         551455          1          -    Covered              
+        bin hi                                            631          1          -    Covered              
+        bin lo                                         551464          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         274501          1          -    Covered              
-        bin lo                                         277575          1          -    Covered              
+        bin hi                                         274509          1          -    Covered              
+        bin lo                                         277586          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                          307          1          -    Covered              
+        bin seen                                          317          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_output_coverage/output_pattern_coverage 
                                                        75.00%        100          -    Uncovered            
     covered/total bins:                                     3          4          -                      
@@ -1833,19 +1833,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         435249          1          -    Covered              
-        bin lo                                         116827          1          -    Covered              
+        bin hi                                         435260          1          -    Covered              
+        bin lo                                         116835          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         130815          1          -    Covered              
-        bin lo                                         421261          1          -    Covered              
+        bin hi                                         130821          1          -    Covered              
+        bin lo                                         421274          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                       374669          1          -    Covered              
+        bin seen                                       374680          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_input_coverage/image_coverage 
                                                        40.62%        100          -    Uncovered            
     covered/total bins:                                     6         22          -                      
@@ -1979,19 +1979,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          34431          1          -    Covered              
-        bin lo                                         517645          1          -    Covered              
+        bin hi                                          34432          1          -    Covered              
+        bin lo                                         517663          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          55777          1          -    Covered              
-        bin lo                                         496279          1          -    Covered              
+        bin hi                                          55782          1          -    Covered              
+        bin lo                                         496293          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                         2479          1          -    Covered              
+        bin seen                                         2480          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_input_coverage/workload_coverage 
                                                       100.00%        100          -    Covered              
     covered/total bins:                                     4          4          -                      
@@ -2047,9 +2047,9 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 3          3          -                      
         missing/total bins:                                 0          3          -                      
         % Hit:                                        100.00%        100          -                      
-        bin none                                           74          1          -    Covered              
+        bin none                                           77          1          -    Covered              
         bin light                                         198          1          -    Covered              
-        bin heavy                                          42          1          -    Covered              
+        bin heavy                                          39          1          -    Covered              
     Cross class_transition_cross                       41.66%        100          -    Uncovered            
         covered/total bins:                                20         48          -                      
         missing/total bins:                                28         48          -                      
@@ -2096,34 +2096,34 @@ Covergroup                                             Metric       Goal       B
         missing/total bins:                                20         48          -                      
         % Hit:                                         58.33%        100          -                      
         Auto, Default and User Defined Bins:
-            bin <classes[3],none>                           5          1          -    Covered              
+            bin <classes[0],none>                           7          1          -    Covered              
             bin <classes[9],heavy>                          4          1          -    Covered              
             bin <classes[7],heavy>                          3          1          -    Covered              
             bin <classes[6],heavy>                          4          1          -    Covered              
-            bin <classes[5],heavy>                          3          1          -    Covered              
-            bin <classes[4],heavy>                          5          1          -    Covered              
-            bin <classes[3],heavy>                          3          1          -    Covered              
+            bin <classes[5],heavy>                          4          1          -    Covered              
+            bin <classes[4],heavy>                          2          1          -    Covered              
+            bin <classes[3],heavy>                          4          1          -    Covered              
             bin <classes[1],heavy>                          4          1          -    Covered              
             bin <classes[0],heavy>                          2          1          -    Covered              
-            bin <classes[9],light>                         16          1          -    Covered              
+            bin <classes[9],light>                         14          1          -    Covered              
             bin <classes[8],light>                          6          1          -    Covered              
-            bin <classes[7],light>                         27          1          -    Covered              
-            bin <classes[6],light>                         17          1          -    Covered              
-            bin <classes[5],light>                         13          1          -    Covered              
-            bin <classes[4],light>                         32          1          -    Covered              
+            bin <classes[7],light>                         25          1          -    Covered              
+            bin <classes[6],light>                         18          1          -    Covered              
+            bin <classes[5],light>                         11          1          -    Covered              
+            bin <classes[4],light>                         33          1          -    Covered              
             bin <classes[3],light>                         16          1          -    Covered              
-            bin <classes[1],light>                         28          1          -    Covered              
-            bin <classes[0],light>                         17          1          -    Covered              
-            bin <classes[9],none>                          12          1          -    Covered              
-            bin <classes[7],none>                           7          1          -    Covered              
-            bin <classes[6],none>                           7          1          -    Covered              
-            bin <classes[5],none>                           7          1          -    Covered              
-            bin <classes[4],none>                           7          1          -    Covered              
-            bin <classes[1],none>                          12          1          -    Covered              
-            bin <classes[0],none>                           9          1          -    Covered              
-            bin <classes[2],heavy>                         14          1          -    Covered              
-            bin <classes[2],light>                         26          1          -    Covered              
-            bin <classes[2],none>                           8          1          -    Covered              
+            bin <classes[1],light>                         29          1          -    Covered              
+            bin <classes[0],light>                         19          1          -    Covered              
+            bin <classes[9],none>                          14          1          -    Covered              
+            bin <classes[7],none>                           9          1          -    Covered              
+            bin <classes[6],none>                           6          1          -    Covered              
+            bin <classes[5],none>                           8          1          -    Covered              
+            bin <classes[4],none>                           9          1          -    Covered              
+            bin <classes[3],none>                           4          1          -    Covered              
+            bin <classes[1],none>                          11          1          -    Covered              
+            bin <classes[2],heavy>                         12          1          -    Covered              
+            bin <classes[2],light>                         27          1          -    Covered              
+            bin <classes[2],none>                           9          1          -    Covered              
             bin <classes[15],*>                             0          1          3    ZERO                 
             bin <classes[14],*>                             0          1          3    ZERO                 
             bin <classes[13],*>                             0          1          3    ZERO                 
@@ -2165,15 +2165,15 @@ Covergroup                                             Metric       Goal       B
         missing/total bins:                                 0          4          -                      
         % Hit:                                        100.00%        100          -                      
         bin zero                                           10          1          -    Covered              
-        bin short_stall                                242882          1          -    Covered              
-        bin medium_stall                                34585          1          -    Covered              
+        bin short_stall                                242889          1          -    Covered              
+        bin medium_stall                                34588          1          -    Covered              
         bin long_stall                                      4          1          -    Covered              
     Coverpoint ready_burst_cp                         100.00%        100          -    Covered              
         covered/total bins:                                 3          3          -                      
         missing/total bins:                                 0          3          -                      
         % Hit:                                        100.00%        100          -                      
-        bin one                                        140100          1          -    Covered              
-        bin short_burst                                129245          1          -    Covered              
+        bin one                                        140103          1          -    Covered              
+        bin short_burst                                129252          1          -    Covered              
         bin long_burst                                   8136          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_output_coverage/output_interface_coverage 
                                                       100.00%        100          -    Covered              
@@ -2184,19 +2184,19 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                            621          1          -    Covered              
-        bin lo                                         551455          1          -    Covered              
+        bin hi                                            631          1          -    Covered              
+        bin lo                                         551464          1          -    Covered              
     Coverpoint ready_cp                               100.00%        100          -    Covered              
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                         274501          1          -    Covered              
-        bin lo                                         277575          1          -    Covered              
+        bin hi                                         274509          1          -    Covered              
+        bin lo                                         277586          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
         % Hit:                                        100.00%        100          -                      
-        bin seen                                          307          1          -    Covered              
+        bin seen                                          317          1          -    Covered              
  TYPE /axi4_stream_pkg_sv_unit/bnn_output_coverage/output_pattern_coverage 
                                                        75.00%        100          -    Uncovered            
     covered/total bins:                                     3          4          -                      
@@ -2307,14 +2307,14 @@ Name                 File(Line)                   Failure      Pass
 /bnn_fcc_uvm_tb/data_out_if/assert__0
                      verification/bnn_uvm/axi4_stream_if.sv(37)
                                                         0         10
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#504/immed__505
-                     rtl/config_manager.sv(505)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#535/immed__536
+                     rtl/config_manager.sv(536)
                                                         0         10
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#510/immed__511
-                     rtl/config_manager.sv(511)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#541/immed__542
+                     rtl/config_manager.sv(542)
                                                         0         10
-/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#516/immed__517
-                     rtl/config_manager.sv(517)
+/bnn_fcc_uvm_tb/dut/config_manager/#ublk#88637890#547/immed__548
+                     rtl/config_manager.sv(548)
                                                         0         10
 /bnn_fcc_uvm_tb/dut/config_manager/fifo_config_bytes/assert__1
                      rtl/fifo_vw.sv(338)                0         10
