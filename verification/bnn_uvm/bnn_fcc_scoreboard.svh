@@ -2,6 +2,7 @@
 `define _BNN_FCC_SCOREBOARD_SVH_
 
 `include "uvm_macros.svh"
+`include "bnn_fcc_perf_trackers.svh"
 import uvm_pkg::*;
 import axi4_stream_pkg::*;
 import bnn_fcc_tb_pkg::*;
@@ -26,8 +27,11 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     // Reference model
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) model;
     BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) active_model;
+    bnn_fcc_latency_tracker latency;
+    bnn_fcc_throughput_tracker throughput;
 
     virtual bnn_fcc_ctrl_if ctrl_vif;
+    real clock_period_ns;
 
     // Reset/reconfiguration support is based on queueing expectations at input
     // time instead of assuming a strict "next input immediately matches next
@@ -84,6 +88,10 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
             `uvm_fatal("MODEL_NOT_LOADED", "Scoreboard received an unloaded model handle.")
 
         active_model = new();
+        if (!uvm_config_db#(real)::get(this, "", "clock_period_ns", clock_period_ns))
+            clock_period_ns = 1.0;
+        latency = new(clock_period_ns);
+        throughput = new(clock_period_ns);
 
         if (!uvm_config_db#(virtual bnn_fcc_ctrl_if)::get(this, "", "ctrl_vif", ctrl_vif))
             `uvm_warning("NO_CTRL_VIF", "Scoreboard could not find ctrl_vif. Mid-test reset cleanup will be disabled.")
@@ -190,6 +198,8 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
         // force the test to commit a fresh post-reset model.
         state_sem.get(1);
         dropped_outputs = expected_pred_q.size();
+        foreach (expected_image_idx_q[i])
+            latency.clear_event(expected_image_idx_q[i]);
         expected_pred_q.delete();
         expected_image_idx_q.delete();
         expected_epoch_q.delete();
@@ -276,6 +286,16 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
             expected_pred_q.push_back(expected_pred);
             expected_image_idx_q.push_back(image_idx);
             expected_epoch_q.push_back(config_epoch);
+            if (in_pkt.first_beat_time > 0.0) begin
+                if (image_idx == 0)
+                    throughput.start_test_at(in_pkt.first_beat_time);
+                latency.start_event_at(image_idx, in_pkt.first_beat_time);
+            end
+            else begin
+                if (image_idx == 0)
+                    throughput.start_test();
+                latency.start_event(image_idx);
+            end
             state_sem.put(1);
         end
     endtask
@@ -349,6 +369,15 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
                                      image_idx, expected_cfg_epoch, actual, expected))
                 failed++;
             end
+
+            if (out_pkt.last_beat_time > 0.0) begin
+                latency.end_event_at(image_idx, out_pkt.last_beat_time);
+                throughput.sample_end_at(out_pkt.last_beat_time);
+            end
+            else begin
+                latency.end_event(image_idx);
+                throughput.sample_end();
+            end
         end
     endtask
 
@@ -365,9 +394,24 @@ class bnn_fcc_scoreboard extends uvm_scoreboard;
     endtask
 
     function void report_phase(uvm_phase phase);
+        int total_checked;
+
         super.report_phase(phase);
+        total_checked = passed + failed;
         `uvm_info("SCOREBOARD",
                   $sformatf("Scoreboard summary: passed=%0d failed=%0d", passed, failed),
+                  UVM_NONE)
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Avg latency (cycles) per image: %0.1f cycles", latency.get_avg_cycles()),
+                  UVM_NONE)
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Avg latency (time) per image: %0.1f ns", latency.get_avg_time()),
+                  UVM_NONE)
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Avg throughput (outputs/sec): %0.1f", throughput.get_outputs_per_sec(total_checked)),
+                  UVM_NONE)
+        `uvm_info("SCOREBOARD",
+                  $sformatf("Avg throughput (cycles/output): %0.1f", throughput.get_avg_cycles_per_output(total_checked)),
                   UVM_NONE)
     endfunction
 

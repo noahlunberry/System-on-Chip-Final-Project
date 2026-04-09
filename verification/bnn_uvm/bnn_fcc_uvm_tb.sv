@@ -15,8 +15,8 @@ module bnn_fcc_uvm_tb #(
     parameter bit VERIFY_MODEL = 1,
     parameter string BASE_DIR = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python",
     parameter bit TOGGLE_DATA_OUT_READY = 1'b1,
-    parameter real CONFIG_VALID_PROBABILITY = 1.0,
-    parameter real DATA_IN_VALID_PROBABILITY = 0.95,
+    parameter real CONFIG_VALID_PROBABILITY = 0.6,
+    parameter real DATA_IN_VALID_PROBABILITY = 0.75,
     parameter time TIMEOUT = 100ms,
     parameter time CLK_PERIOD = 10ns,
     parameter bit DEBUG = 1'b0,
@@ -196,6 +196,7 @@ module bnn_fcc_uvm_tb #(
     // Store handshake configuration.
     uvm_config_db#(real)::set(uvm_root::get(), "*", "config_valid_probability", CONFIG_VALID_PROBABILITY);
     uvm_config_db#(real)::set(uvm_root::get(), "*", "data_in_valid_probability", DATA_IN_VALID_PROBABILITY);
+    uvm_config_db#(real)::set(uvm_root::get(), "*", "clock_period_ns", CLK_PERIOD);
 
     // Optional timeout for the whole test.
     uvm_top.set_timeout(TIMEOUT);

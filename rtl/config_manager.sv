@@ -286,7 +286,7 @@ module config_manager #(
   end
 
   // =========================================================================
-  // Control FSM
+  // Fifo Write Control/Padding FSM
   // =========================================================================
   always_ff @(posedge clk) begin
     if (rst) begin

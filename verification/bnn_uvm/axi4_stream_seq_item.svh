@@ -37,6 +37,13 @@ class axi4_stream_seq_item #(
     rand logic [DEST_WIDTH-1:0] tdest = '0;
     rand logic [USER_WIDTH-1:0] tuser = '0;
 
+    // Monitor-only timing metadata. For single-beat items, first/last are the
+    // same accepted-handshake timestamp. Packet-level items preserve the
+    // packet window so downstream components can measure latency/throughput
+    // using the true bus handshake time instead of packet reconstruction time.
+    realtime first_beat_time;
+    realtime last_beat_time;
+
     // Add a constraint to guarantee all three dynamic arrays are the same size.
     constraint size_c {
         tstrb.size() == tdata.size();
@@ -52,6 +59,8 @@ class axi4_stream_seq_item #(
         tkeep = new[1];
         tstrb[0] = '1;
         tkeep[0] = '1;
+        first_beat_time = 0.0;
+        last_beat_time = 0.0;
     endfunction
 
     // Helper function to build a packet from a queue of individual items.
@@ -71,6 +80,8 @@ class axi4_stream_seq_item #(
         tid = q[0].tid;
         tdest = q[0].tid;
         tuser = q[0].tid;
+        first_beat_time = q[0].first_beat_time;
+        last_beat_time = q[q.size()-1].last_beat_time;
 
         is_packet_level = 1'b1;
     endfunction

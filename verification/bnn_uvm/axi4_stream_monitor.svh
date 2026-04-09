@@ -61,6 +61,8 @@ class axi4_stream_monitor #(
             item.tid      = vif.tid;
             item.tdest    = vif.tdest;
             item.tuser    = vif.tuser;
+            item.first_beat_time = $realtime;
+            item.last_beat_time  = $realtime;
 
             // If the simulation is at the packet level, push the individual 
             // beat onto the queue until receiving the last beat of the packet.
