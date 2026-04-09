@@ -145,13 +145,15 @@ module vw_buffer #(
     //   ..., DEPTH_BYTES-2, DEPTH_BYTES-1, 0, 1, 2, ...
     //
     if (wr_en) begin
-      for (int i = 0; i < total_bytes; i++) begin
-        // Write incoming byte i into the current circular-buffer location.
-        next_mem_data[write_idx*8+:8] = wr_data[i*8+:8];
+      for (int i = 0; i < MAX_WR_BYTES; i++) begin
+        if (i < total_bytes) begin
+          // Write incoming byte i into the current circular-buffer location.
+          next_mem_data[write_idx*8+:8] = wr_data[i*8+:8];
 
-        // Advance the temporary write cursor with wraparound.
-        if (write_idx == DEPTH_BYTES - 1) write_idx = '0;
-        else write_idx++;
+          // Advance the temporary write cursor with wraparound.
+          if (write_idx == DEPTH_BYTES - 1) write_idx = '0;
+          else write_idx++;
+        end
       end
 
       // After all bytes of this cycle have been written, store the final
@@ -209,7 +211,7 @@ module vw_buffer #(
   // --------------------------------------------------------------------------
   // Sequential state update
   // --------------------------------------------------------------------------
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
       mem_data_r <= '0;
       wr_ptr_r   <= '0;

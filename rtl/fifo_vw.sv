@@ -284,7 +284,7 @@ module fifo_vw #(
     // ------------------------------------------------------------------------
     // Sequential state updates
     // ------------------------------------------------------------------------
-    always_ff @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             // On reset, pointers and occupancy clear to empty state.
             wr_ptr_r <= '0;
