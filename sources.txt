@@ -13,6 +13,8 @@ rtl/argmax_tree.sv
 rtl/neuron_processor.sv
 rtl/neuron_controller.sv
 rtl/config_controller.sv
+rtl/config_manager_parser.sv
+rtl/config_manager_pad_fsm.sv
 rtl/config_manager.sv
 rtl/bnn_layer.sv
 rtl/bnn.sv

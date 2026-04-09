@@ -26,9 +26,8 @@ module config_manager #(
   // =========================================================================
   // Local Parameters
   // =========================================================================
-  localparam int BUS_BYTES              = BUS_WIDTH / 8;
-  localparam int THRESH_WORD_BYTES      = 4;
-  localparam int HEADER_BYTES           = 16;
+  localparam int BUS_BYTES = BUS_WIDTH / 8;
+  localparam int THRESH_WORD_BYTES = 4;
   localparam int CONFIG_BYTE_FIFO_DEPTH_LOG2 = 6;
   localparam int CONFIG_BYTE_FIFO_DEPTH = 1 << CONFIG_BYTE_FIFO_DEPTH_LOG2;
   localparam int CONFIG_BYTE_FIFO_WRITE_CAPACITY = CONFIG_BYTE_FIFO_DEPTH / BUS_BYTES;
@@ -46,130 +45,61 @@ module config_manager #(
   localparam int WEIGHT_FIFO_DEPTH = 64;
   localparam int THRESH_FIFO_DEPTH = 64;
 
-  function automatic logic [7:0] calc_bytes_per_word(input logic [1:0] layer_id_i);
-    logic [7:0] bytes_per_word_i;
-
-    bytes_per_word_i = MAX_PARALLEL_INPUTS / 8;  // layer 0 default
-    for (int k = 0; k < LAYERS; k++) begin
-      if (layer_id_i == 2'(k)) begin
-        if (k == 0) bytes_per_word_i = MAX_PARALLEL_INPUTS / 8;
-        else bytes_per_word_i = PARALLEL_NEURONS[k-1] / 8;
-      end
-    end
-
-    return bytes_per_word_i;
-  endfunction
-
-  function automatic logic calc_pad_required(
-      input logic [1:0] layer_id_i,
-      input logic [15:0] bytes_per_neuron_i
-  );
-    logic [7:0] bytes_per_word_i;
-    logic [7:0] pad_remainder_i;
-
-    bytes_per_word_i = calc_bytes_per_word(layer_id_i);
-    pad_remainder_i  = bytes_per_neuron_i[7:0] & (bytes_per_word_i - 8'd1);
-
-    return (pad_remainder_i != 8'd0);
-  endfunction
-
   // =========================================================================
   // Signal Declarations
   // =========================================================================
   // Parser & Config
-  logic              empty;
-  typedef enum logic [1:0] {
-    PARSE_HEADER,
-    PARSE_PAYLOAD,
-    PARSE_DONE
-  } parse_state_t;
-
-  parse_state_t       parse_state_r, next_parse_state;
-  logic              msg_type_r;
-  logic [       1:0] layer_id_r;
-  logic [      31:0] total_bytes_r;
-  logic [      15:0] bytes_per_neuron_r;
-  logic              next_msg_type;
-  logic [       1:0] next_layer_id;
-  logic [      31:0] next_total_bytes;
-  logic [      15:0] next_bytes_per_neuron;
-  logic              compact_wr_en;
+  logic empty;
+  logic msg_type_r;
+  logic [1:0] layer_id_r;
+  logic [15:0] bytes_per_neuron_r;
+  logic compact_wr_en;
   logic [BUS_WIDTH-1:0] compact_wr_data;
   logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
-  logic [HEADER_BYTES*8-1:0] header_buf_r, next_header_buf;
-  logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
-  logic [31:0]       payload_count_r, next_payload_count;
-  logic              header_last_byte_r, next_header_last_byte;
-  logic              payload_last_byte_r, next_payload_last_byte;
-  logic              pad_required_r, next_pad_required;
-  logic              cfg_byte_rd_en;
-  logic              cfg_byte_empty;
-  logic              cfg_byte_alm_full;
-  logic              cfg_vw_rd_en;
-  logic              cfg_byte_full;
+  logic cfg_byte_rd_en;
+  logic cfg_byte_empty;
+  logic cfg_byte_alm_full;
+  logic cfg_vw_rd_en;
+  logic cfg_byte_full;
   logic [BUS_WIDTH-1:0] cfg_vw_rd_data;
-  logic [7:0]        cfg_byte_data;
-  logic              cfg_byte_data_valid_r, next_cfg_byte_data_valid;
-  logic              payload_byte_valid;
-  logic              payload_byte_is_thresh;
-  logic [7:0]        payload_byte_data;
+  logic [7:0] cfg_byte_data;
+  logic payload_byte_valid;
+  logic payload_byte_is_thresh;
+  logic [7:0] payload_byte_data;
+  logic payload_start;
+  logic [31:0] payload_read_count;
 
   // FIFO Status
-  logic              w_empty;
-  logic              t_empty;
-  logic              w_full;
-  logic              t_full;
-  logic              w_wr_ready;
-  logic              t_wr_ready;
-  logic              w_rd_en;
-  logic              w_wr_en;
-  logic              t_rd_en;
-  logic              t_wr_en;
+  logic w_empty;
+  logic t_empty;
+  logic w_full;
+  logic t_full;
+  logic w_wr_ready;
+  logic t_wr_ready;
+  logic w_rd_en;
+  logic w_wr_en;
+  logic t_rd_en;
+  logic t_wr_en;
 
   logic [LAYERS-1:0] packer_empty;
-  logic              all_packers_empty;
-  logic              active_stream_empty;
+  logic all_packers_empty;
+  logic active_stream_empty;
   logic [LAYERS-1:0] weight_ram_wr_en_r;
   logic [MAX_PARALLEL_INPUTS-1:0] weight_ram_wr_data_r;
 
-  // FSM Control Signals
-  typedef enum logic [1:0] {
-    READ,
-    DRAIN,
-    PAD
-  } state_t;
+  // Control/Data Routing
+  logic pad_fsm_in_read_state;
+  logic buffer_wr_en;
+  logic fifo_rd_en;
 
-  state_t state_r, next_state;
-
-  logic [31:0] rd_count_r;
-  logic [31:0] count_r;
-  logic [8:0] byte_idx_r, next_byte_idx;
-  logic [7:0] pad_count_r, next_pad_count;
-  logic       read_finishes_neuron_r, next_read_finishes_neuron;
-  logic       pad_last_cycle_r, next_pad_last_cycle;
-  logic       pad_exit_to_drain_r, next_pad_exit_to_drain;
-  logic last_rd_r;
-
-  logic       buffer_wr_en;
-  logic       fifo_rd_en;
-  logic       read_fire;
-  logic       last_read_fire;
-  logic       load_rd_count;
-  logic [31:0] rd_count_load_value;
-
-  // Data Routing & Padding
   logic [7:0] data;
   logic [7:0] w_byte_data;
   logic [31:0] threshold_fifo_rd_data;
-  logic [7:0] bytes_per_word;
-  logic [7:0] pad_remainder;
-  logic [7:0] bytes_to_pad;
-  logic       pad_en;
 
   // Register one cycle of weight-byte traffic before writing into the packers.
   // This breaks the long combinational path from fifo_weights_bytes show-ahead
   // data into the downstream packer memories.
-  logic       packer_wr_valid_r;
+  logic packer_wr_valid_r;
   logic [7:0] packer_wr_data_r;
   logic [1:0] packer_wr_layer_r;
 
@@ -183,7 +113,7 @@ module config_manager #(
   // current message before starting the next one.
   assign empty = w_empty && t_empty && all_packers_empty && !packer_wr_valid_r
                  && !(|weight_ram_wr_en_r)
-                 && (state_r == READ);
+                 && pad_fsm_in_read_state;
   assign config_ready        = !cfg_byte_alm_full;
   assign weight_ram_wr_en    = weight_ram_wr_en_r;
   assign weight_ram_wr_data  = weight_ram_wr_data_r;
@@ -194,27 +124,6 @@ module config_manager #(
   assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
   assign w_wr_ready          = !w_full;
   assign t_wr_ready          = !t_full;
-  assign load_rd_count       = (parse_state_r != PARSE_PAYLOAD) && (next_parse_state == PARSE_PAYLOAD);
-  assign rd_count_load_value = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
-  assign last_read_fire = read_fire && (rd_count_r != 32'd0)
-                          && ((count_r + 32'd1) >= rd_count_r);
-
-  // =========================================================================
-  // Padding Calculation (Dynamic per-layer)
-  // =========================================================================
-  always_comb begin
-    bytes_per_word = MAX_PARALLEL_INPUTS / 8;  // layer 0 default
-    for (int k = 0; k < LAYERS; k++) begin
-      if (layer_id_r == 2'(k)) begin
-        if (k == 0) bytes_per_word = MAX_PARALLEL_INPUTS / 8;
-        else bytes_per_word = PARALLEL_NEURONS[k-1] / 8;
-      end
-    end
-  end
-
-  assign pad_remainder = bytes_per_neuron_r[7:0] & (bytes_per_word - 8'd1);
-  assign bytes_to_pad  = (pad_remainder == 0) ? 8'd0 : (bytes_per_word - pad_remainder);
-  assign pad_en        = (bytes_to_pad != 0);
 
   // Compact every accepted config beat first so fragmented headers and payload
   // bytes are converted into one contiguous byte stream.
@@ -286,223 +195,46 @@ module config_manager #(
   // Parse the staged byte stream one byte at a time. This keeps header
   // handling simple while still allowing randomized TKEEP to split headers
   // across arbitrary beat boundaries.
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      parse_state_r      <= PARSE_HEADER;
-      msg_type_r         <= 1'b0;
-      layer_id_r         <= '0;
-      total_bytes_r      <= '0;
-      bytes_per_neuron_r <= '0;
-      header_buf_r       <= '0;
-      header_count_r     <= '0;
-      payload_count_r    <= '0;
-      header_last_byte_r <= (HEADER_BYTES == 1);
-      payload_last_byte_r <= 1'b0;
-      pad_required_r     <= 1'b0;
-      cfg_byte_data_valid_r <= 1'b0;
-    end else begin
-      parse_state_r      <= next_parse_state;
-      msg_type_r         <= next_msg_type;
-      layer_id_r         <= next_layer_id;
-      total_bytes_r      <= next_total_bytes;
-      bytes_per_neuron_r <= next_bytes_per_neuron;
-      header_buf_r       <= next_header_buf;
-      header_count_r     <= next_header_count;
-      payload_count_r    <= next_payload_count;
-      header_last_byte_r <= next_header_last_byte;
-      payload_last_byte_r <= next_payload_last_byte;
-      pad_required_r     <= next_pad_required;
-      cfg_byte_data_valid_r <= next_cfg_byte_data_valid;
-    end
-  end
+  config_manager_parser config_manager_parser_i (
+      .clk               (clk),
+      .rst               (rst),
+      .cfg_byte_empty    (cfg_byte_empty),
+      .cfg_byte_data     (cfg_byte_data),
+      .w_wr_ready        (w_wr_ready),
+      .t_wr_ready        (t_wr_ready),
+      .empty             (empty),
+      .cfg_byte_rd_en    (cfg_byte_rd_en),
+      .payload_byte_valid(payload_byte_valid),
+      .payload_byte_is_thresh(payload_byte_is_thresh),
+      .payload_byte_data (payload_byte_data),
+      .msg_type          (msg_type_r),
+      .layer_id          (layer_id_r),
+      .bytes_per_neuron  (bytes_per_neuron_r),
+      .payload_start     (payload_start),
+      .payload_read_count(payload_read_count)
+  );
 
-  always_comb begin
-    logic payload_dst_ready;
-    logic next_payload_dst_ready;
-    logic cfg_byte_consume;
-    logic cfg_byte_request;
-    logic header_msg_type;
-    logic [1:0] header_layer_id;
-    logic [31:0] header_total_bytes;
-    logic [15:0] header_bytes_per_neuron;
-
-    next_parse_state  = parse_state_r;
-    next_msg_type     = msg_type_r;
-    next_layer_id     = layer_id_r;
-    next_total_bytes  = total_bytes_r;
-    next_bytes_per_neuron = bytes_per_neuron_r;
-    next_header_buf   = header_buf_r;
-    next_header_count = header_count_r;
-    next_payload_count = payload_count_r;
-    next_header_last_byte = header_last_byte_r;
-    next_payload_last_byte = payload_last_byte_r;
-    next_pad_required = pad_required_r;
-    next_cfg_byte_data_valid = cfg_byte_data_valid_r;
-
-    cfg_byte_rd_en         = 1'b0;
-    payload_byte_valid     = 1'b0;
-    payload_byte_is_thresh = msg_type_r;
-    payload_byte_data      = cfg_byte_data;
-    payload_dst_ready      = msg_type_r ? t_wr_ready : w_wr_ready;
-    next_payload_dst_ready = next_msg_type ? t_wr_ready : w_wr_ready;
-    cfg_byte_consume       = 1'b0;
-    cfg_byte_request       = 1'b0;
-    header_msg_type        = msg_type_r;
-    header_layer_id        = layer_id_r;
-    header_total_bytes     = total_bytes_r;
-    header_bytes_per_neuron = bytes_per_neuron_r;
-
-    case (parse_state_r)
-      PARSE_HEADER: begin
-        if (cfg_byte_data_valid_r) begin
-          cfg_byte_consume = 1'b1;
-          next_header_buf[header_count_r*8 +: 8] = cfg_byte_data;
-
-          if (header_last_byte_r) begin
-            header_msg_type         = next_header_buf[0];
-            header_layer_id         = next_header_buf[9:8];
-            header_total_bytes      = next_header_buf[95:64];
-            header_bytes_per_neuron = next_header_buf[63:48];
-
-            next_msg_type         = header_msg_type;
-            next_layer_id         = header_layer_id;
-            next_total_bytes      = header_total_bytes;
-            next_bytes_per_neuron = header_bytes_per_neuron;
-            next_header_count = '0;
-            next_payload_count = '0;
-            next_header_last_byte = (HEADER_BYTES == 1);
-            next_payload_last_byte = (header_total_bytes <= 32'd1);
-            next_pad_required = calc_pad_required(header_layer_id, header_bytes_per_neuron);
-
-            if (header_total_bytes == 32'd0) begin
-              next_parse_state = PARSE_DONE;
-            end else begin
-              next_parse_state = PARSE_PAYLOAD;
-              next_payload_dst_ready = header_msg_type ? t_wr_ready : w_wr_ready;
-
-              if (!cfg_byte_empty && next_payload_dst_ready) begin
-                cfg_byte_request = 1'b1;
-              end
-            end
-          end else begin
-            next_header_count = header_count_r + 1'b1;
-            next_header_last_byte = ((header_count_r + 1'b1) == (HEADER_BYTES - 1));
-
-            if (!cfg_byte_empty) begin
-              cfg_byte_request = 1'b1;
-            end
-          end
-        end else if (!cfg_byte_empty) begin
-          cfg_byte_request = 1'b1;
-        end
-      end
-
-      PARSE_PAYLOAD: begin
-        if (cfg_byte_data_valid_r) begin
-          if (payload_dst_ready) begin
-            cfg_byte_consume       = 1'b1;
-            payload_byte_valid     = 1'b1;
-            payload_byte_is_thresh = msg_type_r;
-            payload_byte_data      = cfg_byte_data;
-            next_payload_count     = payload_count_r + 1'b1;
-
-            if (payload_last_byte_r) begin
-              next_payload_count = '0;
-              next_header_count  = '0;
-              next_header_buf    = '0;
-              next_header_last_byte = (HEADER_BYTES == 1);
-              next_payload_last_byte = 1'b0;
-              next_parse_state   = PARSE_DONE;
-            end else begin
-              next_payload_last_byte = ((next_payload_count + 32'd1) >= total_bytes_r);
-
-              if (!cfg_byte_empty) begin
-                cfg_byte_request = 1'b1;
-              end
-            end
-          end
-        end else if (!cfg_byte_empty && payload_dst_ready) begin
-          cfg_byte_request = 1'b1;
-        end
-      end
-
-      PARSE_DONE: begin
-        next_payload_count = '0;
-        next_header_count  = '0;
-
-        if (empty) begin
-          next_header_buf  = '0;
-          next_header_last_byte = (HEADER_BYTES == 1);
-          next_payload_last_byte = 1'b0;
-          next_pad_required = 1'b0;
-          next_parse_state = PARSE_HEADER;
-        end
-      end
-
-      default: begin
-        next_header_last_byte = (HEADER_BYTES == 1);
-        next_payload_last_byte = 1'b0;
-        next_parse_state = PARSE_HEADER;
-      end
-    endcase
-
-    if (cfg_byte_consume) begin
-      next_cfg_byte_data_valid = cfg_byte_request;
-    end else if (!cfg_byte_data_valid_r) begin
-      next_cfg_byte_data_valid = cfg_byte_request;
-    end
-
-    cfg_byte_rd_en = cfg_byte_request;
-  end
-
-  // =========================================================================
-  // Fifo Write Control/Padding FSM
-  // =========================================================================
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      state_r     <= READ;
-      byte_idx_r  <= '0;
-      pad_count_r <= '0;
-      read_finishes_neuron_r <= 1'b0;
-      pad_last_cycle_r <= 1'b0;
-      pad_exit_to_drain_r <= 1'b0;
-    end else begin
-      state_r     <= next_state;
-      byte_idx_r  <= next_byte_idx;
-      pad_count_r <= next_pad_count;
-      read_finishes_neuron_r <= next_read_finishes_neuron;
-      pad_last_cycle_r <= next_pad_last_cycle;
-      pad_exit_to_drain_r <= next_pad_exit_to_drain;
-    end
-  end
-
-  // Keep the message read count and terminal-read decision in a small sequential
-  // block so the state machine no longer feeds back through the same count cone.
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      rd_count_r <= '0;
-      count_r    <= '0;
-      last_rd_r  <= 1'b0;
-    end else begin
-      if (load_rd_count) begin
-        rd_count_r <= rd_count_load_value;
-        count_r    <= '0;
-        last_rd_r  <= 1'b0;
-      end else begin
-        if (read_fire) begin
-          count_r <= count_r + 32'd1;
-        end else if (state_r == DRAIN) begin
-          count_r <= '0;
-        end
-
-        if (read_fire) begin
-          last_rd_r <= last_read_fire;
-        end else if (state_r == DRAIN) begin
-          last_rd_r <= 1'b0;
-        end
-      end
-    end
-  end
+  // Keep the weight-byte read/drain/pad control isolated from the rest of the
+  // datapath so config_manager now just wires the controller to the FIFOs.
+  config_manager_pad_fsm #(
+      .LAYERS             (LAYERS),
+      .PARALLEL_NEURONS   (PARALLEL_NEURONS),
+      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS)
+  ) config_manager_pad_fsm_i (
+      .clk               (clk),
+      .rst               (rst),
+      .payload_start     (payload_start),
+      .payload_read_count(payload_read_count),
+      .msg_type          (msg_type_r),
+      .layer_id          (layer_id_r),
+      .bytes_per_neuron  (bytes_per_neuron_r),
+      .active_stream_empty(active_stream_empty),
+      .w_byte_data       (w_byte_data),
+      .in_read_state     (pad_fsm_in_read_state),
+      .fifo_rd_en        (fifo_rd_en),
+      .buffer_wr_en      (buffer_wr_en),
+      .data              (data)
+  );
 
   always_ff @(posedge clk) begin
     if (rst) begin
@@ -517,76 +249,6 @@ module config_manager #(
         packer_wr_layer_r <= layer_id_r;
       end
     end
-  end
-
-  always_comb begin
-    // Default Assignments
-    next_state     = state_r;
-    next_byte_idx  = byte_idx_r;
-    next_pad_count = pad_count_r;
-    next_read_finishes_neuron = read_finishes_neuron_r;
-    next_pad_last_cycle = pad_last_cycle_r;
-    next_pad_exit_to_drain = pad_exit_to_drain_r;
-
-    buffer_wr_en   = 1'b0;
-    fifo_rd_en     = 1'b0;
-    read_fire      = 1'b0;
-    data           = w_byte_data;  // Use live payload byte dynamically
-
-    case (state_r)
-      READ: begin
-        if (last_rd_r) begin
-          next_state = DRAIN;
-        end else if (!active_stream_empty) begin
-          fifo_rd_en = 1'b1;
-          read_fire  = 1'b1;
-
-          if (!msg_type_r) begin
-            buffer_wr_en = 1'b1;
-            if (read_finishes_neuron_r) begin
-              next_byte_idx = '0;
-              if (pad_required_r) begin
-                next_state = PAD;
-                next_pad_exit_to_drain = last_read_fire;
-              end
-            end else begin
-              next_byte_idx = byte_idx_r + 1'b1;
-            end
-          end
-
-        end
-      end
-
-      PAD: begin
-        // Inject 1's padding sequence (0xFF) to the buffer
-        data           = 8'hFF;
-        fifo_rd_en     = 1'b0;
-        buffer_wr_en   = 1'b1;
-        next_pad_count = pad_count_r + 1'b1;
-
-        if (pad_last_cycle_r) begin
-          next_pad_count = '0;
-          next_pad_exit_to_drain = 1'b0;
-          next_state = pad_exit_to_drain_r ? DRAIN : READ;
-        end
-      end
-
-      DRAIN: begin
-        fifo_rd_en   = 1'b1;
-        buffer_wr_en = 1'b0;
-        if (active_stream_empty) begin
-          next_state = READ;
-        end
-      end
-
-      default: next_state = READ;
-    endcase
-
-    next_read_finishes_neuron = (next_state == READ) && !msg_type_r
-                                && (bytes_per_neuron_r != 16'd0)
-                                && (next_byte_idx == (bytes_per_neuron_r - 16'd1));
-    next_pad_last_cycle = (next_state == PAD) && (bytes_to_pad != 8'd0)
-                          && (next_pad_count == (bytes_to_pad - 8'd1));
   end
 
   // =========================================================================

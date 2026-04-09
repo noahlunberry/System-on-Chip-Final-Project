@@ -22,6 +22,8 @@ files:
   - ../rtl/bnn_layer.sv
   - ../rtl/bnn.sv
   - ../rtl/config_controller.sv
+  - ../rtl/config_manager_parser.sv
+  - ../rtl/config_manager_pad_fsm.sv
   - ../rtl/config_manager.sv
   - ../rtl/delay.sv
   - ../rtl/data_in_manager.sv
