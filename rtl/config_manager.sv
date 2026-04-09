@@ -46,6 +46,33 @@ module config_manager #(
   localparam int WEIGHT_FIFO_DEPTH = 64;
   localparam int THRESH_FIFO_DEPTH = 64;
 
+  function automatic logic [7:0] calc_bytes_per_word(input logic [1:0] layer_id_i);
+    logic [7:0] bytes_per_word_i;
+
+    bytes_per_word_i = MAX_PARALLEL_INPUTS / 8;  // layer 0 default
+    for (int k = 0; k < LAYERS; k++) begin
+      if (layer_id_i == 2'(k)) begin
+        if (k == 0) bytes_per_word_i = MAX_PARALLEL_INPUTS / 8;
+        else bytes_per_word_i = PARALLEL_NEURONS[k-1] / 8;
+      end
+    end
+
+    return bytes_per_word_i;
+  endfunction
+
+  function automatic logic calc_pad_required(
+      input logic [1:0] layer_id_i,
+      input logic [15:0] bytes_per_neuron_i
+  );
+    logic [7:0] bytes_per_word_i;
+    logic [7:0] pad_remainder_i;
+
+    bytes_per_word_i = calc_bytes_per_word(layer_id_i);
+    pad_remainder_i  = bytes_per_neuron_i[7:0] & (bytes_per_word_i - 8'd1);
+
+    return (pad_remainder_i != 8'd0);
+  endfunction
+
   // =========================================================================
   // Signal Declarations
   // =========================================================================
@@ -72,6 +99,9 @@ module config_manager #(
   logic [HEADER_BYTES*8-1:0] header_buf_r, next_header_buf;
   logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
   logic [31:0]       payload_count_r, next_payload_count;
+  logic              header_last_byte_r, next_header_last_byte;
+  logic              payload_last_byte_r, next_payload_last_byte;
+  logic              pad_required_r, next_pad_required;
   logic              cfg_byte_rd_en;
   logic              cfg_byte_empty;
   logic              cfg_byte_alm_full;
@@ -115,6 +145,9 @@ module config_manager #(
   logic [31:0] count_r;
   logic [8:0] byte_idx_r, next_byte_idx;
   logic [7:0] pad_count_r, next_pad_count;
+  logic       read_finishes_neuron_r, next_read_finishes_neuron;
+  logic       pad_last_cycle_r, next_pad_last_cycle;
+  logic       pad_exit_to_drain_r, next_pad_exit_to_drain;
   logic last_rd_r;
 
   logic       buffer_wr_en;
@@ -263,6 +296,9 @@ module config_manager #(
       header_buf_r       <= '0;
       header_count_r     <= '0;
       payload_count_r    <= '0;
+      header_last_byte_r <= (HEADER_BYTES == 1);
+      payload_last_byte_r <= 1'b0;
+      pad_required_r     <= 1'b0;
       cfg_byte_data_valid_r <= 1'b0;
     end else begin
       parse_state_r      <= next_parse_state;
@@ -273,6 +309,9 @@ module config_manager #(
       header_buf_r       <= next_header_buf;
       header_count_r     <= next_header_count;
       payload_count_r    <= next_payload_count;
+      header_last_byte_r <= next_header_last_byte;
+      payload_last_byte_r <= next_payload_last_byte;
+      pad_required_r     <= next_pad_required;
       cfg_byte_data_valid_r <= next_cfg_byte_data_valid;
     end
   end
@@ -295,6 +334,9 @@ module config_manager #(
     next_header_buf   = header_buf_r;
     next_header_count = header_count_r;
     next_payload_count = payload_count_r;
+    next_header_last_byte = header_last_byte_r;
+    next_payload_last_byte = payload_last_byte_r;
+    next_pad_required = pad_required_r;
     next_cfg_byte_data_valid = cfg_byte_data_valid_r;
 
     cfg_byte_rd_en         = 1'b0;
@@ -316,7 +358,7 @@ module config_manager #(
           cfg_byte_consume = 1'b1;
           next_header_buf[header_count_r*8 +: 8] = cfg_byte_data;
 
-          if (header_count_r == HEADER_BYTES - 1) begin
+          if (header_last_byte_r) begin
             header_msg_type         = next_header_buf[0];
             header_layer_id         = next_header_buf[9:8];
             header_total_bytes      = next_header_buf[95:64];
@@ -328,6 +370,9 @@ module config_manager #(
             next_bytes_per_neuron = header_bytes_per_neuron;
             next_header_count = '0;
             next_payload_count = '0;
+            next_header_last_byte = (HEADER_BYTES == 1);
+            next_payload_last_byte = (header_total_bytes <= 32'd1);
+            next_pad_required = calc_pad_required(header_layer_id, header_bytes_per_neuron);
 
             if (header_total_bytes == 32'd0) begin
               next_parse_state = PARSE_DONE;
@@ -341,6 +386,7 @@ module config_manager #(
             end
           end else begin
             next_header_count = header_count_r + 1'b1;
+            next_header_last_byte = ((header_count_r + 1'b1) == (HEADER_BYTES - 1));
 
             if (!cfg_byte_empty) begin
               cfg_byte_request = 1'b1;
@@ -360,13 +406,19 @@ module config_manager #(
             payload_byte_data      = cfg_byte_data;
             next_payload_count     = payload_count_r + 1'b1;
 
-            if ((payload_count_r + 1'b1) >= total_bytes_r) begin
+            if (payload_last_byte_r) begin
               next_payload_count = '0;
               next_header_count  = '0;
               next_header_buf    = '0;
+              next_header_last_byte = (HEADER_BYTES == 1);
+              next_payload_last_byte = 1'b0;
               next_parse_state   = PARSE_DONE;
-            end else if (!cfg_byte_empty) begin
-              cfg_byte_request = 1'b1;
+            end else begin
+              next_payload_last_byte = ((next_payload_count + 32'd1) >= total_bytes_r);
+
+              if (!cfg_byte_empty) begin
+                cfg_byte_request = 1'b1;
+              end
             end
           end
         end else if (!cfg_byte_empty && payload_dst_ready) begin
@@ -380,11 +432,16 @@ module config_manager #(
 
         if (empty) begin
           next_header_buf  = '0;
+          next_header_last_byte = (HEADER_BYTES == 1);
+          next_payload_last_byte = 1'b0;
+          next_pad_required = 1'b0;
           next_parse_state = PARSE_HEADER;
         end
       end
 
       default: begin
+        next_header_last_byte = (HEADER_BYTES == 1);
+        next_payload_last_byte = 1'b0;
         next_parse_state = PARSE_HEADER;
       end
     endcase
@@ -406,10 +463,16 @@ module config_manager #(
       state_r     <= READ;
       byte_idx_r  <= '0;
       pad_count_r <= '0;
+      read_finishes_neuron_r <= 1'b0;
+      pad_last_cycle_r <= 1'b0;
+      pad_exit_to_drain_r <= 1'b0;
     end else begin
       state_r     <= next_state;
       byte_idx_r  <= next_byte_idx;
       pad_count_r <= next_pad_count;
+      read_finishes_neuron_r <= next_read_finishes_neuron;
+      pad_last_cycle_r <= next_pad_last_cycle;
+      pad_exit_to_drain_r <= next_pad_exit_to_drain;
     end
   end
 
@@ -461,6 +524,9 @@ module config_manager #(
     next_state     = state_r;
     next_byte_idx  = byte_idx_r;
     next_pad_count = pad_count_r;
+    next_read_finishes_neuron = read_finishes_neuron_r;
+    next_pad_last_cycle = pad_last_cycle_r;
+    next_pad_exit_to_drain = pad_exit_to_drain_r;
 
     buffer_wr_en   = 1'b0;
     fifo_rd_en     = 1'b0;
@@ -477,10 +543,11 @@ module config_manager #(
 
           if (!msg_type_r) begin
             buffer_wr_en = 1'b1;
-            if (byte_idx_r == (bytes_per_neuron_r - 1)) begin
+            if (read_finishes_neuron_r) begin
               next_byte_idx = '0;
-              if (pad_en) begin
+              if (pad_required_r) begin
                 next_state = PAD;
+                next_pad_exit_to_drain = last_read_fire;
               end
             end else begin
               next_byte_idx = byte_idx_r + 1'b1;
@@ -497,14 +564,10 @@ module config_manager #(
         buffer_wr_en   = 1'b1;
         next_pad_count = pad_count_r + 1'b1;
 
-        if (pad_count_r == (bytes_to_pad - 1)) begin
+        if (pad_last_cycle_r) begin
           next_pad_count = '0;
-          // After padding the last neuron, drain remaining FIFO data
-          if (last_rd_r) begin
-            next_state = DRAIN;
-          end else begin
-            next_state = READ;
-          end
+          next_pad_exit_to_drain = 1'b0;
+          next_state = pad_exit_to_drain_r ? DRAIN : READ;
         end
       end
 
@@ -518,6 +581,12 @@ module config_manager #(
 
       default: next_state = READ;
     endcase
+
+    next_read_finishes_neuron = (next_state == READ) && !msg_type_r
+                                && (bytes_per_neuron_r != 16'd0)
+                                && (next_byte_idx == (bytes_per_neuron_r - 16'd1));
+    next_pad_last_cycle = (next_state == PAD) && (bytes_to_pad != 8'd0)
+                          && (next_pad_count == (bytes_to_pad - 8'd1));
   end
 
   // =========================================================================
