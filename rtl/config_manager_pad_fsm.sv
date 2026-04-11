@@ -199,12 +199,6 @@ module config_manager_pad_fsm #(
   // rather than to the whole next-index mux cone.
   //--------------------------------------------------------------------------
 
-  assign current_byte_is_last =
-      !msg_type &&
-      (bytes_per_neuron != '0) &&
-      (byte_idx_r == (bytes_per_neuron - 1'b1));
-
-  assign read_finishes_neuron = read_fire && current_byte_is_last;
 
   //--------------------------------------------------------------------------
   // Final payload-byte detection
@@ -212,7 +206,7 @@ module config_manager_pad_fsm #(
   // The last payload byte is the one read while remaining_count_r == 1.
   //--------------------------------------------------------------------------
 
-  assign last_read_fire = read_fire && (remaining_count_r == 1'b1);
+  assign last_read_fire = remaining_count_r == 1'b1;
 
   //--------------------------------------------------------------------------
   // PAD exit detection
@@ -221,7 +215,7 @@ module config_manager_pad_fsm #(
   // entry, a value of 0 means "the current PAD cycle is the last one."
   //--------------------------------------------------------------------------
 
-  assign pad_last_cycle = (state_r == PAD) && (remaining_pad_count_r == '0);
+  assign pad_last_cycle = remaining_pad_count_r == '0;
 
   assign in_read_state = (state_r == READ);
 
@@ -263,7 +257,7 @@ module config_manager_pad_fsm #(
             buffer_wr_en = 1'b1;
 
             // The current accepted read completes a neuron.
-            if (read_finishes_neuron) begin
+            if (byte_idx_r == (bytes_per_neuron - 1'b1)) begin
               next_byte_idx = '0;
 
               // If this neuron needs alignment padding, switch to PAD.
