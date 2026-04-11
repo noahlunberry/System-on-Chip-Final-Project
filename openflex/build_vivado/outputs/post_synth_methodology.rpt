@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Thu Apr  9 18:11:54 2026
+| Date         : Sat Apr 11 19:11:01 2026
 | Host         : Acey running 64-bit major release  (build 9200)
 | Command      : report_methodology -file ./outputs/post_synth_methodology.rpt
 | Design       : bnn_fcc_timing
@@ -23,12 +23,11 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max checks: <unlimited>
-             Checks found: 225
+             Checks found: 193
 +-----------+----------+--------------------------------------------+--------+
 | Rule      | Severity | Description                                | Checks |
 +-----------+----------+--------------------------------------------+--------+
 | SYNTH-6   | Warning  | Timing of a RAM block might be sub-optimal | 32     |
-| TIMING-16 | Warning  | Large setup violation                      | 32     |
 | TIMING-18 | Warning  | Missing input or output delay              | 161    |
 +-----------+----------+--------------------------------------------+--------+
 
@@ -192,166 +191,6 @@ Related violations: <none>
 SYNTH-6#32 Warning
 Timing of a RAM block might be sub-optimal  
 The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[9].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-TIMING-16#1 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[0]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#2 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[10]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#3 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[11]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#4 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[12]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#5 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[13]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#6 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[14]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#7 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[15]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#8 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[16]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#9 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[17]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#10 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[18]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#11 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[19]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#12 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[1]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#13 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[20]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#14 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[21]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#15 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[22]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#16 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[23]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#17 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[24]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#18 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[25]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#19 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[26]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#20 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[27]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#21 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[28]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#22 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[29]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#23 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[2]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#24 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[30]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#25 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[31]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#26 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[3]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#27 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[4]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#28 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[5]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#29 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[6]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#30 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[7]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#31 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[8]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
-Related violations: <none>
-
-TIMING-16#32 Warning
-Large setup violation  
-There is a large setup violation of -1.023 ns between DUT/config_manager/config_manager_parser_i/header_count_r_reg[1]/C (clocked by clk) and DUT/config_manager/config_manager_pad_fsm_i/count_r_reg[9]/R (clocked by clk). Large setup violations at the end of those stages might be difficult to fix during the post-placement implementation flow and could be the result of non-optimal XDC constraints or non-optimal design architecture
 Related violations: <none>
 
 TIMING-18#1 Warning
