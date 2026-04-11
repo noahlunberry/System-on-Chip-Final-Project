@@ -260,7 +260,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(8),
-      .P($clog2(WEIGHT_FIFO_DEPTH))
+      .P(1)
   ) fifo_weights_bytes (
       .clk             (clk),
       .rst             (rst),
@@ -289,7 +289,7 @@ module config_manager #(
       fifo_vr #(
           .N(8),                               // Write byte
           .M(LAYER_WIDTH),                     // Read aligned bus width
-          .P(3)  // Depth
+          .P(1)  // Depth
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
@@ -315,7 +315,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(THRESH_WORD_BYTES * 8),
-      .P($clog2(THRESH_FIFO_DEPTH))
+      .P(1)
   ) fifo_thresholds (
       .clk             (clk),
       .rst             (rst),
