@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Sat Apr 11 21:36:16 2026
+| Date         : Sat Apr 11 21:57:39 2026
 | Host         : Acey running 64-bit major release  (build 9200)
 | Command      : report_methodology -file ./outputs/post_synth_methodology.rpt
 | Design       : bnn_fcc_timing
@@ -23,176 +23,15 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max checks: <unlimited>
-             Checks found: 193
-+-----------+----------+--------------------------------------------+--------+
-| Rule      | Severity | Description                                | Checks |
-+-----------+----------+--------------------------------------------+--------+
-| SYNTH-6   | Warning  | Timing of a RAM block might be sub-optimal | 32     |
-| TIMING-18 | Warning  | Missing input or output delay              | 161    |
-+-----------+----------+--------------------------------------------+--------+
+             Checks found: 161
++-----------+----------+-------------------------------+--------+
+| Rule      | Severity | Description                   | Checks |
++-----------+----------+-------------------------------+--------+
+| TIMING-18 | Warning  | Missing input or output delay | 161    |
++-----------+----------+-------------------------------+--------+
 
 2. REPORT DETAILS
 -----------------
-SYNTH-6#1 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[0].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#2 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[10].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#3 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[11].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#4 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[12].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#5 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[13].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#6 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[14].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#7 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[15].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#8 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[16].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#9 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[17].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#10 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[18].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#11 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[19].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#12 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[1].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#13 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[20].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#14 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[21].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#15 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[22].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#16 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[23].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#17 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[24].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#18 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[25].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#19 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[26].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#20 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[27].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#21 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[28].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#22 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[29].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#23 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[2].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#24 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[30].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#25 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[31].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#26 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[3].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#27 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[4].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#28 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[5].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#29 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[6].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#30 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[7].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#31 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[8].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
-SYNTH-6#32 Warning
-Timing of a RAM block might be sub-optimal  
-The timing for the instance DUT/bnn_main/u_layer_1/gen_np_mems[9].u_w_ram/ram_reg, implemented as a RAM block, might be sub-optimal as no output register was merged into the block.
-Related violations: <none>
-
 TIMING-18#1 Warning
 Missing input or output delay  
 An input delay is missing on config_data[0] relative to the rising and/or falling clock edge(s) of clk.
