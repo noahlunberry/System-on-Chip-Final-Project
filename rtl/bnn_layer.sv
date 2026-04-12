@@ -64,6 +64,7 @@ module bnn_layer #(
 
   // Input buffer signals
   logic [     PARALLEL_INPUTS-1:0] buffer_rd_data;
+  logic [     PARALLEL_INPUTS-1:0] buffer_rd_data_aligned;
   logic                            buffer_empty;
   logic                            buffer_rd_ready;
   logic                            buffer_not_full;
@@ -99,6 +100,16 @@ module bnn_layer #(
       .not_full(buffer_not_full),
       .rd_ready(buffer_rd_ready)
   );
+
+  // The replay buffer returns data one cycle earlier than the now-registered
+  // RAM outputs, so stage it once here before it enters the neuron processors.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      buffer_rd_data_aligned <= '0;
+    end else begin
+      buffer_rd_data_aligned <= buffer_rd_data;
+    end
+  end
 
   // Local pipelining for config writes.
   // This breaks the long path from config_manager/packer logic into the RAM
@@ -188,7 +199,7 @@ module bnn_layer #(
       ram_sdp #(
           .DATA_WIDTH (MAX_PARALLEL_INPUTS),
           .ADDR_WIDTH (W_RAM_ADDR_W),
-          .REG_RD_DATA(1'b0),
+          .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
           .STYLE      ("")
       ) u_w_ram (
@@ -205,7 +216,7 @@ module bnn_layer #(
       ram_sdp #(
           .DATA_WIDTH (THRESHOLD_DATA_WIDTH),
           .ADDR_WIDTH (T_RAM_ADDR_W),
-          .REG_RD_DATA(1'b0),
+          .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
           .STYLE      ("")
       ) u_t_ram (
@@ -238,7 +249,7 @@ module bnn_layer #(
           .rst      (rst),
           .valid_in (np_valid),
           .last     (np_last),
-          .x        (buffer_rd_data),
+          .x        (buffer_rd_data_aligned),
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
@@ -249,4 +260,3 @@ module bnn_layer #(
 
   endgenerate
 endmodule
-

@@ -26,7 +26,7 @@ module neuron_controller #(
   // Constants
   localparam int WORDS_PER_NEURON = TOTAL_INPUTS / PARALLEL_INPUTS;
   localparam int NEURON_BATCHES = TOTAL_NEURONS / PARALLEL_NEURONS;
-  localparam int RAM_RD_LATENCY = 1;
+  localparam int RAM_RD_LATENCY = 2;
 
   typedef enum logic [1:0] {
     START,
