@@ -167,16 +167,16 @@ module config_manager_parser (
 
           if (payload_last_byte_r) begin
             next_parse_state = PARSE_DONE;
-          end else begin
-            // payload_count_r is the index before consuming this byte. When it
-            // matches payload_second_last_idx_r, the byte accepted right now is
-            // the second-to-last byte, so the next accepted byte will be final.
-            next_payload_last_byte = (payload_count_r == payload_second_last_idx_r);
-
-            if (!cfg_byte_empty) begin
-              cfg_byte_request = 1'b1;
-            end
           end
+          // payload_count_r is the index before consuming this byte. When it
+          // matches payload_second_last_idx_r, the byte accepted right now is
+          // the second-to-last byte, so the next accepted byte will be final.
+          next_payload_last_byte = (payload_count_r == payload_second_last_idx_r);
+
+          if (!cfg_byte_empty) begin
+            cfg_byte_request = 1'b1;
+          end
+
         end else if (!cfg_byte_empty && !stall) begin
           cfg_byte_request = 1'b1;
         end

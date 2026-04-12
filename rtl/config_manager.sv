@@ -70,16 +70,28 @@ module config_manager #(
   logic [31:0] payload_read_count;
 
   // FIFO Status
-  logic w_empty;
-  logic t_empty;
+  logic w_fifo_empty;
+  logic t_fifo_empty;
+  logic w_stream_empty;
+  logic t_stream_empty;
+  logic w_drained;
+  logic t_drained;
   logic w_full;
   logic t_full;
   logic w_rd_en;
   logic w_wr_en;
   logic t_rd_en;
   logic t_wr_en;
+  logic w_fetch_en;
+  logic t_fetch_en;
+  logic w_data_valid_r;
+  logic t_data_valid_r;
 
   logic [LAYERS-1:0] packer_empty;
+  logic [LAYERS-1:0] packer_has_data;
+  logic [LAYERS-1:0] packer_fetch_en;
+  logic [LAYERS-1:0] packer_stage_valid_r;
+  logic [LAYERS-1:0] packer_fifo_empty;
   logic all_packers_empty;
   logic active_stream_empty;
   logic [LAYERS-1:0] weight_ram_wr_en_r;
@@ -105,22 +117,28 @@ module config_manager #(
   // =========================================================================
   // Combinational Assignments & Top-Level Logic
   // =========================================================================
+  assign w_stream_empty      = !w_data_valid_r;
+  assign t_stream_empty      = !t_data_valid_r;
+  assign w_drained           = !w_data_valid_r && w_fifo_empty;
+  assign t_drained           = !t_data_valid_r && t_fifo_empty;
   assign all_packers_empty   = &packer_empty;
-  assign active_stream_empty = msg_type_r ? t_empty : w_empty;
+  assign active_stream_empty = msg_type_r ? t_stream_empty : w_stream_empty;
 
   // The config FSM waits for all downstream FIFOs and packers to finish the
   // current message before starting the next one.
-  assign empty = w_empty && t_empty && all_packers_empty && !packer_wr_valid_r
+  assign empty = w_drained && t_drained && all_packers_empty && !packer_wr_valid_r
                  && !(|weight_ram_wr_en_r)
                  && pad_fsm_in_read_state;
   assign config_ready        = !cfg_byte_alm_full;
   assign weight_ram_wr_en    = weight_ram_wr_en_r;
   assign weight_ram_wr_data  = weight_ram_wr_data_r;
 
-  assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_empty;
-  assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
+  assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_stream_empty;
+  assign t_rd_en             = fifo_rd_en && msg_type_r && !t_stream_empty;
   assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
   assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
+  assign w_fetch_en          = !w_fifo_empty && (!w_data_valid_r || w_rd_en);
+  assign t_fetch_en          = !t_fifo_empty && (!t_data_valid_r || t_rd_en);
 
   // Compact every accepted config beat first so fragmented headers and payload
   // bytes are converted into one contiguous byte stream.
@@ -257,11 +275,12 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(8),
-      .P(7)
+      .P(7),
+      .FWFT(1'b0)
   ) fifo_weights_bytes (
       .clk             (clk),
       .rst             (rst),
-      .rd_en           (w_rd_en),
+      .rd_en           (w_fetch_en),
       .wr_en           (w_wr_en),
       .wr_data         (payload_byte_data),
       .alm_full_thresh ('0),
@@ -269,7 +288,7 @@ module config_manager #(
       .alm_full        (),
       .alm_empty       (),
       .full            (w_full),
-      .empty           (w_empty),
+      .empty           (w_fifo_empty),
       .rd_data         (w_byte_data)
   );
 
@@ -286,11 +305,12 @@ module config_manager #(
       fifo_vr #(
           .N(8),                               // Write byte
           .M(LAYER_WIDTH),                     // Read aligned bus width
-          .P(1)  // Depth
+          .P(1),  // Depth
+          .FWFT(1'b0)
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
-          .rd_en           (packer_rd_en[i]),
+          .rd_en           (packer_fetch_en[i]),
           .wr_en           (packer_wr_valid_r && (packer_wr_layer_r == i)),
           .wr_data         (packer_wr_data_r),
           .alm_full_thresh ('0),
@@ -298,7 +318,7 @@ module config_manager #(
           .alm_full        (),
           .alm_empty       (),
           .full            (),
-          .empty           (packer_empty[i]),
+          .empty           (packer_fifo_empty[i]),
           .rd_data         (packer_layer_data)
       );
 
@@ -312,11 +332,12 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(THRESH_WORD_BYTES * 8),
-      .P(4)
+      .P(4),
+      .FWFT(1'b0)
   ) fifo_thresholds (
       .clk             (clk),
       .rst             (rst),
-      .rd_en           (t_rd_en),
+      .rd_en           (t_fetch_en),
       .wr_en           (t_wr_en),
       .wr_data         (payload_byte_data),
       .alm_full_thresh ('0),
@@ -324,7 +345,7 @@ module config_manager #(
       .alm_full        (),
       .alm_empty       (),
       .full            (t_full),
-      .empty           (t_empty),
+      .empty           (t_fifo_empty),
       .rd_data         (threshold_fifo_rd_data)
   );
 
@@ -345,7 +366,7 @@ module config_manager #(
     // Weights automatically drain out of the specific packers when sequences
     // arise. The selected word is registered below before leaving this module.
     for (int j = 0; j < LAYERS; j++) begin
-      if (!packer_empty[j] && (layer_id_r == 2'(j))) begin
+      if (packer_has_data[j] && (layer_id_r == 2'(j))) begin
         packer_rd_en[j] = 1'b1;
       end
     end
@@ -353,9 +374,32 @@ module config_manager #(
 
   always_ff @(posedge clk) begin
     if (rst) begin
+      w_data_valid_r       <= 1'b0;
+      t_data_valid_r       <= 1'b0;
+      packer_stage_valid_r <= '0;
       weight_ram_wr_en_r   <= '0;
       weight_ram_wr_data_r <= '0;
     end else begin
+      if (w_fetch_en) begin
+        w_data_valid_r <= 1'b1;
+      end else if (w_rd_en) begin
+        w_data_valid_r <= 1'b0;
+      end
+
+      if (t_fetch_en) begin
+        t_data_valid_r <= 1'b1;
+      end else if (t_rd_en) begin
+        t_data_valid_r <= 1'b0;
+      end
+
+      for (int j = 0; j < LAYERS; j++) begin
+        if (packer_fetch_en[j]) begin
+          packer_stage_valid_r[j] <= 1'b1;
+        end else if (packer_rd_en[j]) begin
+          packer_stage_valid_r[j] <= 1'b0;
+        end
+      end
+
       weight_ram_wr_en_r <= '0;
 
       // Register one more stage at the config_manager output so the long
@@ -386,5 +430,13 @@ module config_manager #(
       end
     end
   end
+
+  generate
+    for (i = 0; i < LAYERS; i++) begin : gen_packer_stage_ctrl
+      assign packer_has_data[i] = packer_stage_valid_r[i];
+      assign packer_empty[i] = !packer_stage_valid_r[i] && packer_fifo_empty[i];
+      assign packer_fetch_en[i] = !packer_fifo_empty[i] && (!packer_stage_valid_r[i] || packer_rd_en[i]);
+    end
+  endgenerate
 
 endmodule
