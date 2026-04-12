@@ -41,7 +41,7 @@ module fifo_vr #(
     // the product of 2 ^ P * M, which would be P + log2(M) + 1.
     bit [P + $clog2(M) : 0] fill;
 
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         // on hard reset, reset the memory
         if (rst) begin
             for (int i = 0; i < MEM_SIZE; i++) begin
@@ -73,7 +73,7 @@ module fifo_vr #(
         end
     endgenerate
 
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         if (rst) begin
             rd_data_r <= '0;
         end else if (!FWFT && rd_en && !empty) begin
@@ -83,7 +83,7 @@ module fifo_vr #(
         end
     end
 
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         // reset the write address for a soft/hard reset
         if (rst) begin
             wraddr <= 0;
@@ -95,7 +95,7 @@ module fifo_vr #(
         end
     end
 
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         // reset the read address for a soft/hard reset
         if (rst) begin
             rdaddr <= 0;
@@ -105,7 +105,7 @@ module fifo_vr #(
         end
     end
 
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         // reset the flags for a soft/hard reset
         if (rst) begin
             full  <= 1'b0;
@@ -168,7 +168,7 @@ module fifo_vr #(
     end
 
     // Count the number of elements in the FIFO (multiplied by M)
-    always @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
         // reset the flags and the fill for a soft/hard reset
         if (rst) begin
             fill      <= 0;
