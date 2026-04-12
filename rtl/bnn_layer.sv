@@ -78,6 +78,12 @@ module bnn_layer #(
   logic [ MAX_PARALLEL_INPUTS-1:0] cfg_weight_wr_data_r;
   logic                            cfg_threshold_wr_en_r;
   logic [THRESHOLD_DATA_WIDTH-1:0] cfg_threshold_wr_data_r;
+  logic [PARALLEL_NEURONS-1:0]     w_wr_en_pipe_r;
+  logic [W_RAM_ADDR_W-1:0]         w_wr_addr_pipe_r[PARALLEL_NEURONS];
+  logic [PARALLEL_NEURONS-1:0]     t_wr_en_pipe_r;
+  logic [T_RAM_ADDR_W-1:0]         t_wr_addr_pipe_r[PARALLEL_NEURONS];
+  logic [ MAX_PARALLEL_INPUTS-1:0] cfg_weight_wr_data_pipe_r;
+  logic [THRESHOLD_DATA_WIDTH-1:0] cfg_threshold_wr_data_pipe_r;
 
   assign ready_in = config_done && buffer_not_full;
 
@@ -158,6 +164,33 @@ module bnn_layer #(
       .done               (config_done)
   );
 
+  // Register the config-controller outputs before they drive the per-NP RAMs.
+  // This cuts the long controller-to-BRAM address/enable routes at the layer
+  // boundary while keeping one config write per cycle after pipeline fill.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      w_wr_en_pipe_r             <= '0;
+      t_wr_en_pipe_r             <= '0;
+      cfg_weight_wr_data_pipe_r  <= '0;
+      cfg_threshold_wr_data_pipe_r <= '0;
+
+      for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+        w_wr_addr_pipe_r[i] <= '0;
+        t_wr_addr_pipe_r[i] <= '0;
+      end
+    end else begin
+      w_wr_en_pipe_r             <= w_wr_en;
+      t_wr_en_pipe_r             <= t_wr_en;
+      cfg_weight_wr_data_pipe_r  <= cfg_weight_wr_data_r;
+      cfg_threshold_wr_data_pipe_r <= cfg_threshold_wr_data_r;
+
+      for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+        w_wr_addr_pipe_r[i] <= w_wr_addr[i];
+        t_wr_addr_pipe_r[i] <= t_wr_addr[i];
+      end
+    end
+  end
+
   logic np_valid;
   logic np_last;
   logic valid_data;
@@ -207,9 +240,9 @@ module bnn_layer #(
           .rd_en  (1'b1), // was a super huge fanout signal
           .rd_addr(w_rd_addr),
           .rd_data(w_rd_data[gi]),
-          .wr_en  (w_wr_en[gi]),
-          .wr_addr(w_wr_addr[gi]),
-          .wr_data(cfg_weight_wr_data_r)
+          .wr_en  (w_wr_en_pipe_r[gi]),
+          .wr_addr(w_wr_addr_pipe_r[gi]),
+          .wr_data(cfg_weight_wr_data_pipe_r)
       );
 
       // Threshold RAM (one per NP)
@@ -224,9 +257,9 @@ module bnn_layer #(
           .rd_en  (1'b1),
           .rd_addr(t_rd_addr),
           .rd_data(t_rd_data[gi]),
-          .wr_en  (t_wr_en[gi]),
-          .wr_addr(t_wr_addr[gi]),
-          .wr_data(cfg_threshold_wr_data_r)
+          .wr_en  (t_wr_en_pipe_r[gi]),
+          .wr_addr(t_wr_addr_pipe_r[gi]),
+          .wr_data(cfg_threshold_wr_data_pipe_r)
       );
 
     end
