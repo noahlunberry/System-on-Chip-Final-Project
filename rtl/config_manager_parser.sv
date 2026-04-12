@@ -4,9 +4,8 @@ module config_manager_parser (
 
     input logic       cfg_byte_empty,
     input logic [7:0] cfg_byte_data,
-    input logic       w_wr_ready,
-    input logic       t_wr_ready,
     input logic       empty,
+    input logic       stall,
 
     output logic        cfg_byte_rd_en,
     output logic        payload_byte_valid,
@@ -93,7 +92,6 @@ module config_manager_parser (
   // 4. PARSE_DONE waits for the rest of config_manager to finish draining the
   //    current message before accepting the next header.
   always_comb begin
-    logic payload_dst_ready;
     logic cfg_byte_consume;
     logic cfg_byte_request;
 
@@ -114,7 +112,6 @@ module config_manager_parser (
     payload_byte_valid           = 1'b0;
     payload_byte_is_thresh       = msg_type;
     payload_byte_data            = cfg_byte_data;
-    payload_dst_ready            = msg_type ? t_wr_ready : w_wr_ready;
     cfg_byte_consume             = 1'b0;
     cfg_byte_request             = 1'b0;
 
@@ -161,26 +158,26 @@ module config_manager_parser (
       end
 
       PARSE_PAYLOAD: begin
-        if (cfg_byte_data_valid_r) begin
-          if (payload_dst_ready) begin
-            cfg_byte_consume   = 1'b1;
-            payload_byte_valid = 1'b1;
-            next_payload_count = payload_count_r + 1'b1;
+        // Hold the staged payload byte whenever pad_fsm is emitting synthetic
+        // padding so weight parsing does not outrun the downstream consumer.
+        if (cfg_byte_data_valid_r && !stall) begin
+          cfg_byte_consume   = 1'b1;
+          payload_byte_valid = 1'b1;
+          next_payload_count = payload_count_r + 1'b1;
 
-            if (payload_last_byte_r) begin
-              next_parse_state = PARSE_DONE;
-            end else begin
-              // payload_count_r is the index before consuming this byte. When it
-              // matches payload_second_last_idx_r, the byte accepted right now is
-              // the second-to-last byte, so the next accepted byte will be final.
-              next_payload_last_byte = (payload_count_r == payload_second_last_idx_r);
+          if (payload_last_byte_r) begin
+            next_parse_state = PARSE_DONE;
+          end else begin
+            // payload_count_r is the index before consuming this byte. When it
+            // matches payload_second_last_idx_r, the byte accepted right now is
+            // the second-to-last byte, so the next accepted byte will be final.
+            next_payload_last_byte = (payload_count_r == payload_second_last_idx_r);
 
-              if (!cfg_byte_empty) begin
-                cfg_byte_request = 1'b1;
-              end
+            if (!cfg_byte_empty) begin
+              cfg_byte_request = 1'b1;
             end
           end
-        end else if (!cfg_byte_empty && payload_dst_ready) begin
+        end else if (!cfg_byte_empty && !stall) begin
           cfg_byte_request = 1'b1;
         end
       end

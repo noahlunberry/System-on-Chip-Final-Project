@@ -15,6 +15,7 @@ module config_manager_pad_fsm #(
     input logic [ 7:0] w_byte_data,
 
     output logic       in_read_state,
+    output logic       stall,
     output logic       fifo_rd_en,
     output logic       buffer_wr_en,
     output logic [7:0] data
@@ -218,6 +219,7 @@ module config_manager_pad_fsm #(
   assign pad_last_cycle = remaining_pad_count_r == '0;
 
   assign in_read_state = (state_r == READ);
+  assign stall = (state_r == PAD);
 
   //--------------------------------------------------------------------------
   // Next-state / output logic

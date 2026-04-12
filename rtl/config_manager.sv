@@ -74,8 +74,6 @@ module config_manager #(
   logic t_empty;
   logic w_full;
   logic t_full;
-  logic w_wr_ready;
-  logic t_wr_ready;
   logic w_rd_en;
   logic w_wr_en;
   logic t_rd_en;
@@ -89,6 +87,7 @@ module config_manager #(
 
   // Control/Data Routing
   logic pad_fsm_in_read_state;
+  logic pad_fsm_stall;
   logic buffer_wr_en;
   logic fifo_rd_en;
 
@@ -122,8 +121,6 @@ module config_manager #(
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_empty;
   assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
   assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
-  assign w_wr_ready          = !w_full;
-  assign t_wr_ready          = !t_full;
 
   // Compact every accepted config beat first so fragmented headers and payload
   // bytes are converted into one contiguous byte stream.
@@ -200,9 +197,8 @@ module config_manager #(
       .rst               (rst),
       .cfg_byte_empty    (cfg_byte_empty),
       .cfg_byte_data     (cfg_byte_data),
-      .w_wr_ready        (w_wr_ready),
-      .t_wr_ready        (t_wr_ready),
       .empty             (empty),
+      .stall             (pad_fsm_stall),
       .cfg_byte_rd_en    (cfg_byte_rd_en),
       .payload_byte_valid(payload_byte_valid),
       .payload_byte_is_thresh(payload_byte_is_thresh),
@@ -231,6 +227,7 @@ module config_manager #(
       .active_stream_empty(active_stream_empty),
       .w_byte_data       (w_byte_data),
       .in_read_state     (pad_fsm_in_read_state),
+      .stall             (pad_fsm_stall),
       .fifo_rd_en        (fifo_rd_en),
       .buffer_wr_en      (buffer_wr_en),
       .data              (data)
@@ -260,7 +257,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(8),
-      .P(1)
+      .P(7)
   ) fifo_weights_bytes (
       .clk             (clk),
       .rst             (rst),
@@ -315,7 +312,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(THRESH_WORD_BYTES * 8),
-      .P(1)
+      .P(4)
   ) fifo_thresholds (
       .clk             (clk),
       .rst             (rst),
@@ -377,13 +374,13 @@ module config_manager #(
       end
 
       if (w_wr_en) begin
-        assert (w_wr_ready)
+        assert (!w_full)
           else $fatal(1,
                       "config_manager overflow: weight fifo_vr rejected a payload byte.");
       end
 
       if (t_wr_en) begin
-        assert (t_wr_ready)
+        assert (!t_full)
           else $fatal(1,
                       "config_manager overflow: threshold fifo_vr rejected a payload byte.");
       end
