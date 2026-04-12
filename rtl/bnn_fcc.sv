@@ -72,6 +72,10 @@ module bnn_fcc #(
   logic                            out_fifo_full;
   logic                            out_fifo_empty;
   logic                            out_fifo_alm_full;
+  logic                            out_fifo_rd_en;
+  logic                            out_fifo_data_valid_r;
+  logic                            out_fifo_word_accepted;
+  logic [OUTPUT_BUS_WIDTH-1:0]     out_fifo_rd_data;
 
   initial begin
     for (int i = 0; i < LAYERS - 1; i++) begin
@@ -201,18 +205,17 @@ module bnn_fcc #(
   // AXI Stream Output FIFO (Elastic Buffer)
   // -------------------------------------------------------------------------
 
+  // Use the FIFO's registered read output and keep a local valid bit here so
+  // AXI still sees a standard hold-until-ready producer interface.
 
-  // Note: AXI-Stream requires "First-Word Fall-Through" (FWFT) FIFO behavior, 
-  // meaning the read data is available on the same cycle 'empty' goes low.
-  // Assuming your 'fifo_vr' module supports standard N=M widths and FWFT.
-
-  localparam int OUT_FIFO_DEPTH_LOG2 = 5;  // 32 entries
+  localparam int OUT_FIFO_DEPTH_LOG2 = 2;  // 4 entries
   localparam int PIPELINE_LATENCY = ARGMAX_LATENCY + 10;  // Adjust '10' to your BNN's actual latency
 
   fifo_vr #(
       .N(OUTPUT_BUS_WIDTH),
       .M(OUTPUT_BUS_WIDTH),
-      .P(OUT_FIFO_DEPTH_LOG2)
+      .P(OUT_FIFO_DEPTH_LOG2),
+      .FWFT(1'b0)
   ) out_fifo (
       .clk    (clk),
       .rst    (rst),
@@ -221,8 +224,8 @@ module bnn_fcc #(
       .wr_data(OUTPUT_BUS_WIDTH'(tree_max_idx)),
 
       // Read side: driven by the AXI consumer
-      .rd_en  (data_out_ready && !out_fifo_empty),
-      .rd_data(data_out_data),
+      .rd_en  (out_fifo_rd_en),
+      .rd_data(out_fifo_rd_data),
 
       // Backpressure threshold: Reserve enough space for all inflight pipeline stages
       .alm_full_thresh ((1 << OUT_FIFO_DEPTH_LOG2) - PIPELINE_LATENCY - 2),
@@ -233,8 +236,24 @@ module bnn_fcc #(
       .empty           (out_fifo_empty)
   );
 
+  assign out_fifo_word_accepted = out_fifo_data_valid_r && data_out_ready;
+  assign out_fifo_rd_en = !out_fifo_empty && (!out_fifo_data_valid_r || out_fifo_word_accepted);
+
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      out_fifo_data_valid_r <= 1'b0;
+    end else begin
+      if (out_fifo_rd_en) begin
+        out_fifo_data_valid_r <= 1'b1;
+      end else if (out_fifo_word_accepted) begin
+        out_fifo_data_valid_r <= 1'b0;
+      end
+    end
+  end
+
   // Final AXI Assignments
-  assign data_out_valid = !out_fifo_empty;
+  assign data_out_valid = out_fifo_data_valid_r;
+  assign data_out_data  = out_fifo_rd_data;
   assign data_out_keep  = '1;
   assign data_out_last  = 1'b1;
 

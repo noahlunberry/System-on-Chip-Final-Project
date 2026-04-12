@@ -133,6 +133,9 @@ module data_in_manager #(
   logic                           bin_fifo_full;
   logic                           bin_fifo_empty;
   logic                           bin_fifo_alm_full;
+  logic                           bin_fifo_rd_en;
+  logic                           bin_fifo_data_valid_r;
+  logic                           bin_fifo_word_accepted;
   logic                           input_accept;
 
   assign input_accept = data_in_valid && data_in_ready;
@@ -238,13 +241,14 @@ module data_in_manager #(
   fifo_vr #(
       .N(INPUT_BUS_BYTES),
       .M(MAX_PARALLEL_INPUTS),
-      .P(BIN_FIFO_DEPTH_LOG2)
+      .P(BIN_FIFO_DEPTH_LOG2),
+      .FWFT(1'b0)
   ) bin_fifo (
       .clk             (clk),
       .rst             (rst),
       .wr_en           (vw_rd_en),
       .wr_data         (bin_fifo_wr_data),
-      .rd_en           (!bin_fifo_empty && bnn_ready && bnn_en),
+      .rd_en           (bin_fifo_rd_en),
       .rd_data         (bin_fifo_rd_data),
       .alm_full_thresh (BIN_FIFO_ALM_FULL_THRESH),
       .alm_empty_thresh('0),
@@ -254,20 +258,30 @@ module data_in_manager #(
       .empty           (bin_fifo_empty)
   );
 
-  // Preserve the original top-level style: the BNN sees a word whenever the
-  // FIFO is non-empty and layer 1 is ready, but the actual dequeue is still
-  // gated by bnn_en so output-path backpressure can pause advancement.
-  assign bnn_data_in       = bin_fifo_rd_data;
-  assign bnn_data_in_valid = !bin_fifo_empty && bnn_ready;
+  // With registered FIFO outputs, keep a local valid bit so the staged word
+  // can wait here until the BNN consumes it.
+  assign bin_fifo_word_accepted = bin_fifo_data_valid_r && bnn_ready && bnn_en;
+  assign bin_fifo_rd_en = !bin_fifo_empty && (!bin_fifo_data_valid_r || bin_fifo_word_accepted);
 
-  always_ff @(posedge clk or posedge rst) begin
+  assign bnn_data_in       = bin_fifo_rd_data;
+  assign bnn_data_in_valid = bin_fifo_data_valid_r && bnn_en;
+
+  always_ff @(posedge clk) begin
     if (rst) begin
       compact_last_r     <= 1'b0;
       frame_byte_count_r <= '0;
       padding_r          <= 1'b0;
       pad_remaining_r    <= '0;
+      bin_fifo_data_valid_r <= 1'b0;
     end
     else begin
+      if (bin_fifo_rd_en) begin
+        bin_fifo_data_valid_r <= 1'b1;
+      end
+      else if (bin_fifo_word_accepted) begin
+        bin_fifo_data_valid_r <= 1'b0;
+      end
+
       // Delay TLAST so it lines up with the registered compacted beat. When
       // compact_last_r is 1, compact_* refers to the final real data beat of
       // the current frame.
