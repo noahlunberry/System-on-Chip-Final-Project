@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date             : Sat Apr 11 23:29:44 2026
+| Date             : Sun Apr 12 00:40:01 2026
 | Host             : Acey running 64-bit major release  (build 9200)
 | Command          : report_power -file ./outputs/post_route_power.rpt
 | Design           : bnn_fcc_timing
@@ -30,10 +30,10 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 5.047        |
+| Total On-Chip Power (W)  | 5.002        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 2.064        |
+| Dynamic (W)              | 2.020        |
 | Device Static (W)        | 2.983        |
 | Effective TJA (C/W)      | 0.5          |
 | Max Ambient (C)          | 97.4         |
@@ -52,19 +52,19 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     0.452 |        3 |       --- |             --- |
-| CLB Logic                |     0.617 |    61968 |       --- |             --- |
-|   LUT as Logic           |     0.451 |    23498 |   1728000 |            1.36 |
-|   LUT as Distributed RAM |     0.085 |     3540 |    791040 |            0.45 |
-|   Register               |     0.064 |    26296 |   3456000 |            0.76 |
+| Clocks                   |     0.490 |        3 |       --- |             --- |
+| CLB Logic                |     0.581 |    63286 |       --- |             --- |
+|   LUT as Logic           |     0.418 |    23701 |   1728000 |            1.37 |
+|   LUT as Distributed RAM |     0.086 |     3540 |    791040 |            0.45 |
+|   Register               |     0.059 |    27463 |   3456000 |            0.79 |
 |   LUT as Shift Register  |     0.010 |      641 |    791040 |            0.08 |
 |   CARRY8                 |     0.007 |      273 |    216000 |            0.13 |
-|   Others                 |     0.000 |     5430 |       --- |             --- |
-|   F7/F8 Muxes            |     0.000 |      430 |   1728000 |            0.02 |
-| Signals                  |     0.483 |    34759 |       --- |             --- |
-| Block RAM                |     0.512 |       32 |      2688 |            1.19 |
+|   Others                 |     0.000 |     5422 |       --- |             --- |
+|   F7/F8 Muxes            |     0.000 |      412 |   1728000 |            0.02 |
+| Signals                  |     0.453 |    35116 |       --- |             --- |
+| Block RAM                |     0.497 |       32 |      2688 |            1.19 |
 | Static Power             |     2.983 |          |           |                 |
-| Total                    |     5.047 |          |           |                 |
+| Total                    |     5.002 |          |           |                 |
 +--------------------------+-----------+----------+-----------+-----------------+
 
 
@@ -74,7 +74,7 @@ Table of Contents
 +------------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source     | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +------------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint     |       0.850 |     3.586 |       2.399 |      1.188 |       NA    | Unspecified | NA         |
+| Vccint     |       0.850 |     3.533 |       2.346 |      1.187 |       NA    | Unspecified | NA         |
 | Vccint_io  |       0.850 |     0.143 |       0.000 |      0.143 |       NA    | Unspecified | NA         |
 | Vccbram    |       0.850 |     0.050 |       0.030 |      0.021 |       NA    | Unspecified | NA         |
 | Vccaux     |       1.800 |     0.883 |       0.000 |      0.883 |       NA    | Unspecified | NA         |
@@ -146,27 +146,27 @@ Table of Contents
 +-------------------------------------+-----------+
 | Name                                | Power (W) |
 +-------------------------------------+-----------+
-| bnn_fcc_timing                      |     2.064 |
-|   DUT                               |     2.059 |
+| bnn_fcc_timing                      |     2.020 |
+|   DUT                               |     2.015 |
 |     argmax_inst                     |     0.005 |
 |       l_recurse.left_tree           |     0.004 |
-|     bnn_main                        |     1.925 |
-|       u_layer_1                     |     1.211 |
-|       u_layer_2                     |     0.528 |
-|       u_layer_3                     |     0.186 |
-|     config_manager                  |     0.104 |
+|     bnn_main                        |     1.887 |
+|       u_layer_1                     |     1.215 |
+|       u_layer_2                     |     0.477 |
+|       u_layer_3                     |     0.195 |
+|     config_manager                  |     0.096 |
 |       config_manager_pad_fsm_i      |     0.003 |
-|       config_manager_parser_i       |     0.007 |
-|       config_tkeep_byte_compactor_i |     0.010 |
+|       config_manager_parser_i       |     0.009 |
+|       config_tkeep_byte_compactor_i |     0.009 |
 |       config_vw_buffer_i            |     0.004 |
-|       fifo_config_bytes             |     0.020 |
-|       fifo_thresholds               |     0.005 |
+|       fifo_config_bytes             |     0.019 |
+|       fifo_thresholds               |     0.007 |
 |       fifo_weights_bytes            |     0.024 |
-|       gen_packer[0].fifo_packer     |     0.008 |
-|       gen_packer[1].fifo_packer     |     0.004 |
+|       gen_packer[0].fifo_packer     |     0.007 |
+|       gen_packer[1].fifo_packer     |     0.003 |
 |       gen_packer[2].fifo_packer     |     0.003 |
-|     data_in_manager_i               |     0.023 |
-|       bin_fifo                      |     0.019 |
+|     data_in_manager_i               |     0.024 |
+|       bin_fifo                      |     0.020 |
 |       tkeep_byte_compactor_i        |     0.002 |
 |       vw_buffer_i                   |     0.001 |
 |     out_fifo                        |     0.003 |
