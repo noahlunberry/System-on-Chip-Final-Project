@@ -67,7 +67,8 @@ module bnn #(
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (layer_1_valid_out),
       .data_out         (layer_1_data_out),
-      .ready_out        (layer_1_ready_out)
+      .ready_out        (layer_1_ready_out),
+      .count_out        ()
   );
 
   bnn_layer #(
@@ -90,7 +91,8 @@ module bnn #(
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (layer_2_valid_out),
       .data_out         (layer_2_data_out),
-      .ready_out        (layer_2_ready_out)
+      .ready_out        (layer_2_ready_out),
+      .count_out        ()
   );
 
   bnn_layer #(
@@ -112,7 +114,7 @@ module bnn #(
       .weight_wr_data   (weight_wr_data),
       .threshold_wr_data(threshold_wr_data),
       .valid_out        (data_out_valid),
-      .data_out         (data_out),            //data_out
+      .data_out         (data_out),
       .ready_out        (1'b1),
       .count_out        (count_out)
   );

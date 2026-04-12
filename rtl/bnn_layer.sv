@@ -235,9 +235,8 @@ module bnn_layer #(
   // neuron processors : instantiates and streams data into the neuron processors
 
   logic [PARALLEL_NEURONS-1:0] np_y;
+  logic [THRESHOLD_DATA_WIDTH-1:0] np_count_out[PARALLEL_NEURONS];
   logic [PARALLEL_NEURONS-1:0] y_valid;
-  assign data_out  = np_y;
-  assign valid_out = y_valid[0];
 
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_nps
@@ -253,10 +252,27 @@ module bnn_layer #(
           .w        (w_rd_data[gi]),
           .threshold(t_rd_data[gi]),
           .y        (np_y[gi]),
-          .count_out(count_out[gi]),
+          .count_out(np_count_out[gi]),
           .y_valid  (y_valid[gi])
       );
     end
 
   endgenerate
+
+  // Register the layer outputs so the wide NP result bus does not cross the
+  // module boundary combinationally.
+  always_ff @(posedge clk or posedge rst) begin
+    if (rst) begin
+      data_out  <= '0;
+      valid_out <= 1'b0;
+      count_out <= '{default: '0};
+    end else begin
+      valid_out <= y_valid[0];
+
+      if (y_valid[0]) begin
+        data_out  <= np_y;
+        count_out <= np_count_out;
+      end
+    end
+  end
 endmodule
