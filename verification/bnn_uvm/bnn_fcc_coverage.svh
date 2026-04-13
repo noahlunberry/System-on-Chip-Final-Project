@@ -886,7 +886,7 @@ class bnn_output_coverage extends uvm_component;
     typedef axi4_stream_seq_item #(bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH) axi_item_t;
 
     localparam int OUTPUT_BYTES_PER_BEAT = bnn_fcc_uvm_pkg::OUTPUT_BUS_WIDTH / 8;
-    localparam int MAX_OUTPUT_CLASS = (1 << bnn_fcc_uvm_pkg::OUTPUT_DATA_WIDTH) - 1;
+    localparam int MAX_OUTPUT_CLASS = (9);
 
     // Analysis export/FIFO pair for observed outputs.
     uvm_analysis_export #(axi_item_t) out_ae;

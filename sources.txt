@@ -52,6 +52,8 @@ verification/bnn_uvm/tests/bnn_fcc_reset_reconfig_test.svh
 verification/bnn_uvm/tests/bnn_fcc_config_order_bins_test.svh
 verification/bnn_uvm/tests/bnn_fcc_reset_bins_test.svh
 verification/bnn_uvm/tests/bnn_fcc_threshold_preamble_test.svh
+verification/bnn_uvm/tests/bnn_fcc_threshold_abs_extremes_test.svh
 verification/bnn_uvm/tests/bnn_fcc_density_extremes_test.svh
 verification/bnn_uvm/tests/bnn_fcc_input_stress_test.svh
+verification/bnn_uvm/tests/bnn_fcc_pixel_values_directed_test.svh
 verification/bnn_uvm/bnn_fcc_uvm_tb.sv

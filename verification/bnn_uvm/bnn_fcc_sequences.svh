@@ -827,6 +827,83 @@ endclass
 
 
 // -----------------------------------------------------------------------------
+// Scripted Pixel-Value Packet-Level Image Sequence
+// -----------------------------------------------------------------------------
+// Sends caller-provided raw image vectors as packet-level AXI items. This is
+// useful for directed input-coverage tests that need exact pixel values rather
+// than only dataset indices or random vectors.
+class bnn_fcc_image_scripted_values_packet_sequence extends bnn_fcc_image_base_sequence;
+    `uvm_object_utils(bnn_fcc_image_scripted_values_packet_sequence)
+
+    typedef bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] pixel_t;
+    typedef pixel_t image_t[];
+
+    image_t scripted_images[$];
+
+    function new(string name = "bnn_fcc_image_scripted_values_packet_sequence");
+        super.new(name);
+        is_packet_level = 1'b1;
+    endfunction
+
+    function void clear_images();
+        scripted_images.delete();
+    endfunction
+
+    function void append_image(input pixel_t image_in[]);
+        image_t image_copy;
+
+        image_copy = new[image_in.size()];
+        foreach (image_in[i])
+            image_copy[i] = image_in[i];
+
+        scripted_images.push_back(image_copy);
+    endfunction
+
+    virtual task body();
+        bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[];
+        bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH-1:0] packed_data[];
+        bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH/8-1:0] packed_keep[];
+
+        load_sequence_config();
+
+        if (scripted_images.size() == 0)
+            `uvm_fatal("NO_SCRIPTED_IMAGE_VALUES",
+                       "Scripted pixel-value sequence was started without any images.")
+
+        foreach (scripted_images[list_idx]) begin
+            current_img = new[scripted_images[list_idx].size()];
+            for (int pixel_idx = 0; pixel_idx < scripted_images[list_idx].size(); pixel_idx++)
+                current_img[pixel_idx] = scripted_images[list_idx][pixel_idx];
+
+            pack_image(current_img, packed_data, packed_keep);
+
+            req = in_axi_item_t::type_id::create($sformatf("img_scripted_values_req%0d", list_idx));
+            wait_for_grant();
+
+            req.tdata = new[packed_data.size()];
+            req.tstrb = new[packed_keep.size()];
+            req.tkeep = new[packed_keep.size()];
+
+            foreach (packed_data[beat_idx]) begin
+                req.tdata[beat_idx] = packed_data[beat_idx];
+                req.tstrb[beat_idx] = packed_keep[beat_idx];
+                req.tkeep[beat_idx] = packed_keep[beat_idx];
+            end
+
+            req.tlast           = 1'bX;
+            req.tid             = '0;
+            req.tdest           = '0;
+            req.tuser           = '0;
+            req.is_packet_level = 1'b1;
+
+            send_request(req);
+            wait_for_item_done();
+        end
+    endtask
+endclass
+
+
+// -----------------------------------------------------------------------------
 // Packet-Level Image TKEEP Sequence
 // -----------------------------------------------------------------------------
 // Sends each image as one packet-level AXI item while redistributing pixels
