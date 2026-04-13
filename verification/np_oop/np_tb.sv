@@ -8,6 +8,7 @@ module np_tb;
   localparam TOTAL_INPUTS = 788;
   localparam P_WIDTH = 64;
   localparam ACC_WIDTH = 16;
+  localparam RESULT_LATENCY = 2 + $clog2(P_WIDTH);
 
   localparam NUM_RANDOM_TESTS = 1000;
   localparam NUM_CONSECUTIVE_TESTS = 200;
@@ -63,6 +64,6 @@ module np_tb;
     disable generate_clock;
   end
 
-  assert property (@(posedge bfm.clk) disable iff (bfm.rst) bfm.y_valid |-> $past(bfm.valid_in && bfm.last));
+  assert property (@(posedge bfm.clk) disable iff (bfm.rst) bfm.y_valid |-> $past(bfm.valid_in && bfm.last, RESULT_LATENCY));
 
 endmodule

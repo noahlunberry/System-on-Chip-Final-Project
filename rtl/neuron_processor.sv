@@ -93,12 +93,15 @@ module neuron_processor #(
 
   logic y_valid_r;
   logic y_r;
+  logic [THRESHOLD_WIDTH-1:0] final_sum_r;
+  logic [THRESHOLD_WIDTH-1:0] threshold_final_r;
+  logic compare_valid_r;
 
   assign y_valid = y_valid_r;
   assign y = y_r;
 
   // accumulator control
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
       acc_r <= '0;
     end else begin
@@ -115,16 +118,29 @@ module neuron_processor #(
   end
 
   // output and y_valid control
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
+      final_sum_r      <= '0;
+      threshold_final_r <= '0;
+      compare_valid_r  <= 1'b0;
+      y_r              <= 1'b0;
+      count_out        <= '0;
       y_valid_r <= 1'b0;
     end else begin
-      y_valid_r <= 1'b0;
+      compare_valid_r <= 1'b0;
+      y_valid_r       <= 1'b0;
 
       if (tree_last_out) begin
-        // Compare threshold and set Y and Y_valid
-        y_r       <= ((acc_r + tree_sum) >= threshold_out_r);
-        count_out <= (acc_r + tree_sum);
+        // Register the final accumulated sum locally so the threshold compare
+        // happens in its own cycle instead of on the add-tree output path.
+        final_sum_r      <= acc_r + THRESHOLD_WIDTH'(tree_sum);
+        threshold_final_r <= threshold_out_r;
+        compare_valid_r  <= 1'b1;
+      end
+
+      if (compare_valid_r) begin
+        y_r       <= (final_sum_r >= threshold_final_r);
+        count_out <= final_sum_r;
         y_valid_r <= 1'b1;
       end
     end

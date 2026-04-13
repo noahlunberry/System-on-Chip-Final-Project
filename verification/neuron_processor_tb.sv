@@ -15,6 +15,7 @@ module np_tb_no_hierarchy #(
 
   localparam int BEATS_PER_TEST = (TOTAL_INPUTS + P_WIDTH - 1) / P_WIDTH;
   localparam int TREE_LATENCY = 1 + $clog2(P_WIDTH);
+  localparam int RESULT_LATENCY = TREE_LATENCY + 1;
 
   logic clk = 1'b0;
   logic rst, valid_in, last;
@@ -243,7 +244,8 @@ module np_tb_no_hierarchy #(
     disable generate_clock;
   end
 
-  // The OOP tb used $past(..., 1), but the DUT delays last/valid by TREE_LATENCY.
-  assert property (@(posedge clk) disable iff (rst) y_valid |-> $past(valid_in && last, TREE_LATENCY));
+  // The DUT adds one more output stage after the tree to register the final
+  // sum before the threshold compare.
+  assert property (@(posedge clk) disable iff (rst) y_valid |-> $past(valid_in && last, RESULT_LATENCY));
 
 endmodule
