@@ -38,6 +38,8 @@ module bnn_layer #(
 
 
 );
+  localparam int READ_ADDR_LOCAL_PIPE_STAGES = 1;
+  localparam int NP_RAM_RD_LATENCY = 2 + READ_ADDR_LOCAL_PIPE_STAGES;
 
   initial begin
     if (TOTAL_INPUTS % PARALLEL_INPUTS)
@@ -56,10 +58,12 @@ module bnn_layer #(
   // They each have their own rd data and rd addresses, since data will be read in parallel
   logic                            w_rd_en;
   logic [        W_RAM_ADDR_W-1:0] w_rd_addr;
+  logic [        W_RAM_ADDR_W-1:0] w_rd_addr_local [PARALLEL_NEURONS];
   logic [     PARALLEL_INPUTS-1:0] w_rd_data       [PARALLEL_NEURONS];
 
   logic                            t_rd_en;
   logic [        T_RAM_ADDR_W-1:0] t_rd_addr;
+  logic [        T_RAM_ADDR_W-1:0] t_rd_addr_local [PARALLEL_NEURONS];
   logic [THRESHOLD_DATA_WIDTH-1:0] t_rd_data       [PARALLEL_NEURONS];
 
   // Input buffer signals
@@ -107,15 +111,18 @@ module bnn_layer #(
       .rd_ready(buffer_rd_ready)
   );
 
-  // The replay buffer returns data one cycle earlier than the now-registered
-  // RAM outputs, so stage it once here before it enters the neuron processors.
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      buffer_rd_data_aligned <= '0;
-    end else begin
-      buffer_rd_data_aligned <= buffer_rd_data;
-    end
-  end
+  // The replay buffer returns data before the per-bank RAM read path. Delay it
+  // so it stays aligned with the RAM outputs after the local address stage.
+  delay #(
+      .CYCLES(NP_RAM_RD_LATENCY - 1),
+      .WIDTH (PARALLEL_INPUTS)
+  ) u_input_align_delay (
+      .clk(clk),
+      .rst(rst),
+      .en (1'b1),
+      .in (buffer_rd_data),
+      .out(buffer_rd_data_aligned)
+  );
 
   // Local pipelining for config writes.
   // This breaks the long path from config_manager/packer logic into the RAM
@@ -203,7 +210,8 @@ module bnn_layer #(
       .TOTAL_INPUTS    (TOTAL_INPUTS),
       .TOTAL_NEURONS   (TOTAL_NEURONS),
       .W_RAM_ADDR_W    (W_RAM_ADDR_W),
-      .T_RAM_ADDR_W    (T_RAM_ADDR_W)
+      .T_RAM_ADDR_W    (T_RAM_ADDR_W),
+      .RAM_RD_LATENCY  (NP_RAM_RD_LATENCY)
   ) u_nc (
       .clk       (clk),
       .rst       (rst),
@@ -227,6 +235,31 @@ module bnn_layer #(
   genvar gi;
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_np_mems
+      // Keep a dedicated read-address register beside each RAM bank so the
+      // wide address fanout is cut before it enters the distributed RAM.
+      delay #(
+          .CYCLES       (READ_ADDR_LOCAL_PIPE_STAGES),
+          .WIDTH        (W_RAM_ADDR_W),
+          .PRESERVE_REGS(1'b1)
+      ) u_w_addr_local_delay (
+          .clk(clk),
+          .rst(rst),
+          .en (1'b1),
+          .in (w_rd_addr),
+          .out(w_rd_addr_local[gi])
+      );
+
+      delay #(
+          .CYCLES       (READ_ADDR_LOCAL_PIPE_STAGES),
+          .WIDTH        (T_RAM_ADDR_W),
+          .PRESERVE_REGS(1'b1)
+      ) u_t_addr_local_delay (
+          .clk(clk),
+          .rst(rst),
+          .en (1'b1),
+          .in (t_rd_addr),
+          .out(t_rd_addr_local[gi])
+      );
 
       // Weights RAM (one per NP)
       ram_sdp #(
@@ -238,7 +271,7 @@ module bnn_layer #(
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (1'b1), // was a super huge fanout signal
-          .rd_addr(w_rd_addr),
+          .rd_addr(w_rd_addr_local[gi]),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en_pipe_r[gi]),
           .wr_addr(w_wr_addr_pipe_r[gi]),
@@ -255,7 +288,7 @@ module bnn_layer #(
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (1'b1),
-          .rd_addr(t_rd_addr),
+          .rd_addr(t_rd_addr_local[gi]),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en_pipe_r[gi]),
           .wr_addr(t_wr_addr_pipe_r[gi]),
