@@ -119,24 +119,21 @@ module config_manager_parser (
       PARSE_HEADER: begin
         // Consume the currently staged byte, if any, and append it into the
         // packed header buffer at the current byte offset.
+        next_msg_type = header_buf_r[0];
+        next_layer_id = header_buf_r[9:8];
+        next_total_bytes = header_buf_r[95:64];
+        next_payload_second_last_idx = (header_buf_r[95:64] > 32'd1) ? (header_buf_r[95:64] - 32'd2) : '0;
+        next_bytes_per_neuron = header_buf_r[63:48];
+        next_header_count = '0;
+        next_payload_count = '0;
+        next_header_last_byte = (HEADER_BYTES == 1);
+        next_payload_last_byte = (header_buf_r[95:64] <= 32'd1);
+
         if (cfg_byte_data_valid_r) begin
           cfg_byte_consume = 1'b1;
           next_header_buf[header_count_r*8+:8] = cfg_byte_data;
 
           if (header_last_byte_r) begin
-            // The final header byte has just been written into next_header_buf,
-            // so decode the complete header from that next-state image.
-            next_msg_type = next_header_buf[0];
-            next_layer_id = next_header_buf[9:8];
-            next_total_bytes = next_header_buf[95:64];
-            next_payload_second_last_idx =
-                (next_header_buf[95:64] > 32'd1) ? (next_header_buf[95:64] - 32'd2) : '0;
-            next_bytes_per_neuron = next_header_buf[63:48];
-            next_header_count = '0;
-            next_payload_count = '0;
-            next_header_last_byte = (HEADER_BYTES == 1);
-            next_payload_last_byte = (next_header_buf[95:64] <= 32'd1);
-
             // Start payload hot by requesting the first payload byte as soon
             // as one is available after the header completes.
             next_parse_state = PARSE_PAYLOAD;
