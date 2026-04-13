@@ -25,12 +25,12 @@ module register #(
 
     assign out = out_r;
 
-    always_ff @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
       if (rst) out_r <= '0;
       else if (en) out_r <= in;
     end
   end else begin : l_normal
-    always_ff @(posedge clk or posedge rst) begin
+    always_ff @(posedge clk) begin
       if (rst) out <= '0;
       else if (en) out <= in;
     end

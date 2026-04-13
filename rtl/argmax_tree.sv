@@ -83,7 +83,7 @@ module argmax_tree #(
         logic [       DATA_WIDTH-1:0] delay_val_r[LATENCY_DIFFERENCE];
         logic [RIGHT_INDEX_WIDTH-1:0] delay_idx_r[LATENCY_DIFFERENCE];
 
-        always_ff @(posedge clk or posedge rst) begin
+        always_ff @(posedge clk) begin
           if (rst) begin
             delay_val_r <= '{default: '0};
             delay_idx_r <= '{default: '0};

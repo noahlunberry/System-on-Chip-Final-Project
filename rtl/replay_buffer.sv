@@ -93,7 +93,7 @@ module replay_buffer #(
     end
   end
 
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
       wr_ptr     <= '0;
       rd_base    <= '0;
