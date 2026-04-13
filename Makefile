@@ -32,8 +32,10 @@ VCOVER = vcover
 
 # Project configuration
 WORK_DIR = work
-TOP_MODULE = bnn_fcc_uvm_tb
+TOP_MODULE ?= bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
+COVERAGE_SWEEP_TOP ?= bnn_fcc_uvm_cov_tb
+COVERAGE_SWEEP_TEST ?= bnn_fcc_coverage_sweep_test
 # Unused RTL moved under rtl/unused/.
 # EXTRA_RTL_SOURCES = rtl/unused/fifo_vw.sv
 EXTRA_RTL_SOURCES =
@@ -46,7 +48,8 @@ UVM_TEST_DIR ?= verification/bnn_uvm/tests
 # automatically stay in sync as new tests are added.
 UVM_TEST_FILES := $(sort $(wildcard $(UVM_TEST_DIR)/bnn_fcc_*_test.svh))
 UVM_TESTS ?= $(basename $(notdir $(filter-out \
-	$(UVM_TEST_DIR)/bnn_fcc_reconfig_base_test.svh, \
+	$(UVM_TEST_DIR)/bnn_fcc_reconfig_base_test.svh \
+	$(UVM_TEST_DIR)/bnn_fcc_coverage_sweep_test.svh, \
 	$(UVM_TEST_FILES))))
 
 # Questa/UVM configuration
@@ -85,7 +88,7 @@ VSIM_COVERAGE_FLAGS = -coverage
 VSIM_RUN_DO = coverage save -onexit $(COVERAGE_FILE); run -all
 VSIM_GUI_DO = coverage save -onexit $(COVERAGE_FILE)
 
-COMMON_TB_GFLAGS = \
+COMMON_TB_GFLAGS_BASE = \
 	-gBASE_DIR=\"$(BASE_DIR)\" \
 	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
 	-gVERIFY_MODEL=$(VERIFY_MODEL) \
@@ -93,9 +96,17 @@ COMMON_TB_GFLAGS = \
 	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
 	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
 	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
-	-gDEBUG=$(DEBUG) \
+	-gDEBUG=$(DEBUG)
+
+COMMON_TB_TIME_GFLAGS = \
 	-gCLK_PERIOD=$(CLK_PERIOD) \
 	-gTIMEOUT=$(TIMEOUT)
+
+ifeq ($(TOP_MODULE),$(COVERAGE_SWEEP_TOP))
+COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE)
+else
+COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE) $(COMMON_TB_TIME_GFLAGS)
+endif
 
 # Compilation flags
 VLOG_FLAGS = -sv \
@@ -230,6 +241,15 @@ run-test: $(COVERAGE_DIR) $(TEST_LOG_DIR)
 sim: optimize $(COVERAGE_DIR)
 	@$(MAKE) --no-print-directory run-test UVM_TESTNAME=$(UVM_TESTNAME)
 
+# Convenience target for the single-run coverage sweep top/test.
+coverage-sweep:
+	@$(MAKE) --no-print-directory sim TOP_MODULE=$(COVERAGE_SWEEP_TOP) UVM_TESTNAME=$(COVERAGE_SWEEP_TEST)
+
+# Run the one-shot coverage sweep and emit a single text coverage report.
+coverage-sweep-report:
+	@$(MAKE) --no-print-directory coverage-sweep
+	@$(MAKE) --no-print-directory reportcov UVM_TESTNAME=$(COVERAGE_SWEEP_TEST)
+
 # Convenience target: make sim-bnn_fcc_single_beat_test
 sim-%: optimize $(COVERAGE_DIR)
 	@$(MAKE) --no-print-directory run-test UVM_TESTNAME=$*
@@ -314,6 +334,8 @@ help:
 	@echo "make list-tests                       Show discovered regression tests"
 	@echo "make regress                          Run all discovered tests and merge coverage"
 	@echo "                                      Per-test logs are written under $(TEST_LOG_DIR)"
+	@echo "make coverage-sweep                   Run the one-shot coverage sweep top/testbench"
+	@echo "make coverage-sweep-report            Run the one-shot coverage sweep and write one report"
 	@echo "make viewcov UVM_TESTNAME=<test_name> Open one test's UCDB"
 	@echo "make viewcov-merged                   Open merged regression coverage"
 	@echo "make reportcov UVM_TESTNAME=<test_name> Generate a text report for one UCDB"
@@ -331,4 +353,4 @@ clean:
 	rm -rf $(COVERAGE_DIR)
 	rm -rf modelsim.ini
 
-.PHONY: all compile optimize list-tests run-test sim sim-% gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean
+.PHONY: all compile optimize list-tests run-test sim sim-% coverage-sweep coverage-sweep-report gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean

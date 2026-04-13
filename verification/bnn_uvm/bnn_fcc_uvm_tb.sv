@@ -20,6 +20,7 @@ module bnn_fcc_uvm_tb #(
     parameter time TIMEOUT = 100ms,
     parameter time CLK_PERIOD = 10ns,
     parameter bit DEBUG = 1'b0,
+    parameter string DEFAULT_UVM_TESTNAME = "",
 
     // ----------------------------
     // Bus configuration
@@ -208,8 +209,11 @@ module bnn_fcc_uvm_tb #(
 
   end
 
-  initial begin 
-    run_test();
+  initial begin
+    if (DEFAULT_UVM_TESTNAME != "")
+      run_test(DEFAULT_UVM_TESTNAME);
+    else
+      run_test();
   end
 
   // Verify that the output doesn't change if the DUT is waiting on the ready flag. 

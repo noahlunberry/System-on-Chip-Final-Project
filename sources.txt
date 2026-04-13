@@ -36,6 +36,7 @@ verification/bnn_uvm/bnn_fcc_env.sv
 verification/bnn_uvm/tests/bnn_fcc_base_tests.svh
 verification/bnn_uvm/tests/bnn_fcc_output_directed_base.svh
 verification/bnn_uvm/tests/bnn_fcc_reconfig_base_test.svh
+verification/bnn_uvm/tests/bnn_fcc_coverage_sweep_test.svh
 verification/bnn_uvm/tests/bnn_fcc_single_beat_test.svh
 verification/bnn_uvm/tests/bnn_fcc_output_class0_long_run_test.svh
 verification/bnn_uvm/tests/bnn_fcc_output_class1_first_repeat_test.svh
@@ -57,3 +58,4 @@ verification/bnn_uvm/tests/bnn_fcc_density_extremes_test.svh
 verification/bnn_uvm/tests/bnn_fcc_input_stress_test.svh
 verification/bnn_uvm/tests/bnn_fcc_pixel_values_directed_test.svh
 verification/bnn_uvm/bnn_fcc_uvm_tb.sv
+verification/bnn_uvm/bnn_fcc_uvm_cov_tb.sv
