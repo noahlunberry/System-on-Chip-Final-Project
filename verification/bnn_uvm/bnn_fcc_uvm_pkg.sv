@@ -20,7 +20,7 @@ package bnn_fcc_uvm_pkg;
 
     // DUT configuration (can be modified or extended for your own DUT)        
     parameter int PARALLEL_INPUTS = 64;
-    parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{64, 32, 10};
+    parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{64, 64, 10};
 
     // These enums let tests, coverage, and helper code exchange descriptive
     // reconfiguration/reset states without relying on ad-hoc integer literals.

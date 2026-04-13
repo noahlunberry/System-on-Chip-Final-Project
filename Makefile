@@ -41,7 +41,7 @@ EXTRA_RTL_SOURCES =
 # UVM configuration
 UVM_TESTNAME ?= bnn_fcc_single_beat_test
 UVM_FLAGS = +UVM_TESTNAME=$(UVM_TESTNAME)
-UVM_TEST_DIR ?= verification/bnn_uvm
+UVM_TEST_DIR ?= verification/bnn_uvm/tests
 # Discover concrete UVM tests from the checked-in test files so regressions
 # automatically stay in sync as new tests are added.
 UVM_TEST_FILES := $(sort $(wildcard $(UVM_TEST_DIR)/bnn_fcc_*_test.svh))
@@ -65,6 +65,7 @@ endif
 BASE_DIR ?= $(abspath python)
 NUM_TEST_IMAGES ?= 50
 VERIFY_MODEL ?= 1
+USE_CUSTOM_TOPOLOGY ?= 0
 TOGGLE_DATA_OUT_READY ?= 1
 CONFIG_VALID_PROBABILITY ?= 0.6
 DATA_IN_VALID_PROBABILITY ?= 0.75
@@ -84,10 +85,11 @@ VSIM_COVERAGE_FLAGS = -coverage
 VSIM_RUN_DO = coverage save -onexit $(COVERAGE_FILE); run -all
 VSIM_GUI_DO = coverage save -onexit $(COVERAGE_FILE)
 
-TB_GFLAGS = \
+COMMON_TB_GFLAGS = \
 	-gBASE_DIR=\"$(BASE_DIR)\" \
 	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
 	-gVERIFY_MODEL=$(VERIFY_MODEL) \
+	-gUSE_CUSTOM_TOPOLOGY=$(USE_CUSTOM_TOPOLOGY) \
 	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
 	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
 	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
@@ -108,6 +110,7 @@ VLOG_FLAGS = -sv \
 	+incdir+$(UVM_SRC) \
 	+incdir+verification \
 	+incdir+verification/bnn_uvm \
+	+incdir+verification/bnn_uvm/tests \
 	-work $(WORK_DIR)
 
 # Optimization flags (preserve full visibility with +acc)
@@ -124,7 +127,7 @@ VSIM_FLAGS = -c \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
-	$(TB_GFLAGS) \
+	$(COMMON_TB_GFLAGS) \
 	-do "$(VSIM_RUN_DO)"
 
 # GUI simulation flags
@@ -136,7 +139,7 @@ VSIM_GUI_FLAGS = -gui \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
-	$(TB_GFLAGS) \
+	$(COMMON_TB_GFLAGS) \
 	-do "$(VSIM_GUI_DO)"
 
 define RUN_BATCH_TEST
@@ -149,7 +152,7 @@ $(VSIM) -c \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	+UVM_TESTNAME=$(1) \
-	$(TB_GFLAGS) \
+	$(COMMON_TB_GFLAGS) \
 	-do "coverage save -onexit $(COVERAGE_DIR)/$(1).ucdb; run -all" \
 	$(OPTIMIZED_TOP)
 endef
@@ -163,7 +166,7 @@ $(VSIM) -gui \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	+UVM_TESTNAME=$(1) \
-	$(TB_GFLAGS) \
+	$(COMMON_TB_GFLAGS) \
 	-do "coverage save -onexit $(COVERAGE_DIR)/$(1).ucdb" \
 	$(OPTIMIZED_TOP)
 endef
