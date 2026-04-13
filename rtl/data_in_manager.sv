@@ -70,12 +70,25 @@ module data_in_manager #(
   // Match the original top-level bin FIFO depth.
   localparam int BIN_FIFO_DEPTH_LOG2 = 4;
 
-  // Reserve two FIFO entries so one word already buffered in `vw_buffer` plus
-  // one more word caused by the final in-flight compacted beat can still drain
-  // safely after AXI input is throttled.
-  localparam int BIN_FIFO_ALM_FULL_THRESH = 2;
+  // Reserve three FIFO entries so one word already buffered in `vw_buffer`,
+  // one word sitting in the local write pipeline below, and one more word
+  // still emerging from the registered compactor can all drain safely after
+  // AXI input is throttled.
+  localparam int BIN_FIFO_ALM_FULL_THRESH = 3;
 
   initial begin
+    if (BIN_FIFO_DEPTH_LOG2 < 4) begin
+      $fatal(1,
+             "data_in_manager requires BIN_FIFO_DEPTH_LOG2 to be at least 4, got %0d.",
+             BIN_FIFO_DEPTH_LOG2);
+    end
+
+    if (BIN_FIFO_ALM_FULL_THRESH < 3) begin
+      $fatal(1,
+             "data_in_manager requires BIN_FIFO_ALM_FULL_THRESH to be at least 3, got %0d.",
+             BIN_FIFO_ALM_FULL_THRESH);
+    end
+
     // This manager currently assumes byte-granular image inputs because the
     // compactor and vw_buffer path operate in bytes.
     if (INPUT_DATA_WIDTH != 8) begin
@@ -118,9 +131,12 @@ module data_in_manager #(
   logic [COUNT_W-1:0]         pad_chunk_bytes;
 
   // Write-side signals into the variable-write / fixed-read buffer.
-  logic                       vw_wr_en;
-  logic [INPUT_BUS_WIDTH-1:0] vw_wr_data;
-  logic [COUNT_W-1:0]         vw_total_bytes;
+  logic                       vw_issue_en;
+  logic [INPUT_BUS_WIDTH-1:0] vw_issue_data;
+  logic [COUNT_W-1:0]         vw_issue_total_bytes;
+  logic                       vw_wr_en_r;
+  logic [INPUT_BUS_WIDTH-1:0] vw_wr_data_r;
+  logic [COUNT_W-1:0]         vw_total_bytes_r;
 
   // Output word from the vw_buffer before binarization.
   logic                       vw_rd_en;
@@ -179,9 +195,9 @@ module data_in_manager #(
   always_comb begin
     // Default to "no write". One of the branches below enables a write either
     // for real compacted data or for synthetic zero-padding.
-    vw_wr_en       = 1'b0;
-    vw_wr_data     = '0;
-    vw_total_bytes = '0;
+    vw_issue_en         = 1'b0;
+    vw_issue_data       = '0;
+    vw_issue_total_bytes = '0;
 
     if (padding_r) begin
       // While padding, inject a block of zero bytes. These later binarize to 0
@@ -191,16 +207,31 @@ module data_in_manager #(
       // full. Real compacted data cannot be paused at this point, but padding
       // is locally generated and can safely wait.
       if (!bin_fifo_alm_full) begin
-        vw_wr_en       = 1'b1;
-        vw_wr_data     = '0;
-        vw_total_bytes = pad_chunk_bytes;
+        vw_issue_en         = 1'b1;
+        vw_issue_data       = '0;
+        vw_issue_total_bytes = pad_chunk_bytes;
       end
     end
     else begin
       // Otherwise forward the registered compacted beat unchanged.
-      vw_wr_en       = compact_wr_en;
-      vw_wr_data     = compact_wr_data;
-      vw_total_bytes = compact_total_bytes;
+      vw_issue_en         = compact_wr_en;
+      vw_issue_data       = compact_wr_data;
+      vw_issue_total_bytes = compact_total_bytes;
+    end
+  end
+
+  // Register the merged real-data / padding write stream before it enters the
+  // variable-write buffer so `bin_fifo_alm_full` and padding control do not
+  // directly feed the vw_buffer write-state cone.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      vw_wr_en_r       <= 1'b0;
+      vw_wr_data_r     <= '0;
+      vw_total_bytes_r <= '0;
+    end else begin
+      vw_wr_en_r       <= vw_issue_en;
+      vw_wr_data_r     <= vw_issue_data;
+      vw_total_bytes_r <= vw_issue_total_bytes;
     end
   end
 
@@ -223,9 +254,9 @@ module data_in_manager #(
   ) vw_buffer_i (
       .clk       (clk),
       .rst       (rst),
-      .wr_en     (vw_wr_en),
-      .wr_data   (vw_wr_data),
-      .total_bytes(vw_total_bytes),
+      .wr_en     (vw_wr_en_r),
+      .wr_data   (vw_wr_data_r),
+      .total_bytes(vw_total_bytes_r),
       .rd_en     (vw_rd_en),
       .rd_data   (vw_rd_data)
   );
