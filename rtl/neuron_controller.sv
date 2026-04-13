@@ -18,10 +18,10 @@ module neuron_controller #(
     output logic layer_done,
 
     // BRAM Read Interface
-    output logic                    weight_rd_en,
-    output logic [W_RAM_ADDR_W-1:0] weight_rd_addr,
-    output logic                    threshold_rd_en,
-    output logic [T_RAM_ADDR_W-1:0] threshold_rd_addr
+    output logic                        weight_rd_en,
+    output logic [W_RAM_ADDR_W-1:0]     weight_rd_addr[PARALLEL_NEURONS],
+    output logic                        threshold_rd_en,
+    output logic [T_RAM_ADDR_W-1:0]     threshold_rd_addr[PARALLEL_NEURONS]
 );
 
   // Constants
@@ -37,14 +37,13 @@ module neuron_controller #(
   logic [$clog2(WORDS_PER_NEURON)-1:0] word_count_r, next_word_count;
   logic [$clog2(NEURON_BATCHES)-1:0] batch_count_r, next_batch_count;
   logic [W_RAM_ADDR_W-1:0] addr_count_r, next_addr_count;
+  logic [W_RAM_ADDR_W-1:0] next_weight_rd_addr[PARALLEL_NEURONS];
+  logic [T_RAM_ADDR_W-1:0] next_threshold_rd_addr[PARALLEL_NEURONS];
 
   // Registered Outputs
   logic delay_valid_r;
   logic delay_last_r;
   logic delay_layer_done_r;
-
-  assign weight_rd_addr    = addr_count_r;
-  assign threshold_rd_addr = batch_count_r;
 
   // delay valid in and last signals
   delay #(
@@ -81,16 +80,25 @@ module neuron_controller #(
   );
 
   always_ff @(posedge clk) begin
-    state_r       <= next_state;
-    word_count_r  <= next_word_count;
-    batch_count_r <= next_batch_count;
-    addr_count_r  <= next_addr_count;
-
     if (rst) begin
       state_r       <= START;
       word_count_r  <= '0;
       batch_count_r <= '0;
       addr_count_r  <= '0;
+      for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+        weight_rd_addr[i]    <= '0;
+        threshold_rd_addr[i] <= '0;
+      end
+    end else begin
+      state_r       <= next_state;
+      word_count_r  <= next_word_count;
+      batch_count_r <= next_batch_count;
+      addr_count_r  <= next_addr_count;
+
+      for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+        weight_rd_addr[i]    <= next_weight_rd_addr[i];
+        threshold_rd_addr[i] <= next_threshold_rd_addr[i];
+      end
     end
   end
 
@@ -100,6 +108,10 @@ module neuron_controller #(
     next_word_count    = word_count_r;
     next_batch_count   = batch_count_r;
     next_addr_count    = addr_count_r;
+    for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+      next_weight_rd_addr[i]    = weight_rd_addr[i];
+      next_threshold_rd_addr[i] = threshold_rd_addr[i];
+    end
 
     weight_rd_en       = 1'b0;
     threshold_rd_en    = 1'b0;
@@ -119,6 +131,12 @@ module neuron_controller #(
         if (valid_data) begin
           weight_rd_en    = 1'b1;
           threshold_rd_en = 1'b1;
+          // Launch one registered copy of the current read address per bank so
+          // each RAM can be driven directly without a shared high-fanout bus.
+          for (int i = 0; i < PARALLEL_NEURONS; i++) begin
+            next_weight_rd_addr[i]    = addr_count_r;
+            next_threshold_rd_addr[i] = batch_count_r;
+          end
           // valid in is delayed 1 cycle after the weight/threshold rd en's
           delay_valid_r   = 1'b1;
 
