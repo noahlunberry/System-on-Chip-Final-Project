@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // This file provides the shared base test used by the UVM test variants.

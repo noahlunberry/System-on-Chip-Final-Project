@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Coverage-directed test that runs a long packet-level image stream with small

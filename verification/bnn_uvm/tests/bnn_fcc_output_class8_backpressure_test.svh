@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Drives the lone class-8 image twice while temporarily forcing TREADY so the

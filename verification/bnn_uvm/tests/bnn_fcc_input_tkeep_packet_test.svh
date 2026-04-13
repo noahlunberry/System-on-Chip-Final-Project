@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Focused UVM test that keeps the configuration stream in its normal packet

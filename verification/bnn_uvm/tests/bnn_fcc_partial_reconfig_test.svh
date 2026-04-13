@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Exercises a partial-layer reconfiguration with mixed message ordering.

@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Shared helpers for the reconfiguration/reset-focused UVM tests.

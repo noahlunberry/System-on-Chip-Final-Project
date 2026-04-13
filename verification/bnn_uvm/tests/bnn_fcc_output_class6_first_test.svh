@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Starts on class 6, then later repeats class 7 so the run fills two missing

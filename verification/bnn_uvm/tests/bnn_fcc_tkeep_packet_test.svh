@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Focused UVM test that exercises randomized TKEEP handling on both the

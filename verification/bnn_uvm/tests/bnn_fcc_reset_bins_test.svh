@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Accumulates multiple mid-test resets with increasing workload sizes so the

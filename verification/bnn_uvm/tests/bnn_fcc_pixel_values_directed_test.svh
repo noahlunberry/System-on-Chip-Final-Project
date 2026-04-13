@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Coverage-directed test that sends exact pixel-value patterns rather than

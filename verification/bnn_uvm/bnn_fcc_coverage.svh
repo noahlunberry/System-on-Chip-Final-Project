@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // This file implements transaction-level coverage for the BNN FCC UVM
@@ -100,6 +100,11 @@ class bnn_cfg_coverage extends uvm_component;
     int layer_transition_kind;
     int cfg_gap_len;
     int cfg_burst_len;
+    int max_cfg_layer_id;
+    int max_threshold_layer_id;
+    int max_design_threshold_value;
+    int threshold_small_limit;
+    int threshold_medium_limit;
 
     // Covers coarse packet-level protocol properties such as full vs. partial
     // final beats.
@@ -145,7 +150,8 @@ class bnn_cfg_coverage extends uvm_component;
         }
 
         layer_id_cp: coverpoint layer_id {
-            option.auto_bin_max = 8;
+            bins legal_layers[] = {[0:max_cfg_layer_id]};
+            illegal_bins invalid = default;
         }
 
         bytes_per_neuron_cp: coverpoint bytes_per_neuron {
@@ -162,7 +168,12 @@ class bnn_cfg_coverage extends uvm_component;
             bins large_bin = {[1025:1048576]};
         }
 
-        msg_layer_cross: cross msg_type_cp, layer_id_cp;
+        msg_layer_cross: cross msg_type_cp, layer_id_cp {
+            // The DUT only accepts threshold messages for hidden layers.
+            ignore_bins threshold_on_output =
+                binsof(msg_type_cp) intersect {1} &&
+                binsof(layer_id_cp) intersect {max_cfg_layer_id};
+        }
     endgroup
 
     // Covers ordering of configuration traffic across message types and layers.
@@ -188,7 +199,8 @@ class bnn_cfg_coverage extends uvm_component;
     // Covers the density of 1s in each neuron's weight pattern.
     covergroup weight_density_coverage;
         layer_id_cp: coverpoint layer_id {
-            option.auto_bin_max = 8;
+            bins legal_layers[] = {[0:max_cfg_layer_id]};
+            illegal_bins invalid = default;
             option.weight = 0;
         }
 
@@ -206,12 +218,18 @@ class bnn_cfg_coverage extends uvm_component;
     // Covers threshold magnitudes and their size relative to the layer fan-in.
     covergroup threshold_coverage;
         layer_id_cp: coverpoint layer_id {
-            option.auto_bin_max = 8;
+            bins hidden_layers[] = {[0:max_threshold_layer_id]};
+            illegal_bins invalid = default;
             option.weight = 0;
         }
 
         threshold_abs_cp: coverpoint threshold_value {
-            option.auto_bin_max = 8;
+            bins negative = {[$:-1]};
+            bins zero = {0};
+            bins low = {[1:threshold_small_limit]};
+            bins medium_bin = {[threshold_small_limit + 1:threshold_medium_limit]};
+            bins high = {[threshold_medium_limit + 1:max_design_threshold_value]};
+            bins above_design = {[max_design_threshold_value + 1:$]};
         }
 
         threshold_ratio_cp: coverpoint threshold_ratio_pct {
@@ -258,6 +276,25 @@ class bnn_cfg_coverage extends uvm_component;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
+        max_cfg_layer_id = bnn_fcc_uvm_pkg::TRAINED_LAYERS - 2;
+        max_threshold_layer_id = (max_cfg_layer_id > 0) ? (max_cfg_layer_id - 1) : 0;
+        max_design_threshold_value = 0;
+
+        for (int i = 0; i < bnn_fcc_uvm_pkg::TRAINED_LAYERS - 1; i++) begin
+            if (bnn_fcc_uvm_pkg::TRAINED_TOPOLOGY[i] > max_design_threshold_value)
+                max_design_threshold_value = bnn_fcc_uvm_pkg::TRAINED_TOPOLOGY[i];
+        end
+
+        if (max_design_threshold_value < 3)
+            max_design_threshold_value = 3;
+
+        threshold_small_limit = max_design_threshold_value / 3;
+        if (threshold_small_limit < 1)
+            threshold_small_limit = 1;
+
+        threshold_medium_limit = (2 * max_design_threshold_value) / 3;
+        if (threshold_medium_limit < threshold_small_limit)
+            threshold_medium_limit = threshold_small_limit;
 
         packet_coverage = new();
         sideband_coverage = new();
@@ -575,6 +612,11 @@ class bnn_input_coverage extends uvm_component;
 
     localparam int INPUTS_PER_BEAT = bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH / bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH;
     localparam int BYTES_PER_INPUT = bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH / 8;
+    localparam int INPUT_BINARIZATION_THRESHOLD = 1 << (bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH - 1);
+    localparam int PIXEL_MAX_VALUE = (1 << bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH) - 1;
+    localparam int PIXEL_LOWER_SPLIT = INPUT_BINARIZATION_THRESHOLD / 2;
+    localparam int PIXEL_UPPER_SPLIT =
+        INPUT_BINARIZATION_THRESHOLD + ((PIXEL_MAX_VALUE - INPUT_BINARIZATION_THRESHOLD) / 2);
 
     // Analysis export/FIFO pair for packet-level image transactions.
     uvm_analysis_export #(axi_item_t) in_ae;
@@ -593,6 +635,7 @@ class bnn_input_coverage extends uvm_component;
     int in_burst_len;
     int inter_image_gap;
     int num_images_seen;
+    int expected_image_num_pixels;
 
     // Covers packet shapes for streamed images, including partial final beats.
     covergroup image_coverage;
@@ -604,7 +647,8 @@ class bnn_input_coverage extends uvm_component;
         }
 
         num_pixels_cp: coverpoint image_num_pixels {
-            option.auto_bin_max = 8;
+            bins expected = {expected_image_num_pixels};
+            illegal_bins unexpected = default;
         }
 
         last_beat_valid_inputs_cp: coverpoint last_beat_valid_inputs {
@@ -619,7 +663,14 @@ class bnn_input_coverage extends uvm_component;
     // vector from TDATA/TKEEP.
     covergroup pixel_coverage;
         pixel_cp: coverpoint pixel_value {
-            option.auto_bin_max = 8;
+            bins zero = {0};
+            bins low_far = {[1:PIXEL_LOWER_SPLIT-1]};
+            bins low_near = {[PIXEL_LOWER_SPLIT:INPUT_BINARIZATION_THRESHOLD-1]};
+            bins at_threshold = {INPUT_BINARIZATION_THRESHOLD};
+            bins high_near = {[INPUT_BINARIZATION_THRESHOLD+1:PIXEL_UPPER_SPLIT]};
+            bins high_far = {[PIXEL_UPPER_SPLIT+1:PIXEL_MAX_VALUE-1]};
+            bins max_ = {PIXEL_MAX_VALUE};
+            illegal_bins invalid = default;
         }
 
         pixel_extremes_cp: coverpoint pixel_value {
@@ -698,7 +749,7 @@ class bnn_input_coverage extends uvm_component;
 
     function new(string name, uvm_component parent);
         super.new(name, parent);
-
+        expected_image_num_pixels = bnn_fcc_uvm_pkg::TRAINED_TOPOLOGY[0];
         image_coverage = new();
         pixel_coverage = new();
         sideband_coverage = new();

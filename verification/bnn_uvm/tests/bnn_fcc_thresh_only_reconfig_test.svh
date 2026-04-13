@@ -1,4 +1,4 @@
-// Greg Stitt
+// Pawin Ruangkanit
 // University of Florida
 //
 // Exercises a thresholds-only reconfiguration across the hidden layers.
