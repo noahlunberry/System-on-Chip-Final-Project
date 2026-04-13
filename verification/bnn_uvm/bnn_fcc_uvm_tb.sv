@@ -65,6 +65,8 @@ module bnn_fcc_uvm_tb #(
   // exact same reset signal for mid-test reset scenarios.
   initial begin
     ctrl_if.rst = 1'b1;
+    ctrl_if.out_ready_force_en = 1'b0;
+    ctrl_if.out_ready_force_val = 1'b1;
     repeat (5) @(posedge clk);
     ctrl_if.rst = 1'b0;
   end
@@ -106,12 +108,15 @@ module bnn_fcc_uvm_tb #(
   // Match the original TB backpressure behavior by driving TREADY directly
   // from the top-level testbench. The output agent is monitor-only.
   initial begin
-    if (!TOGGLE_DATA_OUT_READY) data_out_if.tready <= 1'b1;
-    else begin
-      forever begin
+    forever begin
+      if (ctrl_if.out_ready_force_en)
+        data_out_if.tready <= ctrl_if.out_ready_force_val;
+      else if (!TOGGLE_DATA_OUT_READY)
+        data_out_if.tready <= 1'b1;
+      else
         data_out_if.tready <= $urandom();
-        @(posedge clk);
-      end
+
+      @(posedge clk);
     end
   end
 
