@@ -275,7 +275,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(8),
-      .P(7),
+      .P(2),
       .FWFT(1'b0)
   ) fifo_weights_bytes (
       .clk             (clk),
@@ -332,7 +332,7 @@ module config_manager #(
   fifo_vr #(
       .N(8),
       .M(THRESH_WORD_BYTES * 8),
-      .P(4),
+      .P(2),
       .FWFT(1'b0)
   ) fifo_thresholds (
       .clk             (clk),
