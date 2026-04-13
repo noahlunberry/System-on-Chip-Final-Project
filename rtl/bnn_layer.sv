@@ -234,7 +234,7 @@ module bnn_layer #(
           .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
-          .STYLE      ("")
+          .STYLE      ("distributed")
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (1'b1), // was a super huge fanout signal
@@ -251,7 +251,7 @@ module bnn_layer #(
           .ADDR_WIDTH (T_RAM_ADDR_W),
           .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
-          .STYLE      ("")
+          .STYLE      ("distributed")
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (1'b1),
