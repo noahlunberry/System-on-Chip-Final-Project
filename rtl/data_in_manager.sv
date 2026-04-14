@@ -273,7 +273,9 @@ module data_in_manager #(
       .N(INPUT_BUS_BYTES),
       .M(MAX_PARALLEL_INPUTS),
       .P(BIN_FIFO_DEPTH_LOG2),
-      .FWFT(1'b0)
+      .FWFT(1'b0),
+      .ALM_FULL_THRESH(BIN_FIFO_ALM_FULL_THRESH),
+      .ALM_EMPTY_THRESH(0)
   ) bin_fifo (
       .clk             (clk),
       .rst             (rst),
@@ -281,8 +283,6 @@ module data_in_manager #(
       .wr_data         (bin_fifo_wr_data),
       .rd_en           (bin_fifo_rd_en),
       .rd_data         (bin_fifo_rd_data),
-      .alm_full_thresh (BIN_FIFO_ALM_FULL_THRESH),
-      .alm_empty_thresh('0),
       .alm_full        (bin_fifo_alm_full),
       .alm_empty       (),
       .full            (bin_fifo_full),

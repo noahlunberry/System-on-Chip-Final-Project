@@ -209,12 +209,19 @@ module bnn_fcc #(
 
   localparam int OUT_FIFO_DEPTH_LOG2 = 2;  // 4 entries
   localparam int PIPELINE_LATENCY = ARGMAX_LATENCY + 10;  // Adjust '10' to your BNN's actual latency
+  // Clamp at zero so the parameter stays legal even when the desired
+  // backpressure headroom exceeds this small elastic buffer's depth.
+  localparam int OUT_FIFO_ALM_FULL_THRESH =
+      (((1 << OUT_FIFO_DEPTH_LOG2) - PIPELINE_LATENCY - 2) > 0) ?
+      ((1 << OUT_FIFO_DEPTH_LOG2) - PIPELINE_LATENCY - 2) : 0;
 
   fifo_vr #(
       .N(OUTPUT_BUS_WIDTH),
       .M(OUTPUT_BUS_WIDTH),
       .P(OUT_FIFO_DEPTH_LOG2),
-      .FWFT(1'b0)
+      .FWFT(1'b0),
+      .ALM_FULL_THRESH(OUT_FIFO_ALM_FULL_THRESH),
+      .ALM_EMPTY_THRESH(0)
   ) out_fifo (
       .clk    (clk),
       .rst    (rst),
@@ -226,9 +233,6 @@ module bnn_fcc #(
       .rd_en  (out_fifo_rd_en),
       .rd_data(out_fifo_rd_data),
 
-      // Backpressure threshold: Reserve enough space for all inflight pipeline stages
-      .alm_full_thresh ((1 << OUT_FIFO_DEPTH_LOG2) - PIPELINE_LATENCY - 2),
-      .alm_empty_thresh('0),
       .alm_full        (out_fifo_alm_full),                                  // Routed upstream to 'bnn_en'
       .alm_empty       (),
       .full            (out_fifo_full),

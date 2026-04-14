@@ -1,232 +1,176 @@
 module fifo_vr #(
-    parameter N = 1, // write width
-    parameter M = 1, // read width
-    parameter P = 1, // depth relative to read elements
-    parameter bit FWFT = 1'b1 // 1: show-ahead/FWFT, 0: registered read data
-) (
-    input           clk,
-    input           rst,
-    input           rd_en,
-    input           wr_en,
-    input [(N-1):0] wr_data,
-    input [(P-1):0] alm_full_thresh,
-    input [(P-1):0] alm_empty_thresh,
+    parameter int N = 1,  // write width in bits
+    parameter int M = 1,  // read width in bits
+    parameter int P = 1,  // depth in read words = 2^P
+    parameter bit FWFT = 1'b1,  // 1 = show-ahead / FWFT, 0 = registered read data
 
-    output logic           alm_full,
-    output logic           full,
-    output logic           alm_empty,
-    output logic           empty,
-    output logic [(M-1):0] rd_data
+    // Assert alm_full when this many or fewer writes remain before full.
+    parameter int ALM_FULL_THRESH = 1,
+
+    // Assert alm_empty when this many or fewer reads remain in the FIFO.
+    parameter int ALM_EMPTY_THRESH = 1
+) (
+    input logic         clk,
+    input logic         rst,
+    input logic         rd_en,
+    input logic         wr_en,
+    input logic [N-1:0] wr_data,
+
+    output logic         alm_full,
+    output logic         full,
+    output logic         alm_empty,
+    output logic         empty,
+    output logic [M-1:0] rd_data
 );
 
-    // The maximum number of elements in the FIFO
-    localparam int FIFO_SIZE = 1 << P;
-    localparam int MEM_SIZE = FIFO_SIZE * M;
-    // The write address, where new data will be stored
-    logic [(MEM_SIZE / N) -1 : 0] wraddr;
-    // The read address, indicating the location of the requested data
-    logic [(MEM_SIZE / M) -1 : 0] rdaddr;
-    // The FIFO memory
-    logic [0 : MEM_SIZE - 1] mem;
-    // Registered output used when FWFT is disabled.
-    logic [(M-1):0] rd_data_r;
-    // The number of elements in the FIFO
-    // Since M and N can differ, we want to account for us reading just
-    // parts of a previous write or writing parts of a future read.
-    // The size of the memory is calculated relative to M, the size
-    // of the output, so everything we calculate will be done multiplying
-    // by M. For example, after a read, we consider that we read M,
-    // and after a write, we consider that we added N (instead of N / M).
-    // In order to account for this, to the P bits we added enough to store
-    // the product of 2 ^ P * M, which would be P + log2(M) + 1.
-    bit [P + $clog2(M) : 0] fill;
+  // -------------------------------------------------------------------------
+  // Derived constants
+  // -------------------------------------------------------------------------
+  localparam int FIFO_SIZE = (1 << P);  // number of M-bit read words
+  localparam int MEM_SIZE = FIFO_SIZE * M;
+  localparam int NUM_RD_SLOTS = FIFO_SIZE;
+  localparam int NUM_WR_SLOTS = MEM_SIZE / N;
 
-    always_ff @(posedge clk) begin
-        // on hard reset, reset the memory
-        if (rst) begin
-            // for (int i = 0; i < MEM_SIZE; i++) begin
-            //     mem[i] <= 0;
-            // end
-        end
-        // if we have a write request and the FIFO is not full, or
-        // we have a read and doing both the read and the write do not
-        // push the fill over the MEM_SIZE limit
-        else begin
-            if (wr_en && !full) begin
-                for (int i = 0; i <= N - 1; i++) begin
-                    mem[(i+wraddr*N)%(MEM_SIZE)] <= wr_data[i]; // changed to little-endian (write the LSB first)
-                end
-            end
-        end
+  localparam int RD_ADDR_W = (NUM_RD_SLOTS <= 1) ? 1 : $clog2(NUM_RD_SLOTS);
+  localparam int WR_ADDR_W = (NUM_WR_SLOTS <= 1) ? 1 : $clog2(NUM_WR_SLOTS);
+  localparam int FILL_W = (MEM_SIZE <= 1) ? 1 : $clog2(MEM_SIZE + 1);
+
+  // Thresholds converted into bit counts once at elaboration time.
+  localparam int ALM_EMPTY_LIMIT = ALM_EMPTY_THRESH * M;
+  localparam int ALM_FULL_LIMIT = MEM_SIZE - (ALM_FULL_THRESH * N);
+
+  // -------------------------------------------------------------------------
+  // State
+  // -------------------------------------------------------------------------
+  logic [WR_ADDR_W-1:0] wraddr;
+  logic [RD_ADDR_W-1:0] rdaddr;
+
+  logic [MEM_SIZE-1:0] mem;
+  logic [M-1:0] rd_data_r;
+  logic [FILL_W-1:0] fill;
+
+  // -------------------------------------------------------------------------
+  // Control / next-state
+  // -------------------------------------------------------------------------
+  logic do_write, do_read;
+
+  logic [FILL_W-1:0] fill_next;
+  logic empty_next, full_next;
+  logic alm_empty_next, alm_full_next;
+
+  logic [FILL_W:0] fill_next_plus_n;
+
+  assign do_write = wr_en && !full;
+  assign do_read  = rd_en && !empty;
+
+  always_comb begin
+    unique case ({
+      do_write, do_read
+    })
+      2'b10:   fill_next = fill + N;
+      2'b01:   fill_next = fill - M;
+      2'b11:   fill_next = fill + N - M;
+      default: fill_next = fill;
+    endcase
+  end
+
+  assign fill_next_plus_n = {1'b0, fill_next} + N;
+
+  assign empty_next       = (fill_next < M);
+  assign full_next        = (fill_next_plus_n > MEM_SIZE);
+  assign alm_empty_next   = (fill_next <= ALM_EMPTY_LIMIT);
+  assign alm_full_next    = (fill_next >= ALM_FULL_LIMIT);
+
+  // -------------------------------------------------------------------------
+  // Memory write
+  // -------------------------------------------------------------------------
+  always_ff @(posedge clk) begin
+    if (!rst && do_write) begin
+      for (int i = 0; i < N; i++) begin
+        mem[wraddr*N+i] <= wr_data[i];
+      end
     end
+  end
 
-    // Expose either the current head element (FWFT/show-ahead mode) or a
-    // registered read output that updates only after a successful read.
-    genvar j;
-    generate
-        if (FWFT) begin : g_fwft
-            for (j = 0; j <= M - 1; j++) begin
-                assign rd_data[j] = (!rst && !empty) ? mem[(j + rdaddr * M) % (MEM_SIZE)] : 1'b0;
-            end
-        end else begin : g_registered_read
-            assign rd_data = rd_data_r;
-        end
-    endgenerate
-
-    always_ff @(posedge clk) begin
-        if (rst) begin
-            rd_data_r <= '0;
-        end else if (!FWFT && rd_en && !empty) begin
-            for (int i = 0; i <= M - 1; i++) begin
-                rd_data_r[i] <= mem[(i + rdaddr * M) % (MEM_SIZE)];
-            end
-        end
+  // -------------------------------------------------------------------------
+  // Read data output
+  // -------------------------------------------------------------------------
+  generate
+    if (FWFT) begin : g_fwft
+      for (genvar j = 0; j < M; j++) begin
+        assign rd_data[j] = (!rst && !empty) ? mem[rdaddr*M+j] : 1'b0;
+      end
+    end else begin : g_registered_read
+      assign rd_data = rd_data_r;
     end
+  endgenerate
 
-    always_ff @(posedge clk) begin
-        // reset the write address for a soft/hard reset
-        if (rst) begin
-            wraddr <= 0;
-        end else if (wr_en) begin
-            // if we have a write request and the FIFO is not full, or
-            // we have a read and doing both the read and the write do not
-            // push the fill over the MEM_SIZE limit
-            if (!full) wraddr <= (wraddr + 1'b1);
-        end
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      rd_data_r <= '0;
+    end else if (!FWFT && do_read) begin
+      for (int i = 0; i < M; i++) begin
+        rd_data_r[i] <= mem[rdaddr*M+i];
+      end
     end
+  end
 
-    always_ff @(posedge clk) begin
-        // reset the read address for a soft/hard reset
-        if (rst) begin
-            rdaddr <= 0;
-        end else if (rd_en) begin
-            // if we have a read request and the FIFO is not empty
-            if (!empty) rdaddr <= rdaddr + 1'b1;
-        end
+  // -------------------------------------------------------------------------
+  // Write pointer
+  // -------------------------------------------------------------------------
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      wraddr <= '0;
+    end else if (do_write) begin
+      if (wraddr == NUM_WR_SLOTS - 1) wraddr <= '0;
+      else wraddr <= wraddr + 1'b1;
     end
+  end
 
-    always_ff @(posedge clk) begin
-        // reset the flags for a soft/hard reset
-        if (rst) begin
-            full  <= 1'b0;
-            empty <= 1'b1;
-        end else begin
-            casez ({
-                wr_en, rd_en, !full, !empty
-            })
-                4'b01?1: begin  // A successful read
-                    // The FIFO is full if, after we read M bits, we can't write
-                    // N more bits in the buffer.
-                    full  <= (fill - M + N > MEM_SIZE);
-                    // The FIFO is empty if, after this read of M bits, we will have
-                    //less than M bits of data left in the buffer.
-                    empty <= (fill - M < M);
-                end
-                4'b101?: begin  // A successful write
-                    // The FIFO is full if, after we write N bits, we have less
-                    // than N bits of space left in the buffer, so writing another
-                    // N bits would go over the maximum size.
-                    full  <= (fill + N + N > MEM_SIZE);
-                    empty <= (fill + N < M);
-                end
-                4'b11??: begin  // Read and write
-                    // We can do both
-                    if (!empty && !full) begin
-                        // The FIFO is full if, after we read M bits and write N, we have
-                        // less than N bits of space left in the buffer, so writing another
-                        //  N bits would go over the maximum size.
-                        full  <= (fill - M + N + N > MEM_SIZE);
-                        // The FIFO is empty if, after we read M bits and write N, we have
-                        // less than M bits of space left in the buffer.
-                        empty <= (fill - M + N < M);
-                    end  // We can only do the write
-          else if (empty && !full) begin
-                        // The FIFO is full if, after we write N, we have
-                        // less than N bits of space left in the buffer, so writing another
-                        //  N bits would go over the maximum size.
-                        full  <= (fill + N + N > MEM_SIZE);
-                        // The FIFO is empty if, after we write N, we have
-                        // less than M bits of space left in the buffer.
-                        empty <= (fill + N < M);
-                    end  // We can only do the read
-          else if (!empty) begin
-                        // The FIFO is full if, after we read M bits, we have
-                        // less than N bits of space left in the buffer, so writing another
-                        //  N bits would go over the maximum size.
-                        full  <= (fill - M + N > MEM_SIZE);
-                        // The FIFO is empty if, after we read M bits, we have
-                        // less than M bits of space left in the buffer.
-                        empty <= (fill - M < M);
-                    end
-                end
-                default: begin
-                    full  <= (fill + N > MEM_SIZE);
-                    empty <= (fill < M);
-                end
-            endcase
-        end
+  // -------------------------------------------------------------------------
+  // Read pointer
+  // -------------------------------------------------------------------------
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      rdaddr <= '0;
+    end else if (do_read) begin
+      if (rdaddr == NUM_RD_SLOTS - 1) rdaddr <= '0;
+      else rdaddr <= rdaddr + 1'b1;
     end
+  end
 
-    // Count the number of elements in the FIFO (multiplied by M)
-    always_ff @(posedge clk) begin
-        // reset the flags and the fill for a soft/hard reset
-        if (rst) begin
-            fill      <= 0;
-            alm_empty <= 1;
-            alm_full  <= 0;
-        end else
-            casez ({
-                wr_en, rd_en, !full, !empty
-            })
-                // In order to compare thresholds, we will convert them to the number of
-                // bits they represent and the fill used will be the value we expect
-                // the fill to have on the next cycle, based on if a read and or/write
-                // will happen this cycle.
-                4'b01?1: begin  // A successful read
-                    fill <= fill - M;
-                    if (fill - M <= alm_empty_thresh * M) alm_empty <= 1;
-                    else alm_empty <= 0;
-                    if (fill - M >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                    else alm_full <= 0;
-                end
-                4'b101?: begin  // A successful write
-                    fill <= fill + N;
-                    if (fill + N <= alm_empty_thresh * M) alm_empty <= 1;
-                    else alm_empty <= 0;
-                    if (fill + N >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                    else alm_full <= 0;
-                end
-                4'b11??: begin  // Read and write
-                    // We can do both
-                    if (!empty && !full) begin
-                        fill <= fill + N - M;
-                        if (fill + N - M <= alm_empty_thresh * M) alm_empty <= 1;
-                        else alm_empty <= 0;
-                        if (fill + N - M >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                        else alm_full <= 0;
-                    end  // We can only do the write
-          else if (empty && !full) begin
-                        fill <= fill + N;
-                        if (fill + N <= alm_empty_thresh * M) alm_empty <= 1;
-                        else alm_empty <= 0;
-                        if (fill + N >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                        else alm_full <= 0;
-                    end  // We can only do the read
-          else if (!empty) begin
-                        fill <= fill - M;
-                        if (fill - M <= alm_empty_thresh * M) alm_empty <= 1;
-                        else alm_empty <= 0;
-                        if (fill - M >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                        else alm_full <= 0;
-                    end
-                end
-                // For other cases, the fill won't change, but the thresholds might.
-                default: begin
-                    if (fill <= alm_empty_thresh * M) alm_empty <= 1;
-                    else alm_empty <= 0;
-                    if (fill >= (FIFO_SIZE - alm_full_thresh) * N) alm_full <= 1;
-                    else alm_full <= 0;
-                end
-            endcase
+  // -------------------------------------------------------------------------
+  // Fill / flags
+  // -------------------------------------------------------------------------
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      fill      <= '0;
+      full      <= 1'b0;
+      empty     <= 1'b1;
+      alm_full  <= 1'b0;
+      alm_empty <= 1'b1;
+    end else begin
+      fill      <= fill_next;
+      full      <= full_next;
+      empty     <= empty_next;
+      alm_full  <= alm_full_next;
+      alm_empty <= alm_empty_next;
     end
+  end
+
+  // -------------------------------------------------------------------------
+  // Optional parameter legality checks
+  // -------------------------------------------------------------------------
+  initial begin
+    if (ALM_EMPTY_THRESH < 0 || ALM_EMPTY_THRESH > FIFO_SIZE) begin
+      $error("ALM_EMPTY_THRESH must be between 0 and FIFO_SIZE.");
+    end
+    if (ALM_FULL_THRESH < 0 || ALM_FULL_THRESH > NUM_WR_SLOTS) begin
+      $error("ALM_FULL_THRESH must be between 0 and NUM_WR_SLOTS.");
+    end
+    if ((MEM_SIZE % N) != 0) begin
+      $error("MEM_SIZE must be divisible by N.");
+    end
+  end
+
 endmodule

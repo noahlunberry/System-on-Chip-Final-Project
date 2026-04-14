@@ -32,14 +32,12 @@ module config_manager #(
   localparam int CONFIG_BYTE_FIFO_DEPTH = 1 << CONFIG_BYTE_FIFO_DEPTH_LOG2;
   localparam int CONFIG_BYTE_FIFO_WRITE_CAPACITY = CONFIG_BYTE_FIFO_DEPTH / BUS_BYTES;
   localparam int CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS = 3;
-  // `fifo_vr` measures alm_full in terms of whole write words when N > M. Pick
-  // a threshold that leaves enough room for:
+  // `fifo_vr` now measures alm_full directly in terms of whole write words
+  // remaining before full. Reserve enough room for:
   // 1. all full words already buffered inside `vw_buffer`, and
   // 2. one more word still in flight from the registered TKEEP compactor.
-  localparam logic [CONFIG_BYTE_FIFO_DEPTH_LOG2-1:0] CONFIG_BYTE_FIFO_ALM_FULL_THRESH =
-      CONFIG_BYTE_FIFO_DEPTH_LOG2'(
-          CONFIG_BYTE_FIFO_DEPTH - CONFIG_BYTE_FIFO_WRITE_CAPACITY + CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS
-      );
+  localparam int CONFIG_BYTE_FIFO_ALM_FULL_THRESH =
+      CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS;
 
   // FIFO sizing
   localparam int WEIGHT_FIFO_DEPTH = 64;
@@ -191,15 +189,15 @@ module config_manager #(
       .N(BUS_WIDTH),
       .M(8),
       .P(CONFIG_BYTE_FIFO_DEPTH_LOG2),
-      .FWFT(1'b0)
+      .FWFT(1'b0),
+      .ALM_FULL_THRESH(CONFIG_BYTE_FIFO_ALM_FULL_THRESH),
+      .ALM_EMPTY_THRESH(0)
   ) fifo_config_bytes (
       .clk             (clk),
       .rst             (rst),
       .rd_en           (cfg_byte_rd_en),
       .wr_en           (cfg_vw_rd_en && !cfg_byte_full),
       .wr_data         (cfg_vw_rd_data),
-      .alm_full_thresh (CONFIG_BYTE_FIFO_ALM_FULL_THRESH),
-      .alm_empty_thresh('0),
       .alm_full        (cfg_byte_alm_full),
       .alm_empty       (),
       .full            (cfg_byte_full),
@@ -276,15 +274,15 @@ module config_manager #(
       .N(8),
       .M(8),
       .P(2),
-      .FWFT(1'b0)
+      .FWFT(1'b0),
+      .ALM_FULL_THRESH(0),
+      .ALM_EMPTY_THRESH(0)
   ) fifo_weights_bytes (
       .clk             (clk),
       .rst             (rst),
       .rd_en           (w_fetch_en),
       .wr_en           (w_wr_en),
       .wr_data         (payload_byte_data),
-      .alm_full_thresh ('0),
-      .alm_empty_thresh('0),
       .alm_full        (),
       .alm_empty       (),
       .full            (w_full),
@@ -306,15 +304,15 @@ module config_manager #(
           .N(8),                               // Write byte
           .M(LAYER_WIDTH),                     // Read aligned bus width
           .P(1),  // Depth
-          .FWFT(1'b0)
+          .FWFT(1'b0),
+          .ALM_FULL_THRESH(0),
+          .ALM_EMPTY_THRESH(0)
       ) fifo_packer (
           .clk             (clk),
           .rst             (rst),
           .rd_en           (packer_fetch_en[i]),
           .wr_en           (packer_wr_valid_r && (packer_wr_layer_r == i)),
           .wr_data         (packer_wr_data_r),
-          .alm_full_thresh ('0),
-          .alm_empty_thresh('0),
           .alm_full        (),
           .alm_empty       (),
           .full            (),
@@ -333,15 +331,15 @@ module config_manager #(
       .N(8),
       .M(THRESH_WORD_BYTES * 8),
       .P(2),
-      .FWFT(1'b0)
+      .FWFT(1'b0),
+      .ALM_FULL_THRESH(0),
+      .ALM_EMPTY_THRESH(0)
   ) fifo_thresholds (
       .clk             (clk),
       .rst             (rst),
       .rd_en           (t_fetch_en),
       .wr_en           (t_wr_en),
       .wr_data         (payload_byte_data),
-      .alm_full_thresh ('0),
-      .alm_empty_thresh('0),
       .alm_full        (),
       .alm_empty       (),
       .full            (t_full),
