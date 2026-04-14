@@ -45,12 +45,15 @@ module config_manager_pad_fsm #(
   // next_byte_idx and then comparing that. This shortens the control cone.
 
   typedef enum logic [1:0] {
-    READ,   // Read real payload bytes from the FIFO
-    DRAIN,  // Flush any leftover FIFO contents before next message
-    PAD     // Emit synthetic all-ones bytes for weight alignment
+    READ  = 2'd0,  // Read real payload bytes from the FIFO
+    DRAIN = 2'd1,  // Flush any leftover FIFO contents before next message
+    PAD   = 2'd2   // Emit synthetic all-ones bytes for weight alignment
   } state_t;
 
-  state_t state_r, next_state;
+  // Keep the pad FSM in its explicit binary encoding so reset does not infer
+  // a preset-style one-hot state register.
+  (* fsm_encoding = "user" *) state_t state_r;
+  state_t next_state;
 
   //--------------------------------------------------------------------------
   // Registered bookkeeping

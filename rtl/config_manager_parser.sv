@@ -22,12 +22,15 @@ module config_manager_parser (
   localparam int THRESH_WORD_BYTES = 4;
 
   typedef enum logic [1:0] {
-    PARSE_HEADER,
-    PARSE_PAYLOAD,
-    PARSE_DONE
+    PARSE_HEADER  = 2'd0,
+    PARSE_PAYLOAD = 2'd1,
+    PARSE_DONE    = 2'd2
   } parse_state_t;
 
-  parse_state_t parse_state_r, next_parse_state;
+  // Keep the parser in its explicit binary encoding so reset stays a plain
+  // synchronous clear instead of becoming a preset-driven one-hot state bit.
+  (* fsm_encoding = "user" *) parse_state_t parse_state_r;
+  parse_state_t next_parse_state;
 
   // Registered message metadata for the payload currently being emitted.
   logic       next_msg_type;
