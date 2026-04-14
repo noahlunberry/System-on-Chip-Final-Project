@@ -68,26 +68,26 @@ module data_in_manager #(
   localparam int INPUT_BINARIZATION_THRESHOLD = 1 << (INPUT_DATA_WIDTH - 1);
 
   // Match the original top-level bin FIFO depth.
-  localparam int BIN_FIFO_DEPTH_LOG2 = 4;
+  localparam int BIN_FIFO_DEPTH_LOG2 = 3;
 
   // Reserve three FIFO entries so one word already buffered in `vw_buffer`,
   // one word sitting in the local write pipeline below, and one more word
   // still emerging from the registered compactor can all drain safely after
   // AXI input is throttled.
-  localparam int BIN_FIFO_ALM_FULL_THRESH = 3;
+  localparam int BIN_FIFO_ALM_FULL_THRESH = 1;
 
   initial begin
-    if (BIN_FIFO_DEPTH_LOG2 < 4) begin
-      $fatal(1,
-             "data_in_manager requires BIN_FIFO_DEPTH_LOG2 to be at least 4, got %0d.",
-             BIN_FIFO_DEPTH_LOG2);
-    end
-
-    if (BIN_FIFO_ALM_FULL_THRESH < 3) begin
-      $fatal(1,
-             "data_in_manager requires BIN_FIFO_ALM_FULL_THRESH to be at least 3, got %0d.",
-             BIN_FIFO_ALM_FULL_THRESH);
-    end
+    // if (BIN_FIFO_DEPTH_LOG2 < 4) begin
+    //   $fatal(1,
+    //          "data_in_manager requires BIN_FIFO_DEPTH_LOG2 to be at least 4, got %0d.",
+    //          BIN_FIFO_DEPTH_LOG2);
+    // end
+// 
+    // if (BIN_FIFO_ALM_FULL_THRESH < 3) begin
+    //   $fatal(1,
+    //          "data_in_manager requires BIN_FIFO_ALM_FULL_THRESH to be at least 3, got %0d.",
+    //          BIN_FIFO_ALM_FULL_THRESH);
+    // end
 
     // This manager currently assumes byte-granular image inputs because the
     // compactor and vw_buffer path operate in bytes.

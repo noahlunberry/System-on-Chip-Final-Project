@@ -44,9 +44,9 @@ module fifo_vr #(
     always_ff @(posedge clk) begin
         // on hard reset, reset the memory
         if (rst) begin
-            for (int i = 0; i < MEM_SIZE; i++) begin
-                mem[i] <= 0;
-            end
+            // for (int i = 0; i < MEM_SIZE; i++) begin
+            //     mem[i] <= 0;
+            // end
         end
         // if we have a write request and the FIFO is not full, or
         // we have a read and doing both the read and the write do not
