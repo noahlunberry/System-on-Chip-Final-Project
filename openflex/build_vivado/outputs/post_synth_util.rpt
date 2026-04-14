@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Mon Apr 13 21:04:21 2026
+| Date         : Mon Apr 13 21:37:20 2026
 | Host         : Acey running 64-bit major release  (build 9200)
 | Command      : report_utilization -file ./outputs/post_synth_util.rpt
 | Design       : bnn_fcc_timing
@@ -35,16 +35,16 @@ Table of Contents
 +----------------------------+-------+-------+------------+-----------+-------+
 |          Site Type         |  Used | Fixed | Prohibited | Available | Util% |
 +----------------------------+-------+-------+------------+-----------+-------+
-| CLB LUTs*                  | 43308 |     0 |          0 |   1728000 |  2.51 |
-|   LUT as Logic             | 34047 |     0 |          0 |   1728000 |  1.97 |
+| CLB LUTs*                  | 42610 |     0 |          0 |   1728000 |  2.47 |
+|   LUT as Logic             | 33349 |     0 |          0 |   1728000 |  1.93 |
 |   LUT as Memory            |  9261 |     0 |          0 |    791040 |  1.17 |
 |     LUT as Distributed RAM |  8300 |     0 |            |           |       |
 |     LUT as Shift Register  |   961 |     0 |            |           |       |
-| CLB Registers              | 52647 |     0 |          0 |   3456000 |  1.52 |
-|   Register as Flip Flop    | 52647 |     0 |          0 |   3456000 |  1.52 |
+| CLB Registers              | 52660 |     0 |          0 |   3456000 |  1.52 |
+|   Register as Flip Flop    | 52660 |     0 |          0 |   3456000 |  1.52 |
 |   Register as Latch        |     0 |     0 |          0 |   3456000 |  0.00 |
-| CARRY8                     |   619 |     0 |          0 |    216000 |  0.29 |
-| F7 Muxes                   |   141 |     0 |          0 |    864000 |  0.02 |
+| CARRY8                     |   601 |     0 |          0 |    216000 |  0.28 |
+| F7 Muxes                   |   129 |     0 |          0 |    864000 |  0.01 |
 | F8 Muxes                   |    32 |     0 |          0 |    432000 | <0.01 |
 | F9 Muxes                   |     0 |     0 |          0 |    216000 |  0.00 |
 +----------------------------+-------+-------+------------+-----------+-------+
@@ -68,7 +68,7 @@ Warning! For any ECO changes, please run place_design if there are unplaced inst
 | 0     |          Yes |           - |          Set |
 | 0     |          Yes |           - |        Reset |
 | 15    |          Yes |         Set |            - |
-| 52632 |          Yes |       Reset |            - |
+| 52645 |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
 
 
@@ -161,19 +161,19 @@ Warning! For any ECO changes, please run place_design if there are unplaced inst
 +----------+-------+---------------------+
 | Ref Name |  Used | Functional Category |
 +----------+-------+---------------------+
-| FDRE     | 52632 |            Register |
-| LUT2     | 19312 |                 CLB |
+| FDRE     | 52645 |            Register |
+| LUT2     | 19292 |                 CLB |
 | RAMD64E  |  7292 |                 CLB |
-| LUT4     |  6644 |                 CLB |
-| LUT6     |  4126 |                 CLB |
-| LUT3     |  3464 |                 CLB |
+| LUT4     |  6630 |                 CLB |
+| LUT6     |  3870 |                 CLB |
+| LUT3     |  2965 |                 CLB |
 | RAMD32   |  1754 |                 CLB |
-| LUT5     |  1125 |                 CLB |
+| LUT5     |  1174 |                 CLB |
 | SRL16E   |   961 |                 CLB |
-| CARRY8   |   619 |                 CLB |
+| CARRY8   |   601 |                 CLB |
 | RAMS32   |   262 |                 CLB |
-| MUXF7    |   141 |                 CLB |
-| LUT1     |   104 |                 CLB |
+| MUXF7    |   129 |                 CLB |
+| LUT1     |    96 |                 CLB |
 | MUXF8    |    32 |                 CLB |
 | FDSE     |    15 |            Register |
 +----------+-------+---------------------+
