@@ -249,10 +249,10 @@ class bnn_cfg_coverage extends uvm_component;
     // intermittent versus bursty TVALID patterns.
     covergroup cfg_handshake_coverage;
         gap_len_cp: coverpoint cfg_gap_len {
-            bins zero = {0};
-            bins short_gap = {[1:3]};
-            bins medium_gap = {[4:15]};
-            bins long_gap = {[16:$]};
+            bins back_to_back = {0};
+            bins short_gap = {[1:10]};
+            bins medium_gap = {[11:50]};
+            bins long_gap = {[51:$]};
         }
 
         burst_len_cp: coverpoint cfg_burst_len {
@@ -703,10 +703,10 @@ class bnn_input_coverage extends uvm_component;
     // Covers cycle-level TVALID gaps/bursts during image transfers.
     covergroup input_handshake_coverage;
         gap_len_cp: coverpoint in_gap_len {
-            bins zero = {0};
-            bins short_gap = {[1:3]};
-            bins medium_gap = {[4:15]};
-            bins long_gap = {[16:$]};
+            bins back_to_back = {0};
+            bins short_gap = {[1:10]};
+            bins medium_gap = {[11:50]};
+            bins long_gap = {[51:$]};
         }
 
         burst_len_cp: coverpoint in_burst_len {
@@ -720,10 +720,10 @@ class bnn_input_coverage extends uvm_component;
     // Covers spacing between completed images.
     covergroup input_image_spacing_coverage;
         inter_image_gap_cp: coverpoint inter_image_gap {
-            bins zero = {0};
-            bins short_gap = {[1:5]};
-            bins medium_gap = {[6:20]};
-            bins long_gap = {[21:$]};
+            bins back_to_back = {0};
+            bins short_gap = {[1:10]};
+            bins medium_gap = {[11:50]};
+            bins long_gap = {[51:$]};
         }
     endgroup
 
@@ -1008,10 +1008,10 @@ class bnn_output_coverage extends uvm_component;
     // Covers observed TREADY stall and burst patterns on the output stream.
     covergroup output_backpressure_coverage;
         stall_len_cp: coverpoint out_stall_len {
-            bins zero = {0};
-            bins short_stall = {[1:3]};
-            bins medium_stall = {[4:15]};
-            bins long_stall = {[16:$]};
+            bins back_to_back = {0};
+            bins short_stall = {[1:10]};
+            bins medium_stall = {[11:50]};
+            bins long_stall = {[51:$]};
         }
 
         ready_burst_cp: coverpoint out_ready_burst_len {
