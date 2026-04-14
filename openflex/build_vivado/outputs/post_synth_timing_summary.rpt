@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date              : Mon Apr 13 19:20:34 2026
+| Date              : Mon Apr 13 19:48:02 2026
 | Host              : Acey running 64-bit major release  (build 9200)
 | Command           : report_timing_summary -file ./outputs/post_synth_timing_summary.rpt
 | Design            : bnn_fcc_timing
@@ -143,7 +143,7 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-     -0.397      -10.575                    111               131021        0.045        0.000                      0               131021        0.118        0.000                       0                 63458  
+     -0.250      -10.325                    111               131030        0.045        0.000                      0               131030        0.118        0.000                       0                 63459  
 
 
 Timing constraints are not met.
@@ -166,7 +166,7 @@ clk    {0.000 0.650}        1.300           769.231
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-clk                -0.397      -10.575                    111               131021        0.045        0.000                      0               131021        0.118        0.000                       0                 63458  
+clk                -0.250      -10.325                    111               131030        0.045        0.000                      0               131030        0.118        0.000                       0                 63459  
 
 
 ------------------------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing 
 From Clock:  clk
   To Clock:  clk
 
-Setup :          111  Failing Endpoints,  Worst Slack       -0.397ns,  Total Violation      -10.575ns
+Setup :          111  Failing Endpoints,  Worst Slack       -0.250ns,  Total Violation      -10.325ns
 Hold  :            0  Failing Endpoints,  Worst Slack        0.045ns,  Total Violation        0.000ns
 PW    :            0  Failing Endpoints,  Worst Slack        0.118ns,  Total Violation        0.000ns
 ---------------------------------------------------------------------------------------------------
@@ -205,16 +205,16 @@ PW    :            0  Failing Endpoints,  Worst Slack        0.118ns,  Total Vio
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -0.397ns  (required time - arrival time)
-  Source:                 DUT/config_manager/fifo_config_bytes/fill_reg[5]/C
+Slack (VIOLATED) :        -0.250ns  (required time - arrival time)
+  Source:                 DUT/data_in_manager_i/bin_fifo/fill_reg[8]/C
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.650ns period=1.300ns})
-  Destination:            DUT/config_manager/fifo_config_bytes/alm_full_reg/D
+  Destination:            DUT/data_in_manager_i/bin_fifo/alm_full_reg/D
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.650ns period=1.300ns})
   Path Group:             clk
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            1.300ns  (clk rise@1.300ns - clk rise@0.000ns)
-  Data Path Delay:        1.687ns  (logic 0.566ns (33.551%)  route 1.121ns (66.449%))
-  Logic Levels:           7  (CARRY8=2 LUT1=1 LUT3=1 LUT5=2 LUT6=1)
+  Data Path Delay:        1.540ns  (logic 0.534ns (34.675%)  route 1.006ns (65.325%))
+  Logic Levels:           5  (CARRY8=1 LUT4=1 LUT5=2 LUT6=1)
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -225,42 +225,37 @@ Slack (VIOLATED) :        -0.397ns  (required time - arrival time)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=63457, unset)        0.000     0.000    DUT/config_manager/fifo_config_bytes/clk
-                         FDRE                                         r  DUT/config_manager/fifo_config_bytes/fill_reg[5]/C
+                         net (fo=63458, unset)        0.000     0.000    DUT/data_in_manager_i/bin_fifo/clk
+                         FDRE                                         r  DUT/data_in_manager_i/bin_fifo/fill_reg[8]/C
   -------------------------------------------------------------------    -------------------
-                         FDRE (Prop_FDRE_C_Q)         0.077     0.077 r  DUT/config_manager/fifo_config_bytes/fill_reg[5]/Q
-                         net (fo=24, unplaced)        0.144     0.221    DUT/config_manager/fifo_config_bytes/fill_reg_n_0_[5]
-                         LUT3 (Prop_LUT3_I0_O)        0.090     0.311 r  DUT/config_manager/fifo_config_bytes/fill[9]_i_8/O
-                         net (fo=11, unplaced)        0.220     0.531    DUT/config_manager/fifo_config_bytes/fill[9]_i_8_n_0
-                         LUT5 (Prop_LUT5_I2_O)        0.038     0.569 f  DUT/config_manager/fifo_config_bytes/empty_i_7__3/O
-                         net (fo=23, unplaced)        0.237     0.806    DUT/config_manager/fifo_config_bytes/empty_i_7__3_n_0
-                         LUT1 (Prop_LUT1_I0_O)        0.038     0.844 r  DUT/config_manager/fifo_config_bytes/alm_full_i_42/O
-                         net (fo=1, unplaced)         0.187     1.031    DUT/config_manager/fifo_config_bytes/alm_full_i_42_n_0
-                         CARRY8 (Prop_CARRY8_S[3]_CO[7])
-                                                      0.170     1.201 r  DUT/config_manager/fifo_config_bytes/alm_full_reg_i_19/CO[7]
-                         net (fo=1, unplaced)         0.005     1.206    DUT/config_manager/fifo_config_bytes/alm_full_reg_i_19_n_0
-                         CARRY8 (Prop_CARRY8_CI_CO[5])
-                                                      0.077     1.283 r  DUT/config_manager/fifo_config_bytes/alm_full_reg_i_6/CO[5]
-                         net (fo=2, unplaced)         0.095     1.378    DUT/config_manager/fifo_config_bytes/alm_full_reg_i_6_n_2
-                         LUT6 (Prop_LUT6_I0_O)        0.038     1.416 r  DUT/config_manager/fifo_config_bytes/alm_full_i_3/O
-                         net (fo=1, unplaced)         0.185     1.601    DUT/config_manager/fifo_config_bytes/alm_full_i_3_n_0
-                         LUT5 (Prop_LUT5_I1_O)        0.038     1.639 r  DUT/config_manager/fifo_config_bytes/alm_full_i_1/O
-                         net (fo=1, unplaced)         0.048     1.687    DUT/config_manager/fifo_config_bytes/alm_full_i_1_n_0
-                         FDRE                                         r  DUT/config_manager/fifo_config_bytes/alm_full_reg/D
+                         FDRE (Prop_FDRE_C_Q)         0.077     0.077 f  DUT/data_in_manager_i/bin_fifo/fill_reg[8]/Q
+                         net (fo=46, unplaced)        0.166     0.243    DUT/data_in_manager_i/bin_fifo/fill_reg_n_0_[8]
+                         LUT5 (Prop_LUT5_I0_O)        0.125     0.368 r  DUT/data_in_manager_i/bin_fifo/empty_i_11/O
+                         net (fo=22, unplaced)        0.236     0.604    DUT/data_in_manager_i/bin_fifo/empty1[11]
+                         LUT4 (Prop_LUT4_I0_O)        0.070     0.674 r  DUT/data_in_manager_i/bin_fifo/alm_full_i_37__0/O
+                         net (fo=1, unplaced)         0.233     0.907    DUT/data_in_manager_i/bin_fifo/alm_full_i_37__0_n_0
+                         CARRY8 (Prop_CARRY8_DI[0]_CO[6])
+                                                      0.186     1.093 r  DUT/data_in_manager_i/bin_fifo/alm_full_reg_i_13/CO[6]
+                         net (fo=1, unplaced)         0.138     1.231    DUT/data_in_manager_i/bin_fifo/alm_full_reg_i_13_n_1
+                         LUT6 (Prop_LUT6_I0_O)        0.038     1.269 r  DUT/data_in_manager_i/bin_fifo/alm_full_i_4/O
+                         net (fo=1, unplaced)         0.185     1.454    DUT/data_in_manager_i/bin_fifo/alm_full_i_4_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.038     1.492 r  DUT/data_in_manager_i/bin_fifo/alm_full_i_1__1/O
+                         net (fo=1, unplaced)         0.048     1.540    DUT/data_in_manager_i/bin_fifo/alm_full_i_1__1_n_0
+                         FDRE                                         r  DUT/data_in_manager_i/bin_fifo/alm_full_reg/D
   -------------------------------------------------------------------    -------------------
 
                          (clock clk rise edge)        1.300     1.300 r  
                                                       0.000     1.300 r  clk (IN)
-                         net (fo=63457, unset)        0.000     1.300    DUT/config_manager/fifo_config_bytes/clk
-                         FDRE                                         r  DUT/config_manager/fifo_config_bytes/alm_full_reg/C
+                         net (fo=63458, unset)        0.000     1.300    DUT/data_in_manager_i/bin_fifo/clk
+                         FDRE                                         r  DUT/data_in_manager_i/bin_fifo/alm_full_reg/C
                          clock pessimism              0.000     1.300    
                          clock uncertainty           -0.035     1.265    
-                         FDRE (Setup_FDRE_C_D)        0.025     1.290    DUT/config_manager/fifo_config_bytes/alm_full_reg
+                         FDRE (Setup_FDRE_C_D)        0.025     1.290    DUT/data_in_manager_i/bin_fifo/alm_full_reg
   -------------------------------------------------------------------
                          required time                          1.290    
-                         arrival time                          -1.687    
+                         arrival time                          -1.540    
   -------------------------------------------------------------------
-                         slack                                 -0.397    
+                         slack                                 -0.250    
 
 
 
@@ -283,7 +278,7 @@ Slack (MET) :             0.045ns  (arrival time - required time)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=63457, unset)        0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/clk
+                         net (fo=63458, unset)        0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/clk
                          FDRE                                         r  DUT/bnn_main/g_layers[1].u_layer/t_wr_addr_pipe_r_reg[0][3]/C
   -------------------------------------------------------------------    -------------------
                          FDRE (Prop_FDRE_C_Q)         0.038     0.038 r  DUT/bnn_main/g_layers[1].u_layer/t_wr_addr_pipe_r_reg[0][3]/Q
@@ -293,7 +288,7 @@ Slack (MET) :             0.045ns  (arrival time - required time)
 
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=63457, unset)        0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_15_0_9/WCLK
+                         net (fo=63458, unset)        0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_15_0_9/WCLK
                          RAMD32                                       r  DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_15_0_9/RAMA/CLK
                          clock pessimism              0.000     0.000    
                          RAMD32 (Hold_RAMD32_CLK_WADR3)
