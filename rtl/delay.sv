@@ -21,7 +21,7 @@ module register #(
 
   if (PRESERVE) begin : l_preserve
     // Prevent equivalent-register removal / merging across instances.
-    (* DONT_TOUCH = "TRUE" *) logic [WIDTH-1:0] out_r;
+    (* KEEP = "TRUE" *) logic [WIDTH-1:0] out_r;
 
     assign out = out_r;
 

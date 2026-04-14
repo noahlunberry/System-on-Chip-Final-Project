@@ -300,7 +300,7 @@ module bnn_layer #(
 
   // Register the layer outputs so the wide NP result bus does not cross the
   // module boundary combinationally.
-  always_ff @(posedge clk or posedge rst) begin
+  always_ff @(posedge clk) begin
     if (rst) begin
       data_out  <= '0;
       valid_out <= 1'b0;

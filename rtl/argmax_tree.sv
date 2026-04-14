@@ -107,7 +107,7 @@ module argmax_tree #(
       //--------------------------------------------------------------------
       // Compare the branches and register the winner
       //--------------------------------------------------------------------
-      always_ff @(posedge clk or posedge rst) begin
+      always_ff @(posedge clk) begin
         if (rst) begin
           max_val <= '0;
           max_idx <= '0;
