@@ -120,12 +120,12 @@ module neuron_processor #(
   // output and y_valid control
   always_ff @(posedge clk) begin
     if (rst) begin
-      final_sum_r      <= '0;
-      threshold_final_r <= '0;
-      compare_valid_r  <= 1'b0;
-      y_r              <= 1'b0;
-      count_out        <= '0;
-      y_valid_r <= 1'b0;
+      // final_sum_r      <= '0;
+      // threshold_final_r <= '0;
+      // compare_valid_r  <= 1'b0;
+      // y_r              <= 1'b0;
+      // count_out        <= '0;
+      // y_valid_r <= 1'b0;
     end else begin
       compare_valid_r <= 1'b0;
       y_valid_r       <= 1'b0;

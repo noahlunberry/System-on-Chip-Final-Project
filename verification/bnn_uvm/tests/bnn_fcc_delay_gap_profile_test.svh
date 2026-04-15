@@ -2,8 +2,8 @@
 // University of Florida
 //
 // Directed UVM test that deterministically exercises back-to-back, short,
-// medium, and long idle windows on configuration traffic, inter-image spacing
-// / data_in_valid, and output data_out_ready backpressure.
+// medium, long, and extra-long idle windows on configuration traffic,
+// inter-image spacing / data_in_valid, and output data_out_ready backpressure.
 
 `ifndef _BNN_FCC_DELAY_GAP_PROFILE_TEST_SVH_
 `define _BNN_FCC_DELAY_GAP_PROFILE_TEST_SVH_
@@ -138,9 +138,12 @@ endclass
 class bnn_fcc_delay_gap_profile_test extends bnn_fcc_reconfig_base_test;
     `uvm_component_utils(bnn_fcc_delay_gap_profile_test)
 
+    localparam int PROFILE_NUM_IMAGES = 100;
     localparam int SHORT_GAP_CYCLES = 5;
     localparam int MEDIUM_GAP_CYCLES = 20;
     localparam int LONG_GAP_CYCLES = 60;
+    localparam int FIFO_STRESS_GAP_CYCLES = 160;
+    localparam int FIFO_DRAIN_GAP_CYCLES = 320;
 
     function new(string name = "bnn_fcc_delay_gap_profile_test", uvm_component parent = null);
         super.new(name, parent);
@@ -162,17 +165,30 @@ class bnn_fcc_delay_gap_profile_test extends bnn_fcc_reconfig_base_test;
         @(posedge env.out_vif.aclk iff (env.out_vif.tvalid && env.out_vif.tready));
     endtask
 
-    protected task drive_output_ready_gap_profile(input int gap_cycles[$]);
+    protected task wait_for_output_pending();
+        wait (env.out_vif.tvalid == 1'b1);
+    endtask
+
+    protected task drive_output_ready_gap_profile(input int num_outputs, input int gap_cycles[$]);
         if (gap_cycles.size() == 0)
             `uvm_fatal("EMPTY_OUTPUT_GAPS", "Output ready gap profile requires at least one gap.")
 
+        if (num_outputs <= 0)
+            `uvm_fatal("BAD_NUM_OUTPUTS",
+                       $sformatf("Output ready gap profile requires a positive output count, got %0d.",
+                                 num_outputs))
+
         ctrl_vif.force_output_ready(1'b1);
 
-        foreach (gap_cycles[i]) begin
-            if (gap_cycles[i] > 0) begin
-                @(posedge env.out_vif.tvalid);
+        for (int output_idx = 0; output_idx < num_outputs; output_idx++) begin
+            int gap_cycles_this_output;
+
+            gap_cycles_this_output = gap_cycles[output_idx % gap_cycles.size()];
+
+            if (gap_cycles_this_output > 0) begin
+                wait_for_output_pending();
                 ctrl_vif.force_output_ready(1'b0);
-                repeat (gap_cycles[i]) @(posedge env.out_vif.aclk);
+                repeat (gap_cycles_this_output) @(posedge env.out_vif.aclk);
                 ctrl_vif.force_output_ready(1'b1);
             end
             else begin
@@ -180,7 +196,6 @@ class bnn_fcc_delay_gap_profile_test extends bnn_fcc_reconfig_base_test;
             end
 
             wait_for_output_handshake();
-            @(posedge env.out_vif.aclk);
         end
 
         ctrl_vif.release_output_ready();
@@ -205,8 +220,14 @@ class bnn_fcc_delay_gap_profile_test extends bnn_fcc_reconfig_base_test;
 
         config_gaps = '{0, SHORT_GAP_CYCLES, MEDIUM_GAP_CYCLES, LONG_GAP_CYCLES};
         image_gaps = '{0, SHORT_GAP_CYCLES, MEDIUM_GAP_CYCLES, LONG_GAP_CYCLES};
-        output_ready_gaps = '{0, SHORT_GAP_CYCLES, MEDIUM_GAP_CYCLES, LONG_GAP_CYCLES, 0};
-        image_indices = '{0, 1, 2, 3, 4};
+        // Include long ready-low windows that are much larger than the tiny
+        // output FIFO so backpressure headroom is exercised repeatedly.
+        output_ready_gaps = '{0, SHORT_GAP_CYCLES, MEDIUM_GAP_CYCLES, LONG_GAP_CYCLES,
+                              FIFO_STRESS_GAP_CYCLES, 0, FIFO_DRAIN_GAP_CYCLES, SHORT_GAP_CYCLES,
+                              0, LONG_GAP_CYCLES};
+
+        for (int image_idx = 0; image_idx < PROFILE_NUM_IMAGES; image_idx++)
+            image_indices.push_back(image_idx);
 
         cfg_seq = bnn_fcc_config_gap_beat_sequence::type_id::create("cfg_seq");
         cfg_seq.set_gap_cycles(config_gaps);
@@ -221,7 +242,7 @@ class bnn_fcc_delay_gap_profile_test extends bnn_fcc_reconfig_base_test;
 
         fork
             begin
-                drive_output_ready_gap_profile(output_ready_gaps);
+                drive_output_ready_gap_profile(image_indices.size(), output_ready_gaps);
             end
             begin
                 img_seq.start(env.in_agent.sequencer);

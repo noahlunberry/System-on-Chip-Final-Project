@@ -102,23 +102,30 @@ module bnn_fcc_uvm_tb #(
       .aresetn(!ctrl_if.rst)
   );
 
+  logic rand_out_ready_r;
+
   // Match your old TB behavior
   assign config_in_if.tstrb = config_in_if.tkeep;
   assign data_in_if.tstrb   = data_in_if.tkeep;
 
-  // Match the original TB backpressure behavior by driving TREADY directly
-  // from the top-level testbench. The output agent is monitor-only.
-  initial begin
-    forever begin
-      if (ctrl_if.out_ready_force_en)
-        data_out_if.tready <= ctrl_if.out_ready_force_val;
-      else if (!TOGGLE_DATA_OUT_READY)
-        data_out_if.tready <= 1'b1;
-      else
-        data_out_if.tready <= $urandom();
+  // Match the original TB backpressure behavior, but keep the force path
+  // combinational so directed tests can clamp TREADY before the next clock.
+  always_ff @(posedge clk) begin
+    if (ctrl_if.rst)
+      rand_out_ready_r <= 1'b1;
+    else if (TOGGLE_DATA_OUT_READY)
+      rand_out_ready_r <= $urandom();
+    else
+      rand_out_ready_r <= 1'b1;
+  end
 
-      @(posedge clk);
-    end
+  always_comb begin
+    if (ctrl_if.out_ready_force_en)
+      data_out_if.tready = ctrl_if.out_ready_force_val;
+    else if (!TOGGLE_DATA_OUT_READY)
+      data_out_if.tready = 1'b1;
+    else
+      data_out_if.tready = rand_out_ready_r;
   end
 
   // ---------------------------------

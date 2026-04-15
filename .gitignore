@@ -9,7 +9,7 @@ openflex/build_vivado/**/*
 verification/bnn_uvm/work
 .nfs*
 work
-codex_uvm_check\
+codex_uvm_check
 vsim.dbg
 .codex
 wlftorkTRp

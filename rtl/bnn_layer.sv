@@ -237,9 +237,9 @@ module bnn_layer #(
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_np_mems
       // Preserve one local address register per bank so Vivado cannot merge
       // identical copies back into a single high-fanout LUTRAM address driver.
-      (* KEEP = "true", DONT_TOUCH = "true", equivalent_register_removal = "no" *)
+      (* KEEP = "true", equivalent_register_removal = "no" *)
       logic [W_RAM_ADDR_W-1:0] w_rd_addr_local_r;
-      (* KEEP = "true", DONT_TOUCH = "true", equivalent_register_removal = "no" *)
+      (* KEEP = "true", equivalent_register_removal = "no" *)
       logic [T_RAM_ADDR_W-1:0] t_rd_addr_local_r;
 
       always_ff @(posedge clk) begin
