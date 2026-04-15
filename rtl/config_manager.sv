@@ -229,9 +229,9 @@ module config_manager #(
   // Keep the weight-byte read/drain/pad control isolated from the rest of the
   // datapath so config_manager now just wires the controller to the FIFOs.
   config_manager_pad_fsm #(
-      .LAYERS             (LAYERS),
-      .PARALLEL_NEURONS   (PARALLEL_NEURONS),
-      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS)
+      .PARALLEL_INPUTS (PARALLEL_INPUTS),
+      .LAYERS          (LAYERS),
+      .PARALLEL_NEURONS(PARALLEL_NEURONS)
   ) config_manager_pad_fsm_i (
       .clk               (clk),
       .rst               (rst),
@@ -297,7 +297,7 @@ module config_manager #(
   genvar i;
   generate
     for (i = 0; i < LAYERS; i++) begin : gen_packer
-      localparam int LAYER_WIDTH = (i == 0) ? MAX_PARALLEL_INPUTS : PARALLEL_NEURONS[i-1];
+      localparam int LAYER_WIDTH = (i == 0) ? PARALLEL_INPUTS : PARALLEL_NEURONS[i-1];
       logic [LAYER_WIDTH-1:0] packer_layer_data;
 
       fifo_vr #(

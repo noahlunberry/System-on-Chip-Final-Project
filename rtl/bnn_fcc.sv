@@ -63,7 +63,7 @@ module bnn_fcc #(
   logic [              LAYERS-1:0] threshold_wr_en;
 
   logic                            bnn_ready;
-  logic [ MAX_PARALLEL_INPUTS-1:0] bnn_data_in;
+  logic [   PARALLEL_INPUTS-1:0]   bnn_data_in;
   logic                            bnn_data_in_valid;
   logic [THRESHOLD_DATA_WIDTH-1:0] bnn_count_out     [PARALLEL_NEURONS[LAYERS-1]];
   logic                            bnn_count_valid;
@@ -111,7 +111,7 @@ module bnn_fcc #(
       .INPUT_DATA_WIDTH   (INPUT_DATA_WIDTH),
       .INPUT_BUS_WIDTH    (INPUT_BUS_WIDTH),
       .TOTAL_INPUTS       (TOPOLOGY[0]),
-      .MAX_PARALLEL_INPUTS(MAX_PARALLEL_INPUTS)
+      .PARALLEL_INPUTS    (PARALLEL_INPUTS)
   ) data_in_manager_i (
       .clk              (clk),
       .rst              (rst),
@@ -135,6 +135,7 @@ module bnn_fcc #(
       .NUM_INPUTS          (TOPOLOGY[0]),
       .NUM_NEURONS         (NUM_NEURONS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
+      .FIRST_LAYER_PARALLEL_INPUTS(PARALLEL_INPUTS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
   ) bnn_main (

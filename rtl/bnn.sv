@@ -3,6 +3,7 @@ module bnn #(
     parameter int NUM_INPUTS = 784,
     parameter int NUM_NEURONS[LAYERS] = '{0: 256, 1: 256, 2: 10, default: 0},
     parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
+    parameter int FIRST_LAYER_PARALLEL_INPUTS = 8,
     parameter int MAX_PARALLEL_INPUTS = 8,
     parameter int THRESHOLD_DATA_WIDTH = $clog2(NUM_INPUTS + 1)
 ) (
@@ -16,7 +17,7 @@ module bnn #(
     input logic [THRESHOLD_DATA_WIDTH-1:0] threshold_wr_data,
     input logic [              LAYERS-1:0] threshold_wr_en,
 
-    input  logic [       MAX_PARALLEL_INPUTS-1:0] data_in,
+    input  logic [FIRST_LAYER_PARALLEL_INPUTS-1:0] data_in,
     input  logic                                  data_in_valid,
     output logic [PARALLEL_NEURONS[LAYERS-1]-1:0] data_out,
     output logic [      THRESHOLD_DATA_WIDTH-1:0] count_out     [PARALLEL_NEURONS[LAYERS-1]],
@@ -39,7 +40,8 @@ module bnn #(
   endfunction
 
   localparam int PADDED_INPUTS =
-        ((NUM_INPUTS + MAX_PARALLEL_INPUTS - 1) / MAX_PARALLEL_INPUTS) * MAX_PARALLEL_INPUTS;
+        ((NUM_INPUTS + FIRST_LAYER_PARALLEL_INPUTS - 1) / FIRST_LAYER_PARALLEL_INPUTS)
+        * FIRST_LAYER_PARALLEL_INPUTS;
 
   localparam int MAX_LAYER_BUS_WIDTH = max_array(PARALLEL_NEURONS);
 
@@ -70,7 +72,8 @@ module bnn #(
   generate
     for (i = 0; i < LAYERS; i++) begin : g_layers
 
-      localparam int CUR_PARALLEL_INPUTS = (i == 0) ? MAX_PARALLEL_INPUTS : PARALLEL_NEURONS[i-1];
+      localparam int CUR_PARALLEL_INPUTS =
+          (i == 0) ? FIRST_LAYER_PARALLEL_INPUTS : PARALLEL_NEURONS[i-1];
 
       localparam int CUR_PARALLEL_NEURONS = PARALLEL_NEURONS[i];
 

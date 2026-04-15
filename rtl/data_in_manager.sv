@@ -10,12 +10,12 @@
 //    only valid bytes are kept and packed contiguously.
 // 3. Count how many real bytes have arrived for the current image frame.
 // 4. After the last real beat, inject zero-valued padding bytes so the total
-//    byte count is a multiple of `MAX_PARALLEL_INPUTS`.
+//    byte count is a multiple of `PARALLEL_INPUTS`.
 // 5. Feed the compacted/padded byte stream into `vw_buffer`, which repacks the
 //    variable-size writes into fixed-width `INPUT_BUS_BYTES`-byte words.
 // 6. Binarize each emitted byte word into `INPUT_BUS_BYTES` bits.
 // 7. Push those fixed-width binary words into an internal `fifo_vr`, which
-//    width-converts them into `MAX_PARALLEL_INPUTS`-bit words for the BNN.
+//    width-converts them into `PARALLEL_INPUTS`-bit words for the BNN.
 // 8. Let the BNN consume from that FIFO, so BNN-side stalls are absorbed by the
 //    FIFO instead of feeding directly back into `vw_buffer`.
 //
@@ -36,7 +36,7 @@ module data_in_manager #(
     parameter int INPUT_DATA_WIDTH    = 8,
     parameter int INPUT_BUS_WIDTH     = 64,
     parameter int TOTAL_INPUTS        = 784,
-    parameter int MAX_PARALLEL_INPUTS = 8
+    parameter int PARALLEL_INPUTS     = 8
 ) (
     input  logic                           clk,
     input  logic                           rst,
@@ -57,13 +57,13 @@ module data_in_manager #(
     input  logic                           bnn_en,
 
     // To BNN
-    output logic [MAX_PARALLEL_INPUTS-1:0] bnn_data_in,
+    output logic [PARALLEL_INPUTS-1:0]     bnn_data_in,
     output logic                           bnn_data_in_valid
 );
 
   localparam int INPUT_BUS_BYTES = INPUT_BUS_WIDTH / 8;
   localparam int COUNT_W         = $clog2(INPUT_BUS_BYTES + 1);
-  localparam int PAD_W           = (MAX_PARALLEL_INPUTS <= 1) ? 1 : $clog2(MAX_PARALLEL_INPUTS + 1);
+  localparam int PAD_W           = (PARALLEL_INPUTS <= 1) ? 1 : $clog2(PARALLEL_INPUTS + 1);
   localparam int FRAME_CNT_W     = $clog2(TOTAL_INPUTS + INPUT_BUS_BYTES + 1);
   localparam int INPUT_BINARIZATION_THRESHOLD = 1 << (INPUT_DATA_WIDTH - 1);
 
@@ -121,7 +121,7 @@ module data_in_manager #(
 
   // When `padding_r` is high, the manager is no longer consuming upstream AXI
   // beats. Instead, it is writing zero bytes into the vw_buffer until the
-  // frame length has been rounded up to a multiple of MAX_PARALLEL_INPUTS.
+  // frame length has been rounded up to a multiple of PARALLEL_INPUTS.
   logic                       padding_r;
   logic [PAD_W-1:0]           pad_remaining_r;
 
@@ -145,7 +145,7 @@ module data_in_manager #(
   // Internal binary FIFO signals. This FIFO is the actual elastic boundary
   // between the input packing path and the BNN.
   logic [INPUT_BUS_BYTES-1:0]     bin_fifo_wr_data;
-  logic [MAX_PARALLEL_INPUTS-1:0] bin_fifo_rd_data;
+  logic [PARALLEL_INPUTS-1:0]     bin_fifo_rd_data;
   logic                           bin_fifo_full;
   logic                           bin_fifo_empty;
   logic                           bin_fifo_alm_full;
@@ -178,11 +178,11 @@ module data_in_manager #(
     frame_total_bytes = frame_byte_count_r + compact_total_bytes;
 
     // Compute how many zero bytes must be appended after the last real beat so
-    // the vw_buffer can eventually emit full MAX_PARALLEL_INPUTS-byte words.
-    if ((frame_total_bytes % MAX_PARALLEL_INPUTS) == 0)
+    // the vw_buffer can eventually emit full PARALLEL_INPUTS-byte words.
+    if ((frame_total_bytes % PARALLEL_INPUTS) == 0)
       pad_bytes_needed = '0;
     else
-      pad_bytes_needed = PAD_W'(MAX_PARALLEL_INPUTS - (frame_total_bytes % MAX_PARALLEL_INPUTS));
+      pad_bytes_needed = PAD_W'(PARALLEL_INPUTS - (frame_total_bytes % PARALLEL_INPUTS));
 
     // Padding may need multiple writes if the upstream bus is wider than the
     // number of bytes still left to inject.
@@ -271,7 +271,7 @@ module data_in_manager #(
 
   fifo_vr #(
       .N(INPUT_BUS_BYTES),
-      .M(MAX_PARALLEL_INPUTS),
+      .M(PARALLEL_INPUTS),
       .P(BIN_FIFO_DEPTH_LOG2),
       .FWFT(1'b0),
       .ALM_FULL_THRESH(BIN_FIFO_ALM_FULL_THRESH),

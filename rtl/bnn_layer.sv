@@ -38,7 +38,8 @@ module bnn_layer #(
 
 
 );
-  // The neuron controller emits one registered read-address copy per bank.
+  // The neuron controller emits one shared read address, and each bank keeps a
+  // local preserved copy before the LUTRAM read.
   localparam int READ_ADDR_PIPE_STAGES = 1;
   localparam int NP_RAM_RD_LATENCY = 2 + READ_ADDR_PIPE_STAGES;
 
@@ -55,14 +56,14 @@ module bnn_layer #(
   logic [PARALLEL_NEURONS-1:0] t_wr_en;
   logic [T_RAM_ADDR_W-1:0]     t_wr_addr[PARALLEL_NEURONS];
 
-  // The rd address and enable can be combined into one array, since data is read in parallel
-  // They each have their own rd data and rd addresses, since data will be read in parallel
+  // All banks advance together, so the controller emits one shared read
+  // address/en pulse while each RAM still keeps its own read-data path.
   logic                            w_rd_en;
-  logic [        W_RAM_ADDR_W-1:0] w_rd_addr       [PARALLEL_NEURONS];
+  logic [        W_RAM_ADDR_W-1:0] w_rd_addr;
   logic [     PARALLEL_INPUTS-1:0] w_rd_data       [PARALLEL_NEURONS];
 
   logic                            t_rd_en;
-  logic [        T_RAM_ADDR_W-1:0] t_rd_addr       [PARALLEL_NEURONS];
+  logic [        T_RAM_ADDR_W-1:0] t_rd_addr;
   logic [THRESHOLD_DATA_WIDTH-1:0] t_rd_data       [PARALLEL_NEURONS];
 
   // Input buffer signals
@@ -222,7 +223,7 @@ module bnn_layer #(
       .last      (np_last),
       .layer_done(),          // to the buffer
 
-      // per-bank read-address copies
+      // shared read addresses, captured locally at each RAM bank
       .weight_rd_en  (w_rd_en),
       .weight_rd_addr(w_rd_addr),
 
@@ -234,9 +235,31 @@ module bnn_layer #(
   genvar gi;
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_np_mems
+      // Preserve one local address register per bank so Vivado cannot merge
+      // identical copies back into a single high-fanout LUTRAM address driver.
+      (* KEEP = "true", DONT_TOUCH = "true", equivalent_register_removal = "no" *)
+      logic [W_RAM_ADDR_W-1:0] w_rd_addr_local_r;
+      (* KEEP = "true", DONT_TOUCH = "true", equivalent_register_removal = "no" *)
+      logic [T_RAM_ADDR_W-1:0] t_rd_addr_local_r;
+
+      always_ff @(posedge clk) begin
+        if (rst) begin
+          w_rd_addr_local_r <= '0;
+          t_rd_addr_local_r <= '0;
+        end else begin
+          if (w_rd_en) begin
+            w_rd_addr_local_r <= w_rd_addr;
+          end
+
+          if (t_rd_en) begin
+            t_rd_addr_local_r <= t_rd_addr;
+          end
+        end
+      end
+
       // Weights RAM (one per NP)
       ram_sdp #(
-          .DATA_WIDTH (MAX_PARALLEL_INPUTS),
+          .DATA_WIDTH (PARALLEL_INPUTS),
           .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
@@ -244,11 +267,11 @@ module bnn_layer #(
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (1'b1), // was a super huge fanout signal
-          .rd_addr(w_rd_addr[gi]),
+          .rd_addr(w_rd_addr_local_r),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en_pipe_r[gi]),
           .wr_addr(w_wr_addr_pipe_r[gi]),
-          .wr_data(cfg_weight_wr_data_pipe_r)
+          .wr_data(cfg_weight_wr_data_pipe_r[PARALLEL_INPUTS-1:0])
       );
 
       // Threshold RAM (one per NP)
@@ -261,7 +284,7 @@ module bnn_layer #(
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (1'b1),
-          .rd_addr(t_rd_addr[gi]),
+          .rd_addr(t_rd_addr_local_r),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en_pipe_r[gi]),
           .wr_addr(t_wr_addr_pipe_r[gi]),

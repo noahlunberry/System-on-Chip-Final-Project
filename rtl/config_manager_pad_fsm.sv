@@ -1,7 +1,7 @@
 module config_manager_pad_fsm #(
     parameter int LAYERS = 3,
-    parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8},
-    parameter int MAX_PARALLEL_INPUTS = 8
+    parameter int PARALLEL_INPUTS = 8,
+    parameter int PARALLEL_NEURONS[LAYERS] = '{default: 8}
 ) (
     input logic clk,
     input logic rst,
@@ -161,12 +161,12 @@ module config_manager_pad_fsm #(
   //--------------------------------------------------------------------------
 
   always_comb begin
-    bytes_per_word = MAX_PARALLEL_INPUTS / 8;
+    bytes_per_word = PARALLEL_INPUTS / 8;
 
     for (int k = 0; k < LAYERS; k++) begin
       if (layer_id == 2'(k)) begin
         if (k == 0) begin
-          bytes_per_word = MAX_PARALLEL_INPUTS / 8;
+          bytes_per_word = PARALLEL_INPUTS / 8;
         end else begin
           bytes_per_word = PARALLEL_NEURONS[k-1] / 8;
         end
