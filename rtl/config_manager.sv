@@ -31,13 +31,18 @@ module config_manager #(
   localparam int CONFIG_BYTE_FIFO_DEPTH_LOG2 = 6;
   localparam int CONFIG_BYTE_FIFO_DEPTH = 1 << CONFIG_BYTE_FIFO_DEPTH_LOG2;
   localparam int CONFIG_BYTE_FIFO_WRITE_CAPACITY = CONFIG_BYTE_FIFO_DEPTH / BUS_BYTES;
-  localparam int CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS = 3;
-  // `fifo_vr` now measures alm_full directly in terms of whole write words
-  // remaining before full. Reserve enough room for:
-  // 1. all full words already buffered inside `vw_buffer`, and
-  // 2. one more word still in flight from the registered TKEEP compactor.
+  localparam int CONFIG_BYTE_FIFO_INFLIGHT_WRITE_WORDS = 3;
+  // After `config_ready` deasserts there can still be up to three whole write
+  // words on the way to `fifo_config_bytes`:
+  // 1. one word already buffered inside `vw_buffer`,
+  // 2. one word sitting in the local write pipeline below, and
+  // 3. one more word still emerging from the registered TKEEP compactor.
+  //
+  // `fifo_vr` tracks fill in bits, not rounded write words, while the parser
+  // drains only one byte per cycle. To guarantee those three whole writes still
+  // fit after throttling, assert `alm_full` one write slot earlier.
   localparam int CONFIG_BYTE_FIFO_ALM_FULL_THRESH =
-      CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS;
+      CONFIG_BYTE_FIFO_INFLIGHT_WRITE_WORDS + 1;
 
   // FIFO sizing
   localparam int WEIGHT_FIFO_DEPTH = 64;
@@ -54,6 +59,9 @@ module config_manager #(
   logic compact_wr_en;
   logic [BUS_WIDTH-1:0] compact_wr_data;
   logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
+  logic                       cfg_vw_wr_en_r;
+  logic [BUS_WIDTH-1:0]       cfg_vw_wr_data_r;
+  logic [$clog2(BUS_BYTES+1)-1:0] cfg_vw_total_bytes_r;
   logic cfg_byte_rd_en;
   logic cfg_byte_empty;
   logic cfg_byte_alm_full;
@@ -160,10 +168,24 @@ module config_manager #(
              CONFIG_BYTE_FIFO_DEPTH, BUS_BYTES);
     end
 
-    if (CONFIG_BYTE_FIFO_WRITE_CAPACITY <= CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS) begin
+    if (CONFIG_BYTE_FIFO_WRITE_CAPACITY <= CONFIG_BYTE_FIFO_ALM_FULL_THRESH) begin
       $fatal(1,
-             "config_manager requires config byte FIFO write capacity (%0d words) to exceed reserved inflight words (%0d).",
-             CONFIG_BYTE_FIFO_WRITE_CAPACITY, CONFIG_BYTE_FIFO_RESERVED_WRITE_WORDS);
+             "config_manager requires config byte FIFO write capacity (%0d words) to exceed the almost-full reserve (%0d words).",
+             CONFIG_BYTE_FIFO_WRITE_CAPACITY, CONFIG_BYTE_FIFO_ALM_FULL_THRESH);
+    end
+  end
+
+  // Register one extra write stage before `vw_buffer` so the compactor output
+  // does not directly feed the circular-byte write steering cone.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      cfg_vw_wr_en_r       <= 1'b0;
+      cfg_vw_wr_data_r     <= '0;
+      cfg_vw_total_bytes_r <= '0;
+    end else begin
+      cfg_vw_wr_en_r       <= compact_wr_en;
+      cfg_vw_wr_data_r     <= compact_wr_data;
+      cfg_vw_total_bytes_r <= compact_total_bytes;
     end
   end
 
@@ -175,9 +197,9 @@ module config_manager #(
   ) config_vw_buffer_i (
       .clk       (clk),
       .rst       (rst),
-      .wr_en     (compact_wr_en),
-      .wr_data   (compact_wr_data),
-      .total_bytes(compact_total_bytes),
+      .wr_en     (cfg_vw_wr_en_r),
+      .wr_data   (cfg_vw_wr_data_r),
+      .total_bytes(cfg_vw_total_bytes_r),
       .rd_en     (cfg_vw_rd_en),
       .rd_data   (cfg_vw_rd_data)
   );
