@@ -15,150 +15,137 @@ module replay_buffer #(
     output logic                     rd_ready
 );
 
-  localparam int PTR_W    = (BUFFER_DEPTH <= 1) ? 1 : $clog2(BUFFER_DEPTH);
-  localparam int CNT_W    = (BUFFER_DEPTH <= 1) ? 1 : $clog2(BUFFER_DEPTH + 1);
-  localparam int OFFSET_W = (NUM_ELEMENTS <= 1) ? 1 : $clog2(NUM_ELEMENTS);
-  localparam int CYCLE_W  = (REUSE_CYCLES <= 1) ? 1 : $clog2(REUSE_CYCLES);
+  localparam int INDEX_W = (NUM_ELEMENTS <= 1) ? 1 : $clog2(NUM_ELEMENTS);
+  localparam int CYCLE_W = (REUSE_CYCLES <= 1) ? 1 : $clog2(REUSE_CYCLES);
 
-  localparam bit DEPTH_IS_POW2 =
-      (BUFFER_DEPTH > 0) && ((BUFFER_DEPTH & (BUFFER_DEPTH - 1)) == 0);
-
-  localparam logic [CNT_W-1:0] BUFFER_DEPTH_C = BUFFER_DEPTH;
-  localparam logic [CNT_W-1:0] NUM_ELEMENTS_C = NUM_ELEMENTS;
-  localparam logic [CNT_W-1:0] ONE_CNT_C      = 1'b1;
-
-  localparam logic [OFFSET_W-1:0] LAST_OFFSET_C = NUM_ELEMENTS - 1;
-  localparam logic [OFFSET_W-1:0] ONE_OFFSET_C  = 1'b1;
-
+  localparam logic [INDEX_W-1:0] LAST_IDX_C = NUM_ELEMENTS - 1;
+  localparam logic [INDEX_W-1:0] ONE_IDX_C  = 1'b1;
   localparam logic [CYCLE_W-1:0] LAST_CYCLE_C = REUSE_CYCLES - 1;
   localparam logic [CYCLE_W-1:0] ONE_CYCLE_C  = 1'b1;
 
-  localparam logic [PTR_W:0] ONE_PTR_C        = 1'b1;
-  localparam logic [PTR_W:0] BLOCK_SIZE_PTR_C = NUM_ELEMENTS;
-  localparam logic [PTR_W:0] DEPTH_PTR_C      = BUFFER_DEPTH;
-
-  logic [ELEMENT_WIDTH-1:0] mem [0:BUFFER_DEPTH-1];
+  // This buffer is intentionally specialized for two NUM_ELEMENTS-sized banks:
+  // one bank can be replayed while the other bank is refilled.
+  logic [ELEMENT_WIDTH-1:0] mem [0:1][0:NUM_ELEMENTS-1];
 
   logic [ELEMENT_WIDTH-1:0] rd_data_r;
 
-  logic [PTR_W-1:0]    wr_ptr_r,    next_wr_ptr;
-  logic [PTR_W-1:0]    rd_ptr_r,    next_rd_ptr;
-  logic [PTR_W-1:0]    rd_base_r,   next_rd_base;
-  logic [OFFSET_W-1:0] rd_offset_r, next_rd_offset;
-  logic [CYCLE_W-1:0]  cycle_r,     next_cycle;
-  logic [CNT_W-1:0]    elements_r,  next_elements;
+  logic                     wr_bank_r, next_wr_bank;
+  logic [INDEX_W-1:0]       wr_idx_r, next_wr_idx;
 
-  logic do_write;
-  logic do_read;
-  logic end_of_block;
-  logic last_reuse;
-  logic discard_block;
+  logic                     rd_bank_r, next_rd_bank;
+  logic [INDEX_W-1:0]       rd_idx_r, next_rd_idx;
+  logic [CYCLE_W-1:0]       replay_cycle_r, next_replay_cycle;
 
-  logic [PTR_W-1:0] wr_ptr_inc;
-  logic [PTR_W-1:0] rd_ptr_inc;
-  logic [PTR_W-1:0] rd_base_next_block;
+  logic [1:0]               bank_full_r, next_bank_full;
 
-  function automatic logic [PTR_W-1:0] wrap_add(
-      input logic [PTR_W-1:0] ptr,
-      input logic [PTR_W:0]   inc
-  );
-    logic [PTR_W:0] sum;
-    logic [PTR_W:0] wrapped_sum;
-    begin
-      if (DEPTH_IS_POW2) begin
-        wrap_add = ptr + inc[PTR_W-1:0];
-      end else begin
-        sum         = {1'b0, ptr} + inc;
-        wrapped_sum = sum - DEPTH_PTR_C;
-        wrap_add    = (sum >= DEPTH_PTR_C) ? wrapped_sum[PTR_W-1:0]
-                                           : sum[PTR_W-1:0];
-      end
-    end
-  endfunction
+  logic                     empty_r, next_empty;
+  logic                     not_full_r, next_not_full;
+  logic                     rd_ready_r, next_rd_ready;
 
-  assign wr_ptr_inc         = wrap_add(wr_ptr_r, ONE_PTR_C);
-  assign rd_ptr_inc         = wrap_add(rd_ptr_r, ONE_PTR_C);
-  assign rd_base_next_block = wrap_add(rd_base_r, BLOCK_SIZE_PTR_C);
+  logic                     do_write;
+  logic                     do_read;
+  logic                     write_finishes_bank;
+  logic                     read_finishes_bank;
+  logic                     last_reuse;
 
-  assign empty    = (elements_r == '0);
-  assign not_full = (elements_r != BUFFER_DEPTH_C);
-  assign rd_ready = (elements_r >= NUM_ELEMENTS_C);
   assign rd_data  = rd_data_r;
+  assign empty    = empty_r;
+  assign not_full = not_full_r;
+  assign rd_ready = rd_ready_r;
 
-  assign do_write      = wr_en && not_full;
-  assign do_read       = rd_en && rd_ready;
-  assign end_of_block  = do_read && (rd_offset_r == LAST_OFFSET_C);
-  assign last_reuse    = (cycle_r == LAST_CYCLE_C);
-  assign discard_block = end_of_block && last_reuse;
+  assign do_write = wr_en && not_full_r;
+  assign do_read  = rd_en && rd_ready_r;
+
+  assign write_finishes_bank = do_write && (wr_idx_r == LAST_IDX_C);
+  assign read_finishes_bank  = do_read && (rd_idx_r == LAST_IDX_C);
+  assign last_reuse          = (replay_cycle_r == LAST_CYCLE_C);
 
   always_comb begin
-    next_wr_ptr    = wr_ptr_r;
-    next_rd_ptr    = rd_ptr_r;
-    next_rd_base   = rd_base_r;
-    next_rd_offset = rd_offset_r;
-    next_cycle     = cycle_r;
-    next_elements  = elements_r;
+    next_wr_bank      = wr_bank_r;
+    next_wr_idx       = wr_idx_r;
+    next_rd_bank      = rd_bank_r;
+    next_rd_idx       = rd_idx_r;
+    next_replay_cycle = replay_cycle_r;
+    next_bank_full    = bank_full_r;
 
     if (do_write) begin
-      next_wr_ptr = wr_ptr_inc;
+      if (write_finishes_bank) begin
+        next_bank_full[wr_bank_r] = 1'b1;
+        next_wr_idx               = '0;
+        next_wr_bank              = ~wr_bank_r;
+      end else begin
+        next_wr_idx = wr_idx_r + ONE_IDX_C;
+      end
     end
 
     if (do_read) begin
-      if (end_of_block) begin
-        next_rd_offset = '0;
+      if (read_finishes_bank) begin
+        next_rd_idx = '0;
 
         if (last_reuse) begin
-          next_cycle   = '0;
-          next_rd_base = rd_base_next_block;
-          next_rd_ptr  = rd_base_next_block;
+          next_bank_full[rd_bank_r] = 1'b0;
+          next_replay_cycle         = '0;
+          next_rd_bank              = ~rd_bank_r;
         end else begin
-          next_cycle  = cycle_r + ONE_CYCLE_C;
-          next_rd_ptr = rd_base_r;
+          next_replay_cycle = replay_cycle_r + ONE_CYCLE_C;
         end
       end else begin
-        next_rd_offset = rd_offset_r + ONE_OFFSET_C;
-        next_rd_ptr    = rd_ptr_inc;
+        next_rd_idx = rd_idx_r + ONE_IDX_C;
       end
     end
 
-    unique case ({do_write, discard_block})
-      2'b10: next_elements = elements_r + ONE_CNT_C;
-      2'b01: next_elements = elements_r - NUM_ELEMENTS_C;
-      2'b11: next_elements = elements_r + ONE_CNT_C - NUM_ELEMENTS_C;
-      default: begin
-        // hold
-      end
-    endcase
+    next_rd_ready = next_bank_full[next_rd_bank];
+    next_not_full = !next_bank_full[next_wr_bank];
+
+    // The write bank is the only place where partial data can exist. Once a
+    // bank fills, wr_bank_r flips to the other bank immediately.
+    next_empty = !(|next_bank_full) && (next_wr_idx == '0);
   end
 
   always_ff @(posedge clk) begin
     if (rst) begin
-      wr_ptr_r    <= '0;
-      rd_ptr_r    <= '0;
-      rd_base_r   <= '0;
-      rd_offset_r <= '0;
-      cycle_r     <= '0;
-      elements_r  <= '0;
-      rd_data_r   <= '0;
+      wr_bank_r      <= 1'b0;
+      wr_idx_r       <= '0;
+      rd_bank_r      <= 1'b0;
+      rd_idx_r       <= '0;
+      replay_cycle_r <= '0;
+      bank_full_r    <= '0;
+      rd_data_r      <= '0;
+      empty_r        <= 1'b1;
+      not_full_r     <= 1'b1;
+      rd_ready_r     <= 1'b0;
     end else begin
-      wr_ptr_r    <= next_wr_ptr;
-      rd_ptr_r    <= next_rd_ptr;
-      rd_base_r   <= next_rd_base;
-      rd_offset_r <= next_rd_offset;
-      cycle_r     <= next_cycle;
-      elements_r  <= next_elements;
+      wr_bank_r      <= next_wr_bank;
+      wr_idx_r       <= next_wr_idx;
+      rd_bank_r      <= next_rd_bank;
+      rd_idx_r       <= next_rd_idx;
+      replay_cycle_r <= next_replay_cycle;
+      bank_full_r    <= next_bank_full;
+      empty_r        <= next_empty;
+      not_full_r     <= next_not_full;
+      rd_ready_r     <= next_rd_ready;
 
-      // Kept here intentionally so synthesis can infer a synchronous read path
-      // more cleanly than if this were moved into always_comb.
       if (do_read) begin
-        rd_data_r <= mem[rd_ptr_r];
+        rd_data_r <= mem[rd_bank_r][rd_idx_r];
       end
     end
   end
 
   always_ff @(posedge clk) begin
     if (do_write) begin
-      mem[wr_ptr_r] <= wr_data;
+      mem[wr_bank_r][wr_idx_r] <= wr_data;
+    end
+  end
+
+  initial begin
+    if (NUM_ELEMENTS < 1) begin
+      $fatal(1, "replay_buffer requires NUM_ELEMENTS >= 1");
+    end
+    if (REUSE_CYCLES < 1) begin
+      $fatal(1, "replay_buffer requires REUSE_CYCLES >= 1");
+    end
+    if (BUFFER_DEPTH != (NUM_ELEMENTS * 2)) begin
+      $fatal(1, "replay_buffer is specialized for BUFFER_DEPTH == 2 * NUM_ELEMENTS");
     end
   end
 
