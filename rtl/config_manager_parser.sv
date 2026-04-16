@@ -63,17 +63,10 @@ module config_manager_parser (
       parse_state_r             <= PARSE_HEADER;
       msg_type                  <= 1'b0;
       layer_id                  <= '0;
-      total_bytes_r             <= '0;
-      payload_second_last_idx_r <= '0;
       bytes_per_neuron          <= '0;
       header_buf_r              <= '0;
-      header_count_r            <= '0;
-      payload_count_r           <= '0;
-      header_last_byte_r        <= (HEADER_BYTES == 1);
-      payload_last_byte_r       <= 1'b0;
       cfg_byte_data_valid_r     <= 1'b0;
       payload_start             <= 1'b0;
-      payload_read_count        <= '0;
     end else begin
       parse_state_r             <= next_parse_state;
       msg_type                  <= next_msg_type;
