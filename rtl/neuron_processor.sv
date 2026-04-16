@@ -23,6 +23,9 @@ module neuron_processor #(
   logic [ TREE_OUT_W-1:0] tree_sum;
   logic                   tree_last_out;
   logic                   tree_valid_out;
+  logic [ TREE_OUT_W-1:0] tree_sum_stage_r;
+  logic                   tree_last_stage_r;
+  logic                   tree_valid_stage_r;
 
 
   // Convert packed vectors into 1-bit-per-element arrays for xnor_add_tree
@@ -79,6 +82,7 @@ module neuron_processor #(
 
 
   logic [THRESHOLD_WIDTH-1:0] threshold_out_r;
+  logic [THRESHOLD_WIDTH-1:0] threshold_stage_r;
 
   delay #(
       .CYCLES(TREE_LATENCY),
@@ -100,18 +104,34 @@ module neuron_processor #(
   assign y_valid = y_valid_r;
   assign y = y_r;
 
+  // Register the tree outputs and aligned control once more so the accumulator
+  // consumes a fully staged input bundle instead of the raw add-tree result.
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      tree_sum_stage_r   <= '0;
+      tree_last_stage_r  <= 1'b0;
+      tree_valid_stage_r <= 1'b0;
+      threshold_stage_r  <= '0;
+    end else begin
+      tree_sum_stage_r   <= tree_sum;
+      tree_last_stage_r  <= tree_last_out;
+      tree_valid_stage_r <= tree_valid_out;
+      threshold_stage_r  <= threshold_out_r;
+    end
+  end
+
   // accumulator control
   always_ff @(posedge clk) begin
     if (rst) begin
       acc_r <= '0;
     end else begin
-      if (tree_valid_out) begin
-        if (tree_last_out) begin
+      if (tree_valid_stage_r) begin
+        if (tree_last_stage_r) begin
           // last chunk: clear accumulator for next neuron
           acc_r <= '0;
         end else begin
-          // Non-final chunk: keep accumulating
-          acc_r <= acc_r + tree_sum;
+          // Non-final chunk: keep accumulating with the staged tree output.
+          acc_r <= acc_r + ACC_WIDTH'(tree_sum_stage_r);
         end
       end
     end
@@ -130,11 +150,9 @@ module neuron_processor #(
       compare_valid_r <= 1'b0;
       y_valid_r       <= 1'b0;
 
-      if (tree_last_out) begin
-        // Register the final accumulated sum locally so the threshold compare
-        // happens in its own cycle instead of on the add-tree output path.
-        final_sum_r      <= acc_r + THRESHOLD_WIDTH'(tree_sum);
-        threshold_final_r <= threshold_out_r;
+      if (tree_last_stage_r) begin
+        final_sum_r       <= acc_r + THRESHOLD_WIDTH'(tree_sum_stage_r);
+        threshold_final_r <= threshold_stage_r;
         compare_valid_r  <= 1'b1;
       end
 
