@@ -46,7 +46,8 @@ module neuron_controller #(
   // delay valid in and last signals
   delay #(
       .CYCLES(RAM_RD_LATENCY),
-      .WIDTH (1)
+      .WIDTH (1),
+      .PRESERVE_REGS(1)
   ) u_valid_delay (
       .clk(clk),
       .rst(rst),
@@ -57,7 +58,8 @@ module neuron_controller #(
 
   delay #(
       .CYCLES(RAM_RD_LATENCY),
-      .WIDTH (1)
+      .WIDTH (1),
+      .PRESERVE_REGS(1)
   ) u_last_delay (
       .clk(clk),
       .rst(rst),
@@ -68,7 +70,8 @@ module neuron_controller #(
 
   delay #(
       .CYCLES(RAM_RD_LATENCY),
-      .WIDTH (1)
+      .WIDTH (1),
+      .PRESERVE_REGS(1)
   ) u_last_layer (
       .clk(clk),
       .rst(rst),

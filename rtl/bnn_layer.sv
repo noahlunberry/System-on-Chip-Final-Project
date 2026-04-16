@@ -115,7 +115,8 @@ module bnn_layer #(
   // so it stays aligned with the RAM outputs after the controller's address stage.
   delay #(
       .CYCLES(NP_RAM_RD_LATENCY - 1),
-      .WIDTH (PARALLEL_INPUTS)
+      .WIDTH (PARALLEL_INPUTS),
+      .PRESERVE_REGS(1)
   ) u_input_align_delay (
       .clk(clk),
       .rst(rst),
@@ -237,9 +238,9 @@ module bnn_layer #(
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_np_mems
       // Preserve one local address register per bank so Vivado cannot merge
       // identical copies back into a single high-fanout LUTRAM address driver.
-      (* KEEP = "true", equivalent_register_removal = "no" *)
+      (* KEEP = "true" *)
       logic [W_RAM_ADDR_W-1:0] w_rd_addr_local_r;
-      (* KEEP = "true", equivalent_register_removal = "no" *)
+      (* KEEP = "true" *)
       logic [T_RAM_ADDR_W-1:0] t_rd_addr_local_r;
 
       always_ff @(posedge clk) begin
@@ -263,7 +264,7 @@ module bnn_layer #(
           .ADDR_WIDTH (W_RAM_ADDR_W),
           .REG_RD_DATA(1'b1),
           .WRITE_FIRST(1'b0),
-          .STYLE      ("")
+          .STYLE      ("block")
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (1'b1), // was a super huge fanout signal
