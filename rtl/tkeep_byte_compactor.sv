@@ -59,7 +59,7 @@ module tkeep_byte_compactor #(
 
   always_ff @(posedge clk) begin
     if (rst) begin
-      wr_data     <= '0;
+      // wr_data     <= '0;
       total_bytes <= '0;
       wr_en       <= 1'b0;
     end

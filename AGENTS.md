@@ -33,3 +33,6 @@ If tutorial sources conflict with the repo’s established conventions, explain 
 - Mention relevant file/module names
 - Keep guidance practical
 - Prefer step-by-step reasoning over code generation
+
+## Code style preferences
+- When editing RTL, avoid introducing extra helper/intermediate signals if the logic can stay inline and still be readable
