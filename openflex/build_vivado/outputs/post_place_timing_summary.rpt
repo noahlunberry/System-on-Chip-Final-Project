@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date              : Thu Apr 16 01:36:44 2026
+| Date              : Thu Apr 16 03:13:05 2026
 | Host              : Acey running 64-bit major release  (build 9200)
 | Command           : report_timing_summary -file ./outputs/post_place_timing_summary.rpt
 | Design            : bnn_fcc_timing
@@ -144,7 +144,7 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-     -0.434    -1108.388                   9970                57407       -0.109      -13.456                    550                57407       -0.569     -297.524                    2976                 36197  
+     -0.330     -199.262                   1999                60199       -0.136      -14.397                    595                60199       -0.369      -78.228                     212                 38850  
 
 
 Timing constraints are not met.
@@ -157,7 +157,7 @@ Timing constraints are not met.
 
 Clock  Waveform(ns)         Period(ns)      Frequency(MHz)
 -----  ------------         ----------      --------------
-clk    {0.000 0.500}        1.000           1000.000        
+clk    {0.000 0.600}        1.200           833.333         
 
 
 ------------------------------------------------------------------------------------------------
@@ -167,7 +167,7 @@ clk    {0.000 0.500}        1.000           1000.000
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-clk                -0.434    -1108.388                   9970                57407       -0.109      -13.456                    550                57407       -0.569     -297.524                    2976                 36197  
+clk                -0.330     -199.262                   1999                60199       -0.136      -14.397                    595                60199       -0.369      -78.228                     212                 38850  
 
 
 ------------------------------------------------------------------------------------------------
@@ -198,28 +198,28 @@ Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing 
 From Clock:  clk
   To Clock:  clk
 
-Setup :         9970  Failing Endpoints,  Worst Slack       -0.434ns,  Total Violation    -1108.388ns
-Hold  :          550  Failing Endpoints,  Worst Slack       -0.109ns,  Total Violation      -13.456ns
-PW    :         2976  Failing Endpoints,  Worst Slack       -0.569ns,  Total Violation     -297.524ns
+Setup :         1999  Failing Endpoints,  Worst Slack       -0.330ns,  Total Violation     -199.262ns
+Hold  :          595  Failing Endpoints,  Worst Slack       -0.136ns,  Total Violation      -14.397ns
+PW    :          212  Failing Endpoints,  Worst Slack       -0.369ns,  Total Violation      -78.228ns
 ---------------------------------------------------------------------------------------------------
 
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -0.434ns  (required time - arrival time)
-  Source:                 DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/bank_full_r_reg[0]_replica_2/C
-                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.500ns period=1.000ns})
-  Destination:            DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[253]_srl4/CE
-                            (rising edge-triggered cell SRL16E clocked by clk  {rise@0.000ns fall@0.500ns period=1.000ns})
+Slack (VIOLATED) :        -0.330ns  (required time - arrival time)
+  Source:                 DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank_full_r_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.600ns period=1.200ns})
+  Destination:            DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[772]_srl25/CE
+                            (rising edge-triggered cell SRLC32E clocked by clk  {rise@0.000ns fall@0.600ns period=1.200ns})
   Path Group:             clk
   Path Type:              Setup (Max at Slow Process Corner)
-  Requirement:            1.000ns  (clk rise@1.000ns - clk rise@0.000ns)
-  Data Path Delay:        1.148ns  (logic 0.332ns (28.920%)  route 0.816ns (71.080%))
-  Logic Levels:           4  (LUT2=1 LUT4=1 LUT5=1 LUT6=1)
-  Clock Path Skew:        -0.071ns (DCD - SCD + CPR)
-    Destination Clock Delay (DCD):    1.541ns = ( 2.541 - 1.000 ) 
-    Source Clock Delay      (SCD):    1.744ns
-    Clock Pessimism Removal (CPR):    0.132ns
+  Requirement:            1.200ns  (clk rise@1.200ns - clk rise@0.000ns)
+  Data Path Delay:        1.140ns  (logic 0.253ns (22.193%)  route 0.887ns (77.807%))
+  Logic Levels:           2  (LUT4=1 LUT6=1)
+  Clock Path Skew:        -0.175ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    1.347ns = ( 2.547 - 1.200 ) 
+    Source Clock Delay      (SCD):    1.571ns
+    Clock Pessimism Removal (CPR):    0.049ns
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -230,40 +230,34 @@ Slack (VIOLATED) :        -0.434ns  (required time - arrival time)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=36196, unset)        1.744     1.744    DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/clk
-    SLICE_X131Y84        FDRE                                         r  DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/bank_full_r_reg[0]_replica_2/C
+                         net (fo=38849, unset)        1.571     1.571    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/clk
+    SLICE_X144Y66        FDRE                                         r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank_full_r_reg[0]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X131Y84        FDRE (Prop_DFF_SLICEL_C_Q)
-                                                      0.079     1.823 f  DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/bank_full_r_reg[0]_replica_2/Q
-                         net (fo=1, estimated)        0.110     1.933    DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/bank_full_r[0]_repN_2
-    SLICE_X131Y84        LUT6 (Prop_B6LUT_SLICEL_I0_O)
-                                                      0.148     2.081 r  DUT/bnn_main/g_layers[2].u_layer/u_input_buffer/gen_np_mems[8].t_rd_addr_local_r[3]_i_3/O
-                         net (fo=1, estimated)        0.041     2.122    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/ready_bus_2
-    SLICE_X131Y84        LUT4 (Prop_F6LUT_SLICEL_I3_O)
-                                                      0.035     2.157 r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/gen_np_mems[8].t_rd_addr_local_r[3]_i_2/O
-                         net (fo=7, estimated)        0.109     2.266    DUT/bnn_main/g_layers[1].u_layer/u_nc/valid_data_0
-    SLICE_X131Y83        LUT2 (Prop_E6LUT_SLICEL_I1_O)
-                                                      0.035     2.301 r  DUT/bnn_main/g_layers[1].u_layer/u_nc/gen_np_mems[8].t_rd_addr_local_r[3]_i_1/O
-                         net (fo=292, estimated)      0.195     2.496    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/t_rd_en
-    SLICE_X132Y83        LUT5 (Prop_F6LUT_SLICEL_I2_O)
-                                                      0.035     2.531 r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[255]_srl4_i_1__0/O
-                         net (fo=64, estimated)       0.361     2.892    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/bank_shift_en_0
-    SLICE_X137Y81        SRL16E                                       r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[253]_srl4/CE
+    SLICE_X144Y66        FDRE (Prop_HFF_SLICEL_C_Q)
+                                                      0.079     1.650 f  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank_full_r_reg[0]/Q
+                         net (fo=76, estimated)       0.293     1.943    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank1_i/l_preserve.out_r_reg[0]
+    SLICE_X144Y59        LUT6 (Prop_G6LUT_SLICEL_I2_O)
+                                                      0.123     2.066 r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank1_i/gen_np_mems[20].t_rd_addr_local_r[2]_i_1/O
+                         net (fo=583, estimated)      0.262     2.328    DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/E[0]
+    SLICE_X143Y59        LUT4 (Prop_H6LUT_SLICEL_I2_O)
+                                                      0.051     2.379 r  DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[799]_srl25_i_1__0/O
+                         net (fo=62, estimated)       0.332     2.711    DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/bank_shift_en_0
+    SLICE_X142Y55        SRLC32E                                      r  DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[772]_srl25/CE
   -------------------------------------------------------------------    -------------------
 
-                         (clock clk rise edge)        1.000     1.000 r  
-                                                      0.000     1.000 r  clk (IN)
-                         net (fo=36196, unset)        1.541     2.541    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/clk
-    SLICE_X137Y81        SRL16E                                       r  DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[253]_srl4/CLK
-                         clock pessimism              0.132     2.673    
-                         clock uncertainty           -0.035     2.638    
-    SLICE_X137Y81        SRL16E (Setup_F5LUT_SLICEM_CLK_CE)
-                                                     -0.180     2.458    DUT/bnn_main/g_layers[1].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[253]_srl4
+                         (clock clk rise edge)        1.200     1.200 r  
+                                                      0.000     1.200 r  clk (IN)
+                         net (fo=38849, unset)        1.347     2.547    DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/clk
+    SLICE_X142Y55        SRLC32E                                      r  DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[772]_srl25/CLK
+                         clock pessimism              0.049     2.596    
+                         clock uncertainty           -0.035     2.561    
+    SLICE_X142Y55        SRLC32E (Setup_B6LUT_SLICEM_CLK_CE)
+                                                     -0.180     2.381    DUT/bnn_main/g_layers[0].u_layer/u_input_buffer/bank0_i/gen_depthn.shreg_r_reg[772]_srl25
   -------------------------------------------------------------------
-                         required time                          2.458    
-                         arrival time                          -2.892    
+                         required time                          2.381    
+                         arrival time                          -2.711    
   -------------------------------------------------------------------
-                         slack                                 -0.434    
+                         slack                                 -0.330    
 
 
 
@@ -271,46 +265,46 @@ Slack (VIOLATED) :        -0.434ns  (required time - arrival time)
 
 Min Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -0.109ns  (arrival time - required time)
-  Source:                 DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[25].u_t_ram/l_read_first.l_reg_rd_data.rd_data_reg[9]/C
-                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.500ns period=1.000ns})
-  Destination:            DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_normal.out_reg[9]_srl5___DUT_bnn_main_g_layers_r_3/D
-                            (rising edge-triggered cell SRL16E clocked by clk  {rise@0.000ns fall@0.500ns period=1.000ns})
+Slack (VIOLATED) :        -0.136ns  (arrival time - required time)
+  Source:                 DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[3].reg_array/l_preserve.out_r_reg[5]/C
+                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.600ns period=1.200ns})
+  Destination:            DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_preserve.out_r_reg[5]/D
+                            (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.600ns period=1.200ns})
   Path Group:             clk
   Path Type:              Hold (Min at Slow Process Corner)
   Requirement:            0.000ns  (clk rise@0.000ns - clk rise@0.000ns)
-  Data Path Delay:        0.140ns  (logic 0.057ns (40.714%)  route 0.083ns (59.286%))
+  Data Path Delay:        0.139ns  (logic 0.058ns (41.727%)  route 0.081ns (58.273%))
   Logic Levels:           0  
-  Clock Path Skew:        0.220ns (DCD - SCD - CPR)
-    Destination Clock Delay (DCD):    1.929ns
-    Source Clock Delay      (SCD):    1.640ns
-    Clock Pessimism Removal (CPR):    0.069ns
+  Clock Path Skew:        0.215ns (DCD - SCD - CPR)
+    Destination Clock Delay (DCD):    1.642ns
+    Source Clock Delay      (SCD):    1.378ns
+    Clock Pessimism Removal (CPR):    0.049ns
 
     Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=36196, unset)        1.640     1.640    DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[25].u_t_ram/clk
-    SLICE_X162Y60        FDRE                                         r  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[25].u_t_ram/l_read_first.l_reg_rd_data.rd_data_reg[9]/C
+                         net (fo=38849, unset)        1.378     1.378    DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[3].reg_array/clk
+    SLICE_X125Y59        FDRE                                         r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[3].reg_array/l_preserve.out_r_reg[5]/C
   -------------------------------------------------------------------    -------------------
-    SLICE_X162Y60        FDRE (Prop_FFF_SLICEM_C_Q)
-                                                      0.057     1.697 r  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[25].u_t_ram/l_read_first.l_reg_rd_data.rd_data_reg[9]/Q
-                         net (fo=1, estimated)        0.083     1.780    DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_normal.out_reg[9]_DUT_bnn_main_g_layers_r_4[9]
-    SLICE_X162Y59        SRL16E                                       r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_normal.out_reg[9]_srl5___DUT_bnn_main_g_layers_r_3/D
+    SLICE_X125Y59        FDRE (Prop_FFF_SLICEL_C_Q)
+                                                      0.058     1.436 r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[3].reg_array/l_preserve.out_r_reg[5]/Q
+                         net (fo=1, estimated)        0.081     1.517    DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_preserve.out_r_reg[9]_0[5]
+    SLICE_X125Y60        FDRE                                         r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_preserve.out_r_reg[5]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=36196, unset)        1.929     1.929    DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/clk
-    SLICE_X162Y59        SRL16E                                       r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_normal.out_reg[9]_srl5___DUT_bnn_main_g_layers_r_3/CLK
-                         clock pessimism             -0.069     1.860    
-    SLICE_X162Y59        SRL16E (Hold_F6LUT_SLICEM_CLK_D)
-                                                      0.029     1.889    DUT/bnn_main/g_layers[0].u_layer/gen_nps[25].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_normal.out_reg[9]_srl5___DUT_bnn_main_g_layers_r_3
+                         net (fo=38849, unset)        1.642     1.642    DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/clk
+    SLICE_X125Y60        FDRE                                         r  DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_preserve.out_r_reg[5]/C
+                         clock pessimism             -0.049     1.593    
+    SLICE_X125Y60        FDRE (Hold_FFF_SLICEL_C_D)
+                                                      0.060     1.653    DUT/bnn_main/g_layers[0].u_layer/gen_nps[2].u_np/u_threshold_delay/l_cycles_gt_0.reg_array[4].reg_array/l_preserve.out_r_reg[5]
   -------------------------------------------------------------------
-                         required time                         -1.889    
-                         arrival time                           1.780    
+                         required time                         -1.653    
+                         arrival time                           1.517    
   -------------------------------------------------------------------
-                         slack                                 -0.109    
+                         slack                                 -0.136    
 
 
 
@@ -319,14 +313,14 @@ Slack (VIOLATED) :        -0.109ns  (arrival time - required time)
 Pulse Width Checks
 --------------------------------------------------------------------------------------
 Clock Name:         clk
-Waveform(ns):       { 0.000 0.500 }
-Period(ns):         1.000
+Waveform(ns):       { 0.000 0.600 }
+Period(ns):         1.200
 Sources:            { clk }
 
 Check Type        Corner  Lib Pin             Reference Pin  Required(ns)  Actual(ns)  Slack(ns)  Location      Pin
-Min Period        n/a     RAMB18E2/CLKARDCLK  n/a            1.569         1.000       -0.569     RAMB18_X9Y18  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
-Low Pulse Width   Slow    RAMB18E2/CLKARDCLK  n/a            0.542         0.500       -0.042     RAMB18_X9Y18  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
-High Pulse Width  Slow    RAMB18E2/CLKARDCLK  n/a            0.542         0.500       -0.042     RAMB18_X9Y18  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
+Min Period        n/a     RAMB18E2/CLKARDCLK  n/a            1.569         1.200       -0.369     RAMB18_X10Y4  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
+Low Pulse Width   Slow    RAMB18E2/CLKARDCLK  n/a            0.542         0.600       0.058      RAMB18_X10Y4  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
+High Pulse Width  Slow    RAMB18E2/CLKARDCLK  n/a            0.542         0.600       0.058      RAMB18_X10Y4  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_w_ram/ram_reg/CLKARDCLK
 
 
 
