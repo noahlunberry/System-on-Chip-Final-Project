@@ -49,6 +49,8 @@ module config_manager_parser (
   logic [31:0] payload_count_r, next_payload_count;
   logic header_last_byte_r, next_header_last_byte;
   logic payload_last_byte_r, next_payload_last_byte;
+  logic next_payload_start;
+  logic [31:0] next_payload_read_count;
 
   // fifo_config_bytes uses registered read data, so cfg_byte_rd_en requests the
   // next byte and cfg_byte_data_valid_r says the staged cfg_byte_data byte is
@@ -70,6 +72,8 @@ module config_manager_parser (
       header_last_byte_r        <= (HEADER_BYTES == 1);
       payload_last_byte_r       <= 1'b0;
       cfg_byte_data_valid_r     <= 1'b0;
+      payload_start             <= 1'b0;
+      payload_read_count        <= '0;
     end else begin
       parse_state_r             <= next_parse_state;
       msg_type                  <= next_msg_type;
@@ -83,6 +87,8 @@ module config_manager_parser (
       header_last_byte_r        <= next_header_last_byte;
       payload_last_byte_r       <= next_payload_last_byte;
       cfg_byte_data_valid_r     <= next_cfg_byte_data_valid;
+      payload_start             <= next_payload_start;
+      payload_read_count        <= next_payload_read_count;
     end
   end
 
@@ -110,6 +116,8 @@ module config_manager_parser (
     next_header_last_byte        = header_last_byte_r;
     next_payload_last_byte       = payload_last_byte_r;
     next_cfg_byte_data_valid     = cfg_byte_data_valid_r;
+    next_payload_start           = 1'b0;
+    next_payload_read_count      = payload_read_count;
 
     cfg_byte_rd_en               = 1'b0;
     payload_byte_valid           = 1'b0;
@@ -137,6 +145,9 @@ module config_manager_parser (
           next_header_buf[header_count_r*8+:8] = cfg_byte_data;
 
           if (header_last_byte_r) begin
+            next_payload_start = 1'b1;
+            next_payload_read_count = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
+
             // Start payload hot by requesting the first payload byte as soon
             // as one is available after the header completes.
             next_parse_state = PARSE_PAYLOAD;
@@ -218,11 +229,5 @@ module config_manager_parser (
 
     cfg_byte_rd_en = cfg_byte_request;
   end
-
-  // payload_start is a one-cycle pulse on the header -> payload transition.
-  // payload_read_count is the pad_fsm-visible payload length; threshold payloads
-  // are counted in words while weight payloads are counted in bytes.
-  assign payload_start = (parse_state_r != PARSE_PAYLOAD) && (next_parse_state == PARSE_PAYLOAD);
-  assign payload_read_count = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
 
 endmodule

@@ -90,9 +90,9 @@ module config_manager_pad_fsm #(
   logic       last_read_fire;
 
   logic [7:0] bytes_per_word;
-  logic [7:0] pad_remainder;
-  logic [7:0] bytes_to_pad;
-  logic       pad_required;
+  logic [7:0] pad_remainder, next_pad_remainder;
+  logic [7:0] bytes_to_pad, next_bytes_to_pad;
+  logic       pad_required, next_pad_required;
 
   logic       current_byte_is_last;
   logic       read_finishes_neuron;
@@ -108,11 +108,17 @@ module config_manager_pad_fsm #(
       byte_idx_r            <= '0;
       remaining_pad_count_r <= '0;
       pad_exit_to_drain_r   <= 1'b0;
+      pad_remainder         <= '0;
+      bytes_to_pad          <= '0;
+      pad_required          <= 1'b0;
     end else begin
       state_r               <= next_state;
       byte_idx_r            <= next_byte_idx;
       remaining_pad_count_r <= next_remaining_pad_count;
       pad_exit_to_drain_r   <= next_pad_exit_to_drain;
+      pad_remainder         <= next_pad_remainder;
+      bytes_to_pad          <= next_bytes_to_pad;
+      pad_required          <= next_pad_required;
     end
   end
 
@@ -177,31 +183,16 @@ module config_manager_pad_fsm #(
   //--------------------------------------------------------------------------
   // Padding math
   //--------------------------------------------------------------------------
-  // pad_remainder : bytes_per_neuron modulo bytes_per_word
-  // bytes_to_pad  : number of synthetic bytes needed to align the neuron
-  // pad_required  : true if the neuron does not already end on a word boundary
+  // pad_remainder / bytes_to_pad / pad_required are registered so PAD entry
+  // uses precomputed metadata instead of recomputing this math in the READ
+  // state's control cone.
   //--------------------------------------------------------------------------
 
-  assign pad_remainder = bytes_per_neuron[7:0] & (bytes_per_word - 1'b1);
-  assign bytes_to_pad = (pad_remainder == '0) ? '0 : (bytes_per_word - pad_remainder);
-  assign pad_required = (bytes_to_pad != '0);
-
-  //--------------------------------------------------------------------------
-  // Traditional "last byte of neuron" detection
-  //--------------------------------------------------------------------------
-  // IMPORTANT:
-  // This is the key rewrite. We do NOT derive neuron completion from
-  // next_byte_idx anymore.
-  //
-  // Instead:
-  //   current_byte_is_last  -> current registered byte index is the last index
-  //   read_finishes_neuron  -> the read happening THIS cycle consumes that byte
-  //
-  // This keeps the neuron-end decision tied to:
-  //   - current registered state
-  //   - read handshake
-  // rather than to the whole next-index mux cone.
-  //--------------------------------------------------------------------------
+  always_comb begin
+    next_pad_remainder = bytes_per_neuron[7:0] & (bytes_per_word - 1'b1);
+    next_bytes_to_pad  = (next_pad_remainder == '0) ? '0 : (bytes_per_word - next_pad_remainder);
+    next_pad_required  = (next_bytes_to_pad != '0);
+  end
 
 
   //--------------------------------------------------------------------------
@@ -255,30 +246,28 @@ module config_manager_pad_fsm #(
           next_state = DRAIN;
         end else if (!active_stream_empty) begin
           fifo_rd_en = 1'b1;
-          read_fire  = 1'b1;
+          read_fire = 1'b1;
 
-          // Only weight payloads are forwarded into the downstream byte buffer.
-          if (!msg_type) begin
-            buffer_wr_en = 1'b1;
 
-            // The current accepted read completes a neuron.
-            if (byte_idx_r == (bytes_per_neuron - 1'b1)) begin
-              next_byte_idx = '0;
+          buffer_wr_en = 1'b1;
 
-              // If this neuron needs alignment padding, switch to PAD.
-              if (pad_required) begin
-                next_state               = PAD;
-                next_remaining_pad_count = bytes_to_pad - 1'b1;
+          // The current accepted read completes a neuron.
+          if (byte_idx_r == (bytes_per_neuron - 1'b1)) begin
+            next_byte_idx = '0;
 
-                // Remember whether the payload read that just ended the neuron
-                // also ended the entire message. If so, PAD should fall through
-                // to DRAIN after the final synthetic byte.
-                next_pad_exit_to_drain   = last_read_fire;
-              end
-            end else begin
-              // Normal in-neuron advance
-              next_byte_idx = byte_idx_r + 1'b1;
+            // If this neuron needs alignment padding, switch to PAD.
+            if (pad_required) begin
+              next_state               = PAD;
+              next_remaining_pad_count = bytes_to_pad - 1'b1;
+
+              // Remember whether the payload read that just ended the neuron
+              // also ended the entire message. If so, PAD should fall through
+              // to DRAIN after the final synthetic byte.
+              next_pad_exit_to_drain   = last_read_fire;
             end
+          end else begin
+            // Normal in-neuron advance
+            next_byte_idx = byte_idx_r + 1'b1;
           end
         end
       end
