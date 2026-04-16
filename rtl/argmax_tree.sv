@@ -85,8 +85,8 @@ module argmax_tree #(
 
         always_ff @(posedge clk) begin
           if (rst) begin
-            delay_val_r <= '{default: '0};
-            delay_idx_r <= '{default: '0};
+            //delay_val_r <= '{default: '0};
+            //delay_idx_r <= '{default: '0};
           end else if (en) begin
             delay_val_r[0] <= right_val_unaligned;
             delay_idx_r[0] <= right_idx_unaligned;
@@ -109,8 +109,8 @@ module argmax_tree #(
       //--------------------------------------------------------------------
       always_ff @(posedge clk) begin
         if (rst) begin
-          max_val <= '0;
-          max_idx <= '0;
+          // max_val <= '0;
+          // max_idx <= '0;
         end else if (en) begin
           // >= ensures lower index is prioritized if values are identical
           if (left_val >= right_val) begin

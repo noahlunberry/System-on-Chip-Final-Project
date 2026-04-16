@@ -67,8 +67,9 @@ module add_tree #(
                 logic [$bits(right_sum)-1:0] delay_r[LATENCY_DIFFERENCE];
 
                 always_ff @(posedge clk) begin
-                    if (rst) delay_r <= '{default: '0};
-                    else if (en) begin
+                    // if (rst) delay_r <= '{default: '0};
+                    // else if (en) begin
+                    if (en) begin
                         delay_r[0] <= right_sum_unaligned;
                         for (int i = 1; i < LATENCY_DIFFERENCE; i++) begin
                             delay_r[i] <= delay_r[i-1];
@@ -83,8 +84,9 @@ module add_tree #(
 
             // Add the two trees together.
             always_ff @(posedge clk) begin
-                if (rst) sum <= '0;
-                else if (en) sum <= left_sum + right_sum;
+                // if (rst) sum <= '0;
+                // else if (en) sum <= left_sum + right_sum;
+                if (en) sum <= left_sum + right_sum;
             end
         end
     endgenerate

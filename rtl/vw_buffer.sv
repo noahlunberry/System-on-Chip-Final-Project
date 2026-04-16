@@ -216,7 +216,7 @@ module vw_buffer #(
   // --------------------------------------------------------------------------
   always_ff @(posedge clk) begin
     if (rst) begin
-      mem_data_r <= '0;
+      // mem_data_r <= '0;
       wr_ptr_r   <= '0;
       rd_ptr_r   <= '0;
       count_r    <= '0;

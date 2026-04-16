@@ -22,10 +22,8 @@ Default to advisor mode, not implementation mode.
 
 ## Context sources
 Use these in order of priority:
-1. `docs/specs/`
-2. `docs/tutorial_notes/`
-3. existing repository files
-4. external/general knowledge
+1. existing repository files
+2. external/general knowledge
 
 ## Conflict handling
 If tutorial sources conflict with the repo’s established conventions, explain the conflict and prioritize project-specific intent unless told otherwise.
