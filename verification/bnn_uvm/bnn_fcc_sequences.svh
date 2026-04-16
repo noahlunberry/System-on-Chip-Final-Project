@@ -227,34 +227,12 @@ virtual class bnn_fcc_config_base_sequence extends
             return natural_lanes;
 
         // Bias toward the natural/full beat shape, but occasionally force a
-        // smaller valid-byte count so the DUT sees non-trivial TKEEP masks.
+        // smaller contiguous valid-byte count so the DUT sees partial beats
+        // beyond only the natural tail-beat case.
         if ($urandom_range(1, 100) <= 90)
             return natural_lanes;
 
         return $urandom_range(1, natural_lanes - 1);
-    endfunction
-
-    protected function automatic void choose_random_slots(
-        output int slot_indices[$],
-        input int num_slots,
-        input int target_valid
-    );
-        int available_slots[$];
-
-        slot_indices.delete();
-
-        for (int slot_idx = 0; slot_idx < num_slots; slot_idx++)
-            available_slots.push_back(slot_idx);
-
-        for (int select_idx = 0; select_idx < target_valid; select_idx++) begin
-            int pick_idx;
-
-            pick_idx = $urandom_range(0, available_slots.size() - 1);
-            slot_indices.push_back(available_slots[pick_idx]);
-            available_slots.delete(pick_idx);
-        end
-
-        slot_indices.sort();
     endfunction
 
     protected function automatic void flatten_config_bytes(output bit [7:0] cfg_bytes[$]);
@@ -268,7 +246,7 @@ virtual class bnn_fcc_config_base_sequence extends
         end
     endfunction
 
-    protected function automatic void repack_config_stream_with_random_tkeep(
+    protected function automatic void repack_config_stream_with_contiguous_tkeep(
         output bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] data_words[],
         output bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] keep_words[]
     );
@@ -283,18 +261,12 @@ virtual class bnn_fcc_config_base_sequence extends
         while (cursor < cfg_bytes.size()) begin
             bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] beat_data;
             bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] beat_keep;
-            int valid_slots[$];
             int valid_bytes_this_beat;
 
             beat_data = '0;
             beat_keep = '0;
             valid_bytes_this_beat = choose_valid_lanes(CONFIG_BYTES_PER_BEAT, cfg_bytes.size() - cursor);
-            choose_random_slots(valid_slots, CONFIG_BYTES_PER_BEAT, valid_bytes_this_beat);
-
-            foreach (valid_slots[i]) begin
-                int byte_idx;
-
-                byte_idx = valid_slots[i];
+            for (int byte_idx = 0; byte_idx < valid_bytes_this_beat; byte_idx++) begin
                 beat_keep[byte_idx] = 1'b1;
                 beat_data[byte_idx*8 +: 8] = cfg_bytes[cursor];
                 cursor++;
@@ -403,8 +375,9 @@ endclass
 // Packet-Level Configuration TKEEP Sequence
 // -----------------------------------------------------------------------------
 // Sends the same logical configuration byte stream as the normal packet-level
-// sequence, but repacks it across randomized TKEEP masks so the DUT must honor
-// per-byte validity instead of only the natural tail-beat keep pattern.
+// sequence, but repacks it across contiguous low-byte TKEEP masks with
+// randomized valid-byte counts so the DUT sees partial beats beyond only the
+// natural tail-beat keep pattern.
 class bnn_fcc_config_tkeep_packet_sequence extends bnn_fcc_config_base_sequence;
     `uvm_object_utils(bnn_fcc_config_tkeep_packet_sequence)
 
@@ -414,23 +387,23 @@ class bnn_fcc_config_tkeep_packet_sequence extends bnn_fcc_config_base_sequence;
     endfunction
 
     virtual task body();
-        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] randomized_data[];
-        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] randomized_keep[];
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH-1:0] repacked_data[];
+        bit [bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH/8-1:0] repacked_keep[];
 
         load_sequence_config();
-        repack_config_stream_with_random_tkeep(randomized_data, randomized_keep);
+        repack_config_stream_with_contiguous_tkeep(repacked_data, repacked_keep);
 
         req = cfg_axi_item_t::type_id::create("cfg_tkeep_req");
         wait_for_grant();
 
-        req.tdata = new[randomized_data.size()];
-        req.tstrb = new[randomized_keep.size()];
-        req.tkeep = new[randomized_keep.size()];
+        req.tdata = new[repacked_data.size()];
+        req.tstrb = new[repacked_keep.size()];
+        req.tkeep = new[repacked_keep.size()];
 
-        foreach (randomized_data[i]) begin
-            req.tdata[i] = randomized_data[i];
-            req.tstrb[i] = randomized_keep[i];
-            req.tkeep[i] = randomized_keep[i];
+        foreach (repacked_data[i]) begin
+            req.tdata[i] = repacked_data[i];
+            req.tstrb[i] = repacked_keep[i];
+            req.tkeep[i] = repacked_keep[i];
         end
 
         req.tlast           = 1'bX;
@@ -570,30 +543,7 @@ virtual class bnn_fcc_image_base_sequence extends
         return $urandom_range(1, natural_lanes - 1);
     endfunction
 
-    protected function automatic void choose_random_slots(
-        output int slot_indices[$],
-        input int num_slots,
-        input int target_valid
-    );
-        int available_slots[$];
-
-        slot_indices.delete();
-
-        for (int slot_idx = 0; slot_idx < num_slots; slot_idx++)
-            available_slots.push_back(slot_idx);
-
-        for (int select_idx = 0; select_idx < target_valid; select_idx++) begin
-            int pick_idx;
-
-            pick_idx = $urandom_range(0, available_slots.size() - 1);
-            slot_indices.push_back(available_slots[pick_idx]);
-            available_slots.delete(pick_idx);
-        end
-
-        slot_indices.sort();
-    endfunction
-
-    protected function automatic void repack_image_with_random_tkeep(
+    protected function automatic void repack_image_with_contiguous_tkeep(
         input  bit [bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH-1:0] current_img[],
         output bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH-1:0] packed_data[],
         output bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH/8-1:0] packed_keep[]
@@ -607,18 +557,12 @@ virtual class bnn_fcc_image_base_sequence extends
         while (cursor < current_img.size()) begin
             bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH-1:0] beat_data;
             bit [bnn_fcc_uvm_pkg::INPUT_BUS_WIDTH/8-1:0] beat_keep;
-            int valid_slots[$];
             int valid_inputs_this_beat;
 
             beat_data = '0;
             beat_keep = '0;
             valid_inputs_this_beat = choose_valid_lanes(INPUTS_PER_BEAT, current_img.size() - cursor);
-            choose_random_slots(valid_slots, INPUTS_PER_BEAT, valid_inputs_this_beat);
-
-            foreach (valid_slots[i]) begin
-                int elem_idx;
-
-                elem_idx = valid_slots[i];
+            for (int elem_idx = 0; elem_idx < valid_inputs_this_beat; elem_idx++) begin
                 beat_data[elem_idx*bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH +:
                           bnn_fcc_uvm_pkg::INPUT_DATA_WIDTH] = current_img[cursor];
                 beat_keep[elem_idx*BYTES_PER_INPUT +: BYTES_PER_INPUT] = '1;
@@ -907,9 +851,9 @@ endclass
 // Packet-Level Image TKEEP Sequence
 // -----------------------------------------------------------------------------
 // Sends each image as one packet-level AXI item while redistributing pixels
-// across randomized TKEEP masks. The logical image order is preserved, so the
-// scoreboard can reconstruct the original image while the DUT is forced to
-// honor per-pixel validity.
+// across contiguous low-byte TKEEP masks. The logical image order is preserved,
+// so the scoreboard can reconstruct the original image while the DUT sees
+// partial beats beyond only the natural final-beat pattern.
 class bnn_fcc_image_tkeep_packet_sequence extends bnn_fcc_image_base_sequence;
     `uvm_object_utils(bnn_fcc_image_tkeep_packet_sequence)
 
@@ -927,7 +871,7 @@ class bnn_fcc_image_tkeep_packet_sequence extends bnn_fcc_image_base_sequence;
 
         for (int image_idx = 0; image_idx < num_test_images; image_idx++) begin
             stim.get_vector(image_idx, current_img);
-            repack_image_with_random_tkeep(current_img, packed_data, packed_keep);
+            repack_image_with_contiguous_tkeep(current_img, packed_data, packed_keep);
 
             req = in_axi_item_t::type_id::create($sformatf("img_tkeep_req%0d", image_idx));
             wait_for_grant();

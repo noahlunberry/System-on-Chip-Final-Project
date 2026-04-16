@@ -1,8 +1,8 @@
 // Pawin Ruangkanit
 // University of Florida
 //
-// Focused UVM test that exercises randomized TKEEP handling on both the
-// configuration stream and the image input stream.
+// Focused UVM test that exercises contiguous partial-beat TKEEP handling on
+// both the configuration stream and the image input stream.
 
 `ifndef _BNN_FCC_TKEEP_PACKET_TEST_SVH_
 `define _BNN_FCC_TKEEP_PACKET_TEST_SVH_
@@ -24,7 +24,7 @@ class bnn_fcc_tkeep_packet_test extends bnn_fcc_base_test;
 
         phase.raise_objection(this);
         `uvm_info(get_type_name(),
-                  "Starting packet-level TKEEP test on config and data_in interfaces.",
+                  "Starting packet-level TKEEP test with contiguous keep masks on config and data_in interfaces.",
                   UVM_LOW)
 
         if (verify_model && !use_custom_topology)
@@ -33,7 +33,7 @@ class bnn_fcc_tkeep_packet_test extends bnn_fcc_base_test;
         cfg_seq = bnn_fcc_config_tkeep_packet_sequence::type_id::create("cfg_seq");
         img_seq = bnn_fcc_image_tkeep_packet_sequence::type_id::create("img_seq");
 
-        run_config_sequence(cfg_seq, model, "initial full configuration with randomized TKEEP");
+        run_config_sequence(cfg_seq, model, "initial full configuration with contiguous partial TKEEP");
         img_seq.start(env.in_agent.sequencer);
         wait_for_scoreboard_done();
 

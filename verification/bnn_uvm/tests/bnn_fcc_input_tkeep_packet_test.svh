@@ -2,8 +2,8 @@
 // University of Florida
 //
 // Focused UVM test that keeps the configuration stream in its normal packet
-// format while exercising randomized TKEEP handling on only the image input
-// stream.
+// format while exercising contiguous partial-beat TKEEP handling on only the
+// image input stream.
 
 `ifndef _BNN_FCC_INPUT_TKEEP_PACKET_TEST_SVH_
 `define _BNN_FCC_INPUT_TKEEP_PACKET_TEST_SVH_
@@ -25,7 +25,7 @@ class bnn_fcc_input_tkeep_packet_test extends bnn_fcc_base_test;
 
         phase.raise_objection(this);
         `uvm_info(get_type_name(),
-                  "Starting packet-level test with normal config and randomized data_in TKEEP.",
+                  "Starting packet-level test with normal config and contiguous data_in TKEEP.",
                   UVM_LOW)
 
         if (verify_model && !use_custom_topology)

@@ -310,7 +310,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
 
         publish_model_handle(model);
         cfg_tkeep_seq = bnn_fcc_config_tkeep_packet_sequence::type_id::create("sweep_cfg_tkeep_seq");
-        run_config_sequence(cfg_tkeep_seq, model, "coverage sweep full config with randomized TKEEP");
+        run_config_sequence(cfg_tkeep_seq, model, "coverage sweep full config with contiguous partial TKEEP");
         run_input_tkeep_phase("sweep_dual_tkeep_img", num_test_images);
     endtask
 
