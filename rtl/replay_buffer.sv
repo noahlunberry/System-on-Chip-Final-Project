@@ -3,7 +3,7 @@ module replay_buffer #(
     parameter int NUM_ELEMENTS  = 128,
     parameter int REUSE_CYCLES  = 1,
     parameter int BUFFER_DEPTH  = NUM_ELEMENTS * 2,
-    parameter string RAM_STYLE  = ""
+    parameter string RAM_STYLE  = "block"
 ) (
     input  logic                     clk,
     input  logic                     rst,
@@ -35,12 +35,9 @@ module replay_buffer #(
   logic                     do_read;
 
   logic [ELEMENT_WIDTH-1:0] bank_rd_data [0:1];
-  logic [1:0]               bank_rd_en;
   logic [1:0]               bank_wr_en;
   logic                     rd_bank_sel_r;
-  logic                     rd_data_valid_r;
-
-  assign rd_data   = rd_data_valid_r ? bank_rd_data[rd_bank_sel_r] : '0;
+  logic                     rd_bank_sel_rr;
 
   // Best-timing version: decode status directly from current registered state
 
@@ -58,8 +55,8 @@ module replay_buffer #(
   //   write wr_data into the active write bank at wr_idx_r
   //
   // Replay behavior:
-  //   read the current bank at rd_idx_r. Since reads are non-destructive, the
-  //   bank contents stay intact and replay is just an address wrap.
+  //   keep both banks reading at rd_idx_r every cycle, then select and
+  //   register the requested bank locally.
   //
   // The control logic guarantees that a bank is not read and written in the
   // same cycle. Reads happen only from full banks; writes happen only into
@@ -68,18 +65,15 @@ module replay_buffer #(
   assign bank_wr_en[0] = do_write && (wr_bank_r == 1'b0);
   assign bank_wr_en[1] = do_write && (wr_bank_r == 1'b1);
 
-  assign bank_rd_en[0] = do_read && (rd_bank_r == 1'b0);
-  assign bank_rd_en[1] = do_read && (rd_bank_r == 1'b1);
-
   ram_sdp #(
       .DATA_WIDTH (ELEMENT_WIDTH),
       .ADDR_WIDTH (INDEX_W),
-      .REG_RD_DATA(1'b0),
+      .REG_RD_DATA(1'b1),
       .WRITE_FIRST(1'b0),
       .STYLE      (RAM_STYLE)
   ) bank0_i (
       .clk    (clk),
-      .rd_en  (bank_rd_en[0]),
+      .rd_en  (1'b1),
       .rd_addr(rd_idx_r),
       .rd_data(bank_rd_data[0]),
       .wr_en  (bank_wr_en[0]),
@@ -90,12 +84,12 @@ module replay_buffer #(
   ram_sdp #(
       .DATA_WIDTH (ELEMENT_WIDTH),
       .ADDR_WIDTH (INDEX_W),
-      .REG_RD_DATA(1'b0),
+      .REG_RD_DATA(1'b1),
       .WRITE_FIRST(1'b0),
       .STYLE      (RAM_STYLE)
   ) bank1_i (
       .clk    (clk),
-      .rd_en  (bank_rd_en[1]),
+      .rd_en  (1'b1),
       .rd_addr(rd_idx_r),
       .rd_data(bank_rd_data[1]),
       .wr_en  (bank_wr_en[1]),
@@ -152,7 +146,8 @@ module replay_buffer #(
       replay_cycle_r <= '0;
       bank_full_r    <= '0;
       rd_bank_sel_r  <= 1'b0;
-      rd_data_valid_r <= 1'b0;
+      rd_bank_sel_rr <= 1'b0;
+      rd_data        <= '0;
     end else begin
       wr_bank_r      <= next_wr_bank;
       wr_idx_r       <= next_wr_idx;
@@ -160,10 +155,11 @@ module replay_buffer #(
       rd_idx_r       <= next_rd_idx;
       replay_cycle_r <= next_replay_cycle;
       bank_full_r    <= next_bank_full;
+      rd_bank_sel_rr <= rd_bank_sel_r;
+      rd_data        <= bank_rd_data[rd_bank_sel_rr];
 
       if (do_read) begin
-        rd_bank_sel_r   <= rd_bank_r;
-        rd_data_valid_r <= 1'b1;
+        rd_bank_sel_r <= rd_bank_r;
       end
     end
   end

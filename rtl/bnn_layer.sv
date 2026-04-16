@@ -42,6 +42,7 @@ module bnn_layer #(
   // local preserved copy before the LUTRAM read.
   localparam int READ_ADDR_PIPE_STAGES = 1;
   localparam int NP_RAM_RD_LATENCY = 2 + READ_ADDR_PIPE_STAGES;
+  localparam int INPUT_BUFFER_ALIGN_STAGES = (NP_RAM_RD_LATENCY >= 3) ? (NP_RAM_RD_LATENCY - 3) : 0;
 
   initial begin
     if (TOTAL_INPUTS % PARALLEL_INPUTS)
@@ -111,10 +112,11 @@ module bnn_layer #(
       .rd_ready(buffer_rd_ready)
   );
 
-  // The replay buffer returns data before the per-bank RAM read path. Delay it
-  // so it stays aligned with the RAM outputs after the controller's address stage.
+  // The replay buffer now includes the bank RAM output register plus a local
+  // output register, so only any remaining latency gap to the NP RAM path
+  // needs to be delayed here.
   delay #(
-      .CYCLES(NP_RAM_RD_LATENCY - 1),
+      .CYCLES(INPUT_BUFFER_ALIGN_STAGES),
       .WIDTH (PARALLEL_INPUTS),
       .PRESERVE_REGS(1)
   ) u_input_align_delay (
