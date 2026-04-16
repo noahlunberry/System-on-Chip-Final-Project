@@ -1,48 +1,9 @@
-module replay_srl_bank #(
-    parameter int ELEMENT_WIDTH = 16,
-    parameter int NUM_ELEMENTS  = 128
-) (
-    input  logic                     clk,
-    input  logic                     shift_en,
-    input  logic [ELEMENT_WIDTH-1:0] shift_in,
-    output logic [ELEMENT_WIDTH-1:0] shift_out
-);
-
-  // No reset on the storage array. That is important for clean SRL inference.
-  if (NUM_ELEMENTS == 1) begin : gen_depth1
-    logic [ELEMENT_WIDTH-1:0] shreg_r;
-
-    assign shift_out = shreg_r;
-
-    always_ff @(posedge clk) begin
-      if (shift_en) begin
-        shreg_r <= shift_in;
-      end
-    end
-  end else begin : gen_depthn
-    localparam int TOTAL_W = ELEMENT_WIDTH * NUM_ELEMENTS;
-
-    (* shreg_extract = "yes", srl_style = "srl" *)
-    logic [TOTAL_W-1:0] shreg_r;
-
-    // Tail word = oldest word in the bank
-    assign shift_out = shreg_r[TOTAL_W-1 -: ELEMENT_WIDTH];
-
-    always_ff @(posedge clk) begin
-      if (shift_en) begin
-        shreg_r <= {shreg_r[TOTAL_W-ELEMENT_WIDTH-1:0], shift_in};
-      end
-    end
-  end
-
-endmodule
-
-
 module replay_buffer #(
     parameter int ELEMENT_WIDTH = 16,
     parameter int NUM_ELEMENTS  = 128,
     parameter int REUSE_CYCLES  = 1,
-    parameter int BUFFER_DEPTH  = NUM_ELEMENTS * 2
+    parameter int BUFFER_DEPTH  = NUM_ELEMENTS * 2,
+    parameter string RAM_STYLE  = ""
 ) (
     input  logic                     clk,
     input  logic                     rst,
@@ -61,8 +22,6 @@ module replay_buffer #(
   localparam logic [INDEX_W-1:0] LAST_IDX_C   = NUM_ELEMENTS - 1;
   localparam logic [CYCLE_W-1:0] LAST_CYCLE_C = REUSE_CYCLES - 1;
 
-  logic [ELEMENT_WIDTH-1:0] rd_data_r;
-
   logic                     wr_bank_r, next_wr_bank;
   logic [INDEX_W-1:0]       wr_idx_r,  next_wr_idx;
 
@@ -75,11 +34,13 @@ module replay_buffer #(
   logic                     do_write;
   logic                     do_read;
 
-  logic [ELEMENT_WIDTH-1:0] bank_shift_in  [0:1];
-  logic [ELEMENT_WIDTH-1:0] bank_shift_out [0:1];
-  logic [1:0]               bank_shift_en;
+  logic [ELEMENT_WIDTH-1:0] bank_rd_data [0:1];
+  logic [1:0]               bank_rd_en;
+  logic [1:0]               bank_wr_en;
+  logic                     rd_bank_sel_r;
+  logic                     rd_data_valid_r;
 
-  assign rd_data   = rd_data_r;
+  assign rd_data   = rd_data_valid_r ? bank_rd_data[rd_bank_sel_r] : '0;
 
   // Best-timing version: decode status directly from current registered state
 
@@ -91,58 +52,61 @@ module replay_buffer #(
   assign do_read  = rd_en && rd_ready;
 
   // --------------------------------------------------------------------------
-  // SRL bank datapath
+  // RAM bank datapath
   //
   // Fill behavior:
-  //   shift in wr_data on the active write bank
+  //   write wr_data into the active write bank at wr_idx_r
   //
   // Replay behavior:
-  //   shift the current tail word back into the same bank, which rotates the
-  //   bank and preserves the original read order on the next cycle
+  //   read the current bank at rd_idx_r. Since reads are non-destructive, the
+  //   bank contents stay intact and replay is just an address wrap.
   //
   // The control logic guarantees that a bank is not read and written in the
   // same cycle. Reads happen only from full banks; writes happen only into
   // the active non-full bank.
   // --------------------------------------------------------------------------
-  assign bank_shift_en[0] =
-      (do_write && (wr_bank_r == 1'b0)) ||
-      (do_read  && (rd_bank_r == 1'b0));
+  assign bank_wr_en[0] = do_write && (wr_bank_r == 1'b0);
+  assign bank_wr_en[1] = do_write && (wr_bank_r == 1'b1);
 
-  assign bank_shift_en[1] =
-      (do_write && (wr_bank_r == 1'b1)) ||
-      (do_read  && (rd_bank_r == 1'b1));
+  assign bank_rd_en[0] = do_read && (rd_bank_r == 1'b0);
+  assign bank_rd_en[1] = do_read && (rd_bank_r == 1'b1);
 
-  assign bank_shift_in[0] =
-      (do_write && (wr_bank_r == 1'b0)) ? wr_data : bank_shift_out[0];
-
-  assign bank_shift_in[1] =
-      (do_write && (wr_bank_r == 1'b1)) ? wr_data : bank_shift_out[1];
-
-  replay_srl_bank #(
-      .ELEMENT_WIDTH(ELEMENT_WIDTH),
-      .NUM_ELEMENTS (NUM_ELEMENTS)
+  ram_sdp #(
+      .DATA_WIDTH (ELEMENT_WIDTH),
+      .ADDR_WIDTH (INDEX_W),
+      .REG_RD_DATA(1'b0),
+      .WRITE_FIRST(1'b0),
+      .STYLE      (RAM_STYLE)
   ) bank0_i (
-      .clk      (clk),
-      .shift_en (bank_shift_en[0]),
-      .shift_in (bank_shift_in[0]),
-      .shift_out(bank_shift_out[0])
+      .clk    (clk),
+      .rd_en  (bank_rd_en[0]),
+      .rd_addr(rd_idx_r),
+      .rd_data(bank_rd_data[0]),
+      .wr_en  (bank_wr_en[0]),
+      .wr_addr(wr_idx_r),
+      .wr_data(wr_data)
   );
 
-  replay_srl_bank #(
-      .ELEMENT_WIDTH(ELEMENT_WIDTH),
-      .NUM_ELEMENTS (NUM_ELEMENTS)
+  ram_sdp #(
+      .DATA_WIDTH (ELEMENT_WIDTH),
+      .ADDR_WIDTH (INDEX_W),
+      .REG_RD_DATA(1'b0),
+      .WRITE_FIRST(1'b0),
+      .STYLE      (RAM_STYLE)
   ) bank1_i (
-      .clk      (clk),
-      .shift_en (bank_shift_en[1]),
-      .shift_in (bank_shift_in[1]),
-      .shift_out(bank_shift_out[1])
+      .clk    (clk),
+      .rd_en  (bank_rd_en[1]),
+      .rd_addr(rd_idx_r),
+      .rd_data(bank_rd_data[1]),
+      .wr_en  (bank_wr_en[1]),
+      .wr_addr(wr_idx_r),
+      .wr_data(wr_data)
   );
 
   // --------------------------------------------------------------------------
   // Control path
   //
-  // wr_idx_r / rd_idx_r are logical positions only.
-  // They are not physical memory addresses anymore.
+  // wr_idx_r / rd_idx_r are physical addresses within the current bank.
   // --------------------------------------------------------------------------
   always_comb begin
     next_wr_bank      = wr_bank_r;
@@ -187,7 +151,8 @@ module replay_buffer #(
       rd_idx_r       <= '0;
       replay_cycle_r <= '0;
       bank_full_r    <= '0;
-      rd_data_r      <= '0;
+      rd_bank_sel_r  <= 1'b0;
+      rd_data_valid_r <= 1'b0;
     end else begin
       wr_bank_r      <= next_wr_bank;
       wr_idx_r       <= next_wr_idx;
@@ -197,14 +162,15 @@ module replay_buffer #(
       bank_full_r    <= next_bank_full;
 
       if (do_read) begin
-        rd_data_r <= bank_shift_out[rd_bank_r];
+        rd_bank_sel_r   <= rd_bank_r;
+        rd_data_valid_r <= 1'b1;
       end
     end
   end
 
   always_ff @(posedge clk) begin
     if (!rst && do_write && do_read && (wr_bank_r == rd_bank_r)) begin
-      $fatal(1, "replay_buffer SRL version does not support same-bank read/write in one cycle");
+      $fatal(1, "replay_buffer assumes reads and writes target different banks");
     end
   end
 
