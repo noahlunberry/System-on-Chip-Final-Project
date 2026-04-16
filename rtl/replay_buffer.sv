@@ -3,7 +3,7 @@ module replay_buffer #(
     parameter int NUM_ELEMENTS  = 128,
     parameter int REUSE_CYCLES  = 1,
     parameter int BUFFER_DEPTH  = NUM_ELEMENTS * 2,
-    parameter string RAM_STYLE  = "block"
+    parameter string RAM_STYLE  = ""
 ) (
     input  logic                     clk,
     input  logic                     rst,
