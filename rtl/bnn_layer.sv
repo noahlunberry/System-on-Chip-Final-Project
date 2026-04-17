@@ -39,8 +39,8 @@ module bnn_layer #(
 
 );
   // The neuron controller emits one shared read address, and each bank keeps a
-  // local preserved copy before the LUTRAM read.
-  localparam int READ_ADDR_PIPE_STAGES = 1;
+  // two-stage local preserved copy before the LUTRAM read.
+  localparam int READ_ADDR_PIPE_STAGES = 2;
   localparam int NP_RAM_RD_LATENCY = 2 + READ_ADDR_PIPE_STAGES;
   localparam int INPUT_BUFFER_ALIGN_STAGES = (NP_RAM_RD_LATENCY >= 3) ? (NP_RAM_RD_LATENCY - 3) : 0;
 
@@ -238,24 +238,47 @@ module bnn_layer #(
   genvar gi;
   generate
     for (gi = 0; gi < PARALLEL_NEURONS; gi++) begin : gen_np_mems
-      // Preserve one local address register per bank so Vivado cannot merge
+      // Preserve two local address registers per bank so Vivado cannot merge
       // identical copies back into a single high-fanout LUTRAM address driver.
       (* KEEP = "true" *)
       logic [W_RAM_ADDR_W-1:0] w_rd_addr_local_r;
       (* KEEP = "true" *)
+      logic [W_RAM_ADDR_W-1:0] w_rd_addr_local_rr;
+      (* KEEP = "true" *)
+      logic                    w_rd_en_local_r;
+      (* KEEP = "true" *)
       logic [T_RAM_ADDR_W-1:0] t_rd_addr_local_r;
+      (* KEEP = "true" *)
+      logic [T_RAM_ADDR_W-1:0] t_rd_addr_local_rr;
+      (* KEEP = "true" *)
+      logic                    t_rd_en_local_r;
 
       always_ff @(posedge clk) begin
         if (rst) begin
           // w_rd_addr_local_r <= '0;
+          // w_rd_addr_local_rr <= '0;
           // t_rd_addr_local_r <= '0;
+          // t_rd_addr_local_rr <= '0;
+          w_rd_en_local_r <= 1'b0;
+          t_rd_en_local_r <= 1'b0;
         end else begin
+          w_rd_en_local_r <= w_rd_en;
+          t_rd_en_local_r <= t_rd_en;
+
           if (w_rd_en) begin
             w_rd_addr_local_r <= w_rd_addr;
           end
 
+          if (w_rd_en_local_r) begin
+            w_rd_addr_local_rr <= w_rd_addr_local_r;
+          end
+
           if (t_rd_en) begin
             t_rd_addr_local_r <= t_rd_addr;
+          end
+
+          if (t_rd_en_local_r) begin
+            t_rd_addr_local_rr <= t_rd_addr_local_r;
           end
         end
       end
@@ -270,7 +293,7 @@ module bnn_layer #(
       ) u_w_ram (
           .clk    (clk),
           .rd_en  (1'b1), // was a super huge fanout signal
-          .rd_addr(w_rd_addr_local_r),
+          .rd_addr(w_rd_addr_local_rr),
           .rd_data(w_rd_data[gi]),
           .wr_en  (w_wr_en_pipe_r[gi]),
           .wr_addr(w_wr_addr_pipe_r[gi]),
@@ -287,7 +310,7 @@ module bnn_layer #(
       ) u_t_ram (
           .clk    (clk),
           .rd_en  (1'b1),
-          .rd_addr(t_rd_addr_local_r),
+          .rd_addr(t_rd_addr_local_rr),
           .rd_data(t_rd_data[gi]),
           .wr_en  (t_wr_en_pipe_r[gi]),
           .wr_addr(t_wr_addr_pipe_r[gi]),
