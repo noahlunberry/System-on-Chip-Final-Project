@@ -3,6 +3,10 @@ module config_manager #(
     parameter int LAYERS                       = 3,
     parameter int PARALLEL_INPUTS              = 8,
     parameter int PARALLEL_NEURONS    [LAYERS] = '{default: 8},
+    parameter int WEIGHT_BYTES_PER_NEURON[LAYERS] = '{default: 1},
+    parameter int WEIGHT_BYTES_PER_WORD  [LAYERS] = '{default: 1},
+    parameter int WEIGHT_TOTAL_BYTES     [LAYERS] = '{default: 1},
+    parameter int THRESHOLD_TOTAL_BYTES  [LAYERS] = '{default: 4},
     parameter int MAX_PARALLEL_INPUTS          = 8,
     parameter int THRESHOLD_DATA_WIDTH         = 32
 ) (
@@ -55,7 +59,6 @@ module config_manager #(
   logic empty;
   logic msg_type_r;
   logic [1:0] layer_id_r;
-  logic [15:0] bytes_per_neuron_r;
   logic compact_wr_en;
   logic [BUS_WIDTH-1:0] compact_wr_data;
   logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
@@ -230,7 +233,11 @@ module config_manager #(
   // Parse the staged byte stream one byte at a time. This keeps header
   // handling simple while still allowing randomized TKEEP to split headers
   // across arbitrary beat boundaries.
-  config_manager_parser config_manager_parser_i (
+  config_manager_parser #(
+      .LAYERS               (LAYERS),
+      .WEIGHT_TOTAL_BYTES   (WEIGHT_TOTAL_BYTES),
+      .THRESHOLD_TOTAL_BYTES(THRESHOLD_TOTAL_BYTES)
+  ) config_manager_parser_i (
       .clk               (clk),
       .rst               (rst),
       .cfg_byte_empty    (cfg_byte_empty),
@@ -243,7 +250,6 @@ module config_manager #(
       .payload_byte_data (payload_byte_data),
       .msg_type          (msg_type_r),
       .layer_id          (layer_id_r),
-      .bytes_per_neuron  (bytes_per_neuron_r),
       .payload_start     (payload_start),
       .payload_read_count(payload_read_count)
   );
@@ -251,9 +257,9 @@ module config_manager #(
   // Keep the weight-byte read/drain/pad control isolated from the rest of the
   // datapath so config_manager now just wires the controller to the FIFOs.
   config_manager_pad_fsm #(
-      .PARALLEL_INPUTS (PARALLEL_INPUTS),
-      .LAYERS          (LAYERS),
-      .PARALLEL_NEURONS(PARALLEL_NEURONS)
+      .LAYERS                (LAYERS),
+      .WEIGHT_BYTES_PER_NEURON(WEIGHT_BYTES_PER_NEURON),
+      .WEIGHT_BYTES_PER_WORD (WEIGHT_BYTES_PER_WORD)
   ) config_manager_pad_fsm_i (
       .clk               (clk),
       .rst               (rst),
@@ -261,7 +267,6 @@ module config_manager #(
       .payload_read_count(payload_read_count),
       .msg_type          (msg_type_r),
       .layer_id          (layer_id_r),
-      .bytes_per_neuron  (bytes_per_neuron_r),
       .active_stream_empty(active_stream_empty),
       .w_byte_data       (w_byte_data),
       .in_read_state     (pad_fsm_in_read_state),

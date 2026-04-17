@@ -45,6 +45,8 @@ module bnn_fcc #(
     output logic                          data_out_last
 );
   localparam int LAYERS = TOTAL_LAYERS - 1;
+  localparam int THRESH_WORD_BYTES = 4;
+  typedef int layer_param_arr_t[LAYERS];
 
   function automatic int get_max_parallel_inputs();
     int max_v = PARALLEL_INPUTS;
@@ -54,8 +56,45 @@ module bnn_fcc #(
     return max_v;
   endfunction
 
+  function automatic layer_param_arr_t get_weight_bytes_per_neuron();
+    layer_param_arr_t result;
+    for (int i = 0; i < LAYERS; i++) begin
+      result[i] = (TOPOLOGY[i] + 7) / 8;
+    end
+    return result;
+  endfunction
+
+  function automatic layer_param_arr_t get_weight_bytes_per_word();
+    layer_param_arr_t result;
+    result[0] = PARALLEL_INPUTS / 8;
+    for (int i = 1; i < LAYERS; i++) begin
+      result[i] = PARALLEL_NEURONS[i-1] / 8;
+    end
+    return result;
+  endfunction
+
+  function automatic layer_param_arr_t get_weight_total_bytes();
+    layer_param_arr_t result;
+    for (int i = 0; i < LAYERS; i++) begin
+      result[i] = TOPOLOGY[i+1] * ((TOPOLOGY[i] + 7) / 8);
+    end
+    return result;
+  endfunction
+
+  function automatic layer_param_arr_t get_threshold_total_bytes();
+    layer_param_arr_t result;
+    for (int i = 0; i < LAYERS; i++) begin
+      result[i] = THRESH_WORD_BYTES * TOPOLOGY[i+1];
+    end
+    return result;
+  endfunction
+
   localparam int NUM_NEURONS[LAYERS] = TOPOLOGY[1:LAYERS];
   localparam int MAX_PARALLEL_INPUTS = get_max_parallel_inputs();
+  localparam layer_param_arr_t CONFIG_WEIGHT_BYTES_PER_NEURON = get_weight_bytes_per_neuron();
+  localparam layer_param_arr_t CONFIG_WEIGHT_BYTES_PER_WORD   = get_weight_bytes_per_word();
+  localparam layer_param_arr_t CONFIG_WEIGHT_TOTAL_BYTES      = get_weight_total_bytes();
+  localparam layer_param_arr_t CONFIG_THRESHOLD_TOTAL_BYTES   = get_threshold_total_bytes();
 
   logic [ MAX_PARALLEL_INPUTS-1:0] weight_wr_data;
   logic [              LAYERS-1:0] weight_wr_en;
@@ -90,6 +129,10 @@ module bnn_fcc #(
       .PARALLEL_INPUTS     (PARALLEL_INPUTS),
       .MAX_PARALLEL_INPUTS (MAX_PARALLEL_INPUTS),
       .PARALLEL_NEURONS    (PARALLEL_NEURONS),
+      .WEIGHT_BYTES_PER_NEURON(CONFIG_WEIGHT_BYTES_PER_NEURON),
+      .WEIGHT_BYTES_PER_WORD(CONFIG_WEIGHT_BYTES_PER_WORD),
+      .WEIGHT_TOTAL_BYTES  (CONFIG_WEIGHT_TOTAL_BYTES),
+      .THRESHOLD_TOTAL_BYTES(CONFIG_THRESHOLD_TOTAL_BYTES),
       .THRESHOLD_DATA_WIDTH(THRESHOLD_DATA_WIDTH)
   ) config_manager (
       .clk                  (clk),

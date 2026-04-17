@@ -1,4 +1,8 @@
-module config_manager_parser (
+module config_manager_parser #(
+    parameter int LAYERS = 3,
+    parameter int WEIGHT_TOTAL_BYTES[LAYERS] = '{default: 1},
+    parameter int THRESHOLD_TOTAL_BYTES[LAYERS] = '{default: 4}
+) (
     input logic clk,
     input logic rst,
 
@@ -13,7 +17,6 @@ module config_manager_parser (
     output logic [ 7:0] payload_byte_data,
     output logic        msg_type,
     output logic [ 1:0] layer_id,
-    output logic [15:0] bytes_per_neuron,
     output logic        payload_start,
     output logic [31:0] payload_read_count
 );
@@ -35,11 +38,9 @@ module config_manager_parser (
   // Registered message metadata for the payload currently being emitted.
   logic       next_msg_type;
   logic [1:0] next_layer_id;
-  logic [31:0] total_bytes_r, next_total_bytes;
   // Cache "payload_count_r value seen on the second-to-last payload byte" so
   // payload-end detection is a simple registered compare in PARSE_PAYLOAD.
   logic [31:0] payload_second_last_idx_r, next_payload_second_last_idx;
-  logic [15:0] next_bytes_per_neuron;
 
   // Header assembly and progress tracking.
   logic [HEADER_BYTES*8-1:0] header_buf_r, next_header_buf;
@@ -57,23 +58,48 @@ module config_manager_parser (
   // available to consume in the current cycle.
   logic cfg_byte_data_valid_r, next_cfg_byte_data_valid;
 
+  function automatic logic [31:0] calc_payload_bytes(
+      input logic       cfg_msg_type,
+      input logic [1:0] cfg_layer_id
+  );
+    calc_payload_bytes = '0;
+    if (cfg_layer_id < LAYERS) begin
+      calc_payload_bytes = cfg_msg_type ? THRESHOLD_TOTAL_BYTES[cfg_layer_id] :
+                                          WEIGHT_TOTAL_BYTES[cfg_layer_id];
+    end
+  endfunction
+
+  function automatic logic [31:0] calc_payload_read_count(
+      input logic       cfg_msg_type,
+      input logic [1:0] cfg_layer_id
+  );
+    logic [31:0] payload_bytes;
+    begin
+      payload_bytes = calc_payload_bytes(cfg_msg_type, cfg_layer_id);
+      calc_payload_read_count = cfg_msg_type ? (payload_bytes / THRESH_WORD_BYTES) : payload_bytes;
+    end
+  endfunction
+
   // Main parser state and message metadata registers.
   always_ff @(posedge clk) begin
     if (rst) begin
       parse_state_r             <= PARSE_HEADER;
       msg_type                  <= 1'b0;
       layer_id                  <= '0;
-      bytes_per_neuron          <= '0;
+      payload_second_last_idx_r <= '0;
       header_buf_r              <= '0;
+      header_count_r            <= '0;
+      payload_count_r           <= '0;
+      header_last_byte_r        <= (HEADER_BYTES == 1);
+      payload_last_byte_r       <= 1'b0;
       cfg_byte_data_valid_r     <= 1'b0;
       payload_start             <= 1'b0;
+      payload_read_count        <= '0;
     end else begin
       parse_state_r             <= next_parse_state;
       msg_type                  <= next_msg_type;
       layer_id                  <= next_layer_id;
-      total_bytes_r             <= next_total_bytes;
       payload_second_last_idx_r <= next_payload_second_last_idx;
-      bytes_per_neuron          <= next_bytes_per_neuron;
       header_buf_r              <= next_header_buf;
       header_count_r            <= next_header_count;
       payload_count_r           <= next_payload_count;
@@ -96,13 +122,12 @@ module config_manager_parser (
   always_comb begin
     logic cfg_byte_consume;
     logic cfg_byte_request;
+    logic [31:0] decoded_payload_bytes;
 
     next_parse_state             = parse_state_r;
     next_msg_type                = msg_type;
     next_layer_id                = layer_id;
-    next_total_bytes             = total_bytes_r;
     next_payload_second_last_idx = payload_second_last_idx_r;
-    next_bytes_per_neuron        = bytes_per_neuron;
     next_header_buf              = header_buf_r;
     next_header_count            = header_count_r;
     next_payload_count           = payload_count_r;
@@ -118,20 +143,23 @@ module config_manager_parser (
     payload_byte_data            = cfg_byte_data;
     cfg_byte_consume             = 1'b0;
     cfg_byte_request             = 1'b0;
+    decoded_payload_bytes        = '0;
 
     case (parse_state_r)
       PARSE_HEADER: begin
         // Consume the currently staged byte, if any, and append it into the
-        // packed header buffer at the current byte offset.
+        // packed header buffer at the current byte offset. Per-layer payload
+        // sizing is compile-time, so only msg_type/layer_id remain live
+        // metadata from the header itself.
         next_msg_type = header_buf_r[0];
         next_layer_id = header_buf_r[9:8];
-        next_total_bytes = header_buf_r[95:64];
-        next_payload_second_last_idx = (header_buf_r[95:64] > 32'd1) ? (header_buf_r[95:64] - 32'd2) : '0;
-        next_bytes_per_neuron = header_buf_r[63:48];
+        decoded_payload_bytes = calc_payload_bytes(next_msg_type, next_layer_id);
+        next_payload_second_last_idx =
+            (decoded_payload_bytes > 32'd1) ? (decoded_payload_bytes - 32'd2) : '0;
         next_header_count = '0;
         next_payload_count = '0;
         next_header_last_byte = (HEADER_BYTES == 1);
-        next_payload_last_byte = (header_buf_r[95:64] <= 32'd1);
+        next_payload_last_byte = (decoded_payload_bytes <= 32'd1);
 
         if (cfg_byte_data_valid_r) begin
           cfg_byte_consume = 1'b1;
@@ -139,7 +167,7 @@ module config_manager_parser (
 
           if (header_last_byte_r) begin
             next_payload_start = 1'b1;
-            next_payload_read_count = next_msg_type ? (next_total_bytes / THRESH_WORD_BYTES) : next_total_bytes;
+            next_payload_read_count = calc_payload_read_count(next_msg_type, next_layer_id);
 
             // Start payload hot by requesting the first payload byte as soon
             // as one is available after the header completes.
