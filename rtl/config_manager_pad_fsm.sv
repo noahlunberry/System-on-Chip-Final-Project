@@ -11,7 +11,7 @@ module config_manager_pad_fsm #(
 
     input logic        payload_start,
     input logic        msg_type,
-    input logic [ 1:0] layer_id,
+    input logic [ 7:0] layer_id,
     input logic        active_stream_empty,
     input logic [ 7:0] w_byte_data,
 
@@ -55,7 +55,7 @@ module config_manager_pad_fsm #(
 
   function automatic logic [PAYLOAD_COUNT_W-1:0] decode_payload_item_count(
       input logic       cfg_msg_type,
-      input logic [1:0] cfg_layer_id
+      input logic [7:0] cfg_layer_id
   );
     decode_payload_item_count = '0;
     if (cfg_layer_id < LAYERS) begin
@@ -64,14 +64,14 @@ module config_manager_pad_fsm #(
     end
   endfunction
 
-  function automatic logic [15:0] decode_weight_bytes_per_neuron(input logic [1:0] cfg_layer_id);
+  function automatic logic [15:0] decode_weight_bytes_per_neuron(input logic [7:0] cfg_layer_id);
     decode_weight_bytes_per_neuron = 16'd1;
     if (cfg_layer_id < LAYERS) begin
       decode_weight_bytes_per_neuron = WEIGHT_BYTES_PER_NEURON[cfg_layer_id];
     end
   endfunction
 
-  function automatic logic [7:0] decode_weight_bytes_per_word(input logic [1:0] cfg_layer_id);
+  function automatic logic [7:0] decode_weight_bytes_per_word(input logic [7:0] cfg_layer_id);
     decode_weight_bytes_per_word = 8'd1;
     if (cfg_layer_id < LAYERS) begin
       decode_weight_bytes_per_word = WEIGHT_BYTES_PER_WORD[cfg_layer_id];

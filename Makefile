@@ -35,6 +35,10 @@ WORK_DIR = work
 TOP_MODULE ?= bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
 COVERAGE_SWEEP_TOP ?= bnn_fcc_uvm_cov_tb
+FIVE_LAYER_TOP ?= bnn_fcc_uvm_five_layer_tb
+FINN_SFC_TOP ?= bnn_fcc_uvm_finn_sfc_tb
+FINN_LFC_TOP ?= bnn_fcc_uvm_finn_lfc_tb
+TEN_HIDDEN_TOP ?= bnn_fcc_uvm_ten_hidden_tb
 COVERAGE_SWEEP_TEST ?= bnn_fcc_coverage_sweep_test
 # Unused RTL moved under rtl/unused/.
 # EXTRA_RTL_SOURCES = rtl/unused/fifo_vw.sv
@@ -104,6 +108,46 @@ COMMON_TB_TIME_GFLAGS = \
 
 ifeq ($(TOP_MODULE),$(COVERAGE_SWEEP_TOP))
 COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE)
+else ifeq ($(TOP_MODULE),$(FIVE_LAYER_TOP))
+COMMON_TB_GFLAGS = \
+	-gBASE_DIR=\"$(BASE_DIR)\" \
+	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
+	-gVERIFY_MODEL=$(VERIFY_MODEL) \
+	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
+	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
+	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
+	-gDEBUG=$(DEBUG) \
+	$(COMMON_TB_TIME_GFLAGS)
+else ifeq ($(TOP_MODULE),$(FINN_SFC_TOP))
+COMMON_TB_GFLAGS = \
+	-gBASE_DIR=\"$(BASE_DIR)\" \
+	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
+	-gVERIFY_MODEL=$(VERIFY_MODEL) \
+	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
+	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
+	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
+	-gDEBUG=$(DEBUG) \
+	$(COMMON_TB_TIME_GFLAGS)
+else ifeq ($(TOP_MODULE),$(FINN_LFC_TOP))
+COMMON_TB_GFLAGS = \
+	-gBASE_DIR=\"$(BASE_DIR)\" \
+	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
+	-gVERIFY_MODEL=$(VERIFY_MODEL) \
+	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
+	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
+	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
+	-gDEBUG=$(DEBUG) \
+	$(COMMON_TB_TIME_GFLAGS)
+else ifeq ($(TOP_MODULE),$(TEN_HIDDEN_TOP))
+COMMON_TB_GFLAGS = \
+	-gBASE_DIR=\"$(BASE_DIR)\" \
+	-gNUM_TEST_IMAGES=$(NUM_TEST_IMAGES) \
+	-gVERIFY_MODEL=$(VERIFY_MODEL) \
+	-gTOGGLE_DATA_OUT_READY=$(TOGGLE_DATA_OUT_READY) \
+	-gCONFIG_VALID_PROBABILITY=$(CONFIG_VALID_PROBABILITY) \
+	-gDATA_IN_VALID_PROBABILITY=$(DATA_IN_VALID_PROBABILITY) \
+	-gDEBUG=$(DEBUG) \
+	$(COMMON_TB_TIME_GFLAGS)
 else
 COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE) $(COMMON_TB_TIME_GFLAGS)
 endif
@@ -127,6 +171,7 @@ VLOG_FLAGS = -sv \
 # Optimization flags (preserve full visibility with +acc)
 VOPT_FLAGS = +acc \
 	-L $(UVM_LIB) \
+	$(COMMON_TB_GFLAGS) \
 	-o $(OPTIMIZED_TOP)
 
 # Simulation flags
@@ -138,7 +183,6 @@ VSIM_FLAGS = -c \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
-	$(COMMON_TB_GFLAGS) \
 	-do "$(VSIM_RUN_DO)"
 
 # GUI simulation flags
@@ -150,7 +194,6 @@ VSIM_GUI_FLAGS = -gui \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	$(UVM_FLAGS) \
-	$(COMMON_TB_GFLAGS) \
 	-do "$(VSIM_GUI_DO)"
 
 define RUN_BATCH_TEST
@@ -163,7 +206,6 @@ $(VSIM) -c \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	+UVM_TESTNAME=$(1) \
-	$(COMMON_TB_GFLAGS) \
 	-do "coverage save -onexit $(COVERAGE_DIR)/$(1).ucdb; run -all" \
 	$(OPTIMIZED_TOP)
 endef
@@ -177,7 +219,6 @@ $(VSIM) -gui \
 	+UVM_NO_RELNOTES \
 	+UVM_VERBOSITY=UVM_MEDIUM \
 	+UVM_TESTNAME=$(1) \
-	$(COMMON_TB_GFLAGS) \
 	-do "coverage save -onexit $(COVERAGE_DIR)/$(1).ucdb" \
 	$(OPTIMIZED_TOP)
 endef
@@ -244,6 +285,39 @@ sim: optimize $(COVERAGE_DIR)
 # Convenience target for the single-run coverage sweep top/test.
 coverage-sweep:
 	@$(MAKE) --no-print-directory sim TOP_MODULE=$(COVERAGE_SWEEP_TOP) UVM_TESTNAME=$(COVERAGE_SWEEP_TEST)
+
+# Convenience target for the deeper 5-total-layer custom-topology smoke test.
+sim-five-layer:
+	@$(MAKE) --no-print-directory sim TOP_MODULE=bnn_fcc_uvm_five_layer_tb UVM_TESTNAME=bnn_fcc_single_beat_test
+
+# Convenience targets for the fully connected FINN topologies this RTL can represent.
+sim-finn-sfc:
+	@$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_SFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test
+
+sim-finn-lfc:
+	@$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_LFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test
+
+# Convenience target for a very deep FCC stress topology.
+sim-ten-hidden:
+	@$(MAKE) --no-print-directory sim TOP_MODULE=$(TEN_HIDDEN_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test
+
+sim-finn-topologies:
+	@set -e; \
+	echo "=== Running FINN SFC topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_SFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test; \
+	echo "=== Running FINN LFC topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_LFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test
+
+sim-topology-sweep:
+	@set -e; \
+	echo "=== Running FINN SFC topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_SFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test; \
+	echo "=== Running FINN LFC topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(FINN_LFC_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test; \
+	echo "=== Running custom 5-total-layer topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(FIVE_LAYER_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test; \
+	echo "=== Running custom 10-hidden-layer topology ==="; \
+	$(MAKE) --no-print-directory sim TOP_MODULE=$(TEN_HIDDEN_TOP) UVM_TESTNAME=bnn_fcc_single_beat_test
 
 # Run the one-shot coverage sweep and emit a single text coverage report.
 coverage-sweep-report:
@@ -335,6 +409,12 @@ help:
 	@echo "make regress                          Run all discovered tests and merge coverage"
 	@echo "                                      Per-test logs are written under $(TEST_LOG_DIR)"
 	@echo "make coverage-sweep                   Run the one-shot coverage sweep top/testbench"
+	@echo "make sim-finn-sfc                    Run the FINN SFC fully connected topology"
+	@echo "make sim-finn-lfc                    Run the FINN LFC fully connected topology"
+	@echo "make sim-finn-topologies             Run the supported FINN fully connected topology sweep"
+	@echo "make sim-five-layer                  Run the 5-total-layer custom-topology smoke test"
+	@echo "make sim-ten-hidden                  Run the custom 10-hidden-layer stress topology"
+	@echo "make sim-topology-sweep              Run FINN FC topologies plus the custom deep topologies"
 	@echo "make coverage-sweep-report            Run the one-shot coverage sweep and write one report"
 	@echo "make viewcov UVM_TESTNAME=<test_name> Open one test's UCDB"
 	@echo "make viewcov-merged                   Open merged regression coverage"
@@ -353,4 +433,4 @@ clean:
 	rm -rf $(COVERAGE_DIR)
 	rm -rf modelsim.ini
 
-.PHONY: all compile optimize list-tests run-test sim sim-% coverage-sweep coverage-sweep-report gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean
+.PHONY: all compile optimize list-tests run-test sim sim-% sim-five-layer sim-ten-hidden sim-finn-sfc sim-finn-lfc sim-finn-topologies sim-topology-sweep coverage-sweep coverage-sweep-report gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean

@@ -1,0 +1,47 @@
+`timescale 1ns / 100ps
+
+// Deliberately deep fully connected stress topology:
+// 784 -> 512 -> 512 -> 256 -> 256 -> 128 -> 128 -> 64 -> 64 -> 32 -> 32 -> 10
+//
+// This is 10 hidden layers plus the output layer, while still preserving the
+// 10-class classifier output expected by the FCC flow.
+module bnn_fcc_uvm_ten_hidden_tb #(
+    parameter int NUM_TEST_IMAGES = 10,
+    parameter bit VERIFY_MODEL = 0,
+    parameter string BASE_DIR = "/ecel/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python",
+    parameter bit TOGGLE_DATA_OUT_READY = 1'b1,
+    parameter real CONFIG_VALID_PROBABILITY = 0.6,
+    parameter real DATA_IN_VALID_PROBABILITY = 0.75,
+    parameter time TIMEOUT = 100ms,
+    parameter time CLK_PERIOD = 10ns,
+    parameter bit DEBUG = 1'b0,
+    parameter string DEFAULT_UVM_TESTNAME = "bnn_fcc_single_beat_test"
+);
+
+  localparam int CUSTOM_LAYERS = 12;
+  localparam int CUSTOM_TOPOLOGY[CUSTOM_LAYERS] = '{
+      784, 512, 512, 256, 256, 128, 128, 64, 64, 32, 32, 10
+  };
+  localparam int PARALLEL_NEURONS[CUSTOM_LAYERS-1] = '{
+      64, 64, 64, 64, 32, 32, 16, 16, 8, 8, 10
+  };
+
+  bnn_fcc_uvm_tb #(
+      .USE_CUSTOM_TOPOLOGY   (1'b1),
+      .CUSTOM_LAYERS         (CUSTOM_LAYERS),
+      .CUSTOM_TOPOLOGY       (CUSTOM_TOPOLOGY),
+      .PARALLEL_INPUTS       (32),
+      .PARALLEL_NEURONS      (PARALLEL_NEURONS),
+      .NUM_TEST_IMAGES       (NUM_TEST_IMAGES),
+      .VERIFY_MODEL          (VERIFY_MODEL),
+      .BASE_DIR              (BASE_DIR),
+      .TOGGLE_DATA_OUT_READY (TOGGLE_DATA_OUT_READY),
+      .CONFIG_VALID_PROBABILITY(CONFIG_VALID_PROBABILITY),
+      .DATA_IN_VALID_PROBABILITY(DATA_IN_VALID_PROBABILITY),
+      .TIMEOUT               (TIMEOUT),
+      .CLK_PERIOD            (CLK_PERIOD),
+      .DEBUG                 (DEBUG),
+      .DEFAULT_UVM_TESTNAME  (DEFAULT_UVM_TESTNAME)
+  ) u_ten_hidden_tb ();
+
+endmodule

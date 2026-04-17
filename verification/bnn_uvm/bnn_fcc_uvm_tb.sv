@@ -42,14 +42,29 @@ module bnn_fcc_uvm_tb #(
     localparam int TRAINED_TOPOLOGY[TRAINED_LAYERS] = bnn_fcc_uvm_pkg::TRAINED_TOPOLOGY,
 
     localparam int ACTUAL_TOTAL_LAYERS = USE_CUSTOM_TOPOLOGY ? CUSTOM_LAYERS : TRAINED_LAYERS,
-    localparam int ACTUAL_TOPOLOGY[ACTUAL_TOTAL_LAYERS] =
-        USE_CUSTOM_TOPOLOGY ? CUSTOM_TOPOLOGY : TRAINED_TOPOLOGY,
 
     localparam int NON_INPUT_LAYERS = ACTUAL_TOTAL_LAYERS - 1,
 
     parameter int PARALLEL_INPUTS = bnn_fcc_uvm_pkg::PARALLEL_INPUTS,
     parameter int PARALLEL_NEURONS[NON_INPUT_LAYERS] = bnn_fcc_uvm_pkg::PARALLEL_NEURONS
 );
+
+  typedef int actual_topology_t[ACTUAL_TOTAL_LAYERS];
+
+  function automatic actual_topology_t get_actual_topology();
+    actual_topology_t result;
+
+    for (int i = 0; i < ACTUAL_TOTAL_LAYERS; i++) begin
+      if (USE_CUSTOM_TOPOLOGY)
+        result[i] = CUSTOM_TOPOLOGY[i];
+      else
+        result[i] = TRAINED_TOPOLOGY[i];
+    end
+
+    return result;
+  endfunction
+
+  localparam actual_topology_t ACTUAL_TOPOLOGY = get_actual_topology();
 
   // ---------------------------------
   // Clock / Reset

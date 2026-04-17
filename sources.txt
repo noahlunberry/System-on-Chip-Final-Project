@@ -60,3 +60,7 @@ verification/bnn_uvm/tests/bnn_fcc_delay_gap_profile_test.svh
 verification/bnn_uvm/tests/bnn_fcc_pixel_values_directed_test.svh
 verification/bnn_uvm/bnn_fcc_uvm_tb.sv
 verification/bnn_uvm/bnn_fcc_uvm_cov_tb.sv
+verification/bnn_uvm/bnn_fcc_uvm_finn_sfc_tb.sv
+verification/bnn_uvm/bnn_fcc_uvm_finn_lfc_tb.sv
+verification/bnn_uvm/bnn_fcc_uvm_five_layer_tb.sv
+verification/bnn_uvm/bnn_fcc_uvm_ten_hidden_tb.sv

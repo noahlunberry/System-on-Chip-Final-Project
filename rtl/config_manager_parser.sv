@@ -16,7 +16,7 @@ module config_manager_parser #(
     output logic       payload_byte_valid,
     output logic [7:0] payload_byte_data,
     output logic       msg_type,
-    output logic [1:0] layer_id,
+    output logic [7:0] layer_id,
     output logic       payload_start
 );
 
@@ -35,7 +35,7 @@ module config_manager_parser #(
 
   // Registered message metadata for the payload currently being emitted.
   logic               next_msg_type;
-  logic         [1:0] next_layer_id;
+  logic         [7:0] next_layer_id;
 
   // Header progress tracking.
   logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
@@ -51,7 +51,7 @@ module config_manager_parser #(
   logic cfg_byte_data_valid_r, next_cfg_byte_data_valid;
 
   function automatic logic [PAYLOAD_COUNT_W-1:0] calc_payload_bytes(input logic cfg_msg_type,
-                                                                    input logic [1:0] cfg_layer_id);
+                                                                    input logic [7:0] cfg_layer_id);
     calc_payload_bytes = '0;
     if (cfg_layer_id < LAYERS) begin
       calc_payload_bytes = cfg_msg_type ? THRESHOLD_TOTAL_BYTES[cfg_layer_id] :
@@ -125,7 +125,7 @@ module config_manager_parser #(
           if (header_count_r == '0) begin
             next_msg_type = cfg_byte_data[0];
           end else if (header_count_r == 'd1) begin
-            next_layer_id = cfg_byte_data[1:0];
+            next_layer_id = cfg_byte_data;
           end
 
           if (header_last_byte) begin

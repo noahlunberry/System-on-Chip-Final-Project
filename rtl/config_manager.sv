@@ -72,7 +72,7 @@ module config_manager #(
   // Parser & Config
   logic empty;
   logic msg_type_r;
-  logic [1:0] layer_id_r;
+  logic [7:0] layer_id_r;
   logic compact_wr_en;
   logic [BUS_WIDTH-1:0] compact_wr_data;
   logic [$clog2(BUS_BYTES+1)-1:0] compact_total_bytes;
@@ -133,7 +133,7 @@ module config_manager #(
   // data into the downstream packer memories.
   logic packer_wr_valid_r;
   logic [7:0] packer_wr_data_r;
-  logic [1:0] packer_wr_layer_r;
+  logic [7:0] packer_wr_layer_r;
 
   // =========================================================================
   // Combinational Assignments & Top-Level Logic
@@ -404,7 +404,7 @@ module config_manager #(
     // Weights automatically drain out of the specific packers when sequences
     // arise. The selected word is registered below before leaving this module.
     for (int j = 0; j < LAYERS; j++) begin
-      if (packer_has_data[j] && (layer_id_r == 2'(j))) begin
+      if (packer_has_data[j] && (layer_id_r == 8'(j))) begin
         packer_rd_en[j] = 1'b1;
       end
     end
