@@ -3,7 +3,11 @@ package bnn_fcc_uvm_pkg;
 
 // Bus configuratio
     parameter int CONFIG_BUS_WIDTH = 64;
+`ifdef BNN_FCC_UVM_INPUT_BUS_WIDTH
+    parameter int INPUT_BUS_WIDTH  = `BNN_FCC_UVM_INPUT_BUS_WIDTH;
+`else
     parameter int INPUT_BUS_WIDTH  = 64;
+`endif
     parameter int OUTPUT_BUS_WIDTH = 8;
 
     // App configuration
@@ -18,9 +22,17 @@ package bnn_fcc_uvm_pkg;
     parameter int TRAINED_LAYERS = 4;
     parameter int TRAINED_TOPOLOGY[TRAINED_LAYERS] = '{784, 256, 256, 10};
 
-    // DUT configuration (can be modified or extended for your own DUT)        
+    // DUT configuration (can be modified or extended for your own DUT)
+`ifdef BNN_FCC_UVM_PARALLEL_INPUTS
+    parameter int PARALLEL_INPUTS = `BNN_FCC_UVM_PARALLEL_INPUTS;
+`else
     parameter int PARALLEL_INPUTS = 32;
+`endif
+`ifdef BNN_FCC_UVM_PARALLEL_NEURONS
+    parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = `BNN_FCC_UVM_PARALLEL_NEURONS;
+`else
     parameter int PARALLEL_NEURONS[TRAINED_LAYERS-1] = '{64, 32, 10};
+`endif
 
     // These enums let tests, coverage, and helper code exchange descriptive
     // reconfiguration/reset states without relying on ad-hoc integer literals.

@@ -127,30 +127,6 @@ module bnn_layer #(
       .out(buffer_rd_data_aligned)
   );
 
-  // Local pipelining for config writes.
-  // This breaks the long path from config_manager/packer logic into the RAM
-  // write-data pins. The layer still accepts one config word per cycle.
-  always_ff @(posedge clk) begin
-    if (rst) begin
-      cfg_weight_wr_en_r      <= 1'b0;
-      cfg_weight_wr_data_r    <= '0;
-      cfg_threshold_wr_en_r   <= 1'b0;
-      cfg_threshold_wr_data_r <= '0;
-    end else begin
-      cfg_weight_wr_en_r    <= weight_wr_en;
-      cfg_threshold_wr_en_r <= threshold_wr_en;
-
-      if (weight_wr_en) begin
-        cfg_weight_wr_data_r <= weight_wr_data;
-      end
-
-      if (threshold_wr_en) begin
-        cfg_threshold_wr_data_r <= threshold_wr_data;
-      end
-    end
-  end
-
-
   // config controller : communicates with config manager and streams data into the rams
   // send valid in to the neuron processor
   // outputs the enables to write into the BRAMS
@@ -174,11 +150,18 @@ module bnn_layer #(
       .done               (config_done)
   );
 
-  // Register the config-controller outputs before they drive the per-NP RAMs.
-  // This cuts the long controller-to-BRAM address/enable routes at the layer
-  // boundary while keeping one config write per cycle after pipeline fill.
+  // Two-stage local pipeline for config writes:
+  // Stage 0 captures one config-manager word so u_cfc sees the write enable
+  // and payload from the same cycle.
+  // Stage 1 captures u_cfc's bank select/address and re-times the same payload
+  // so each RAM sees aligned wr_en/wr_addr/wr_data one cycle later.
   always_ff @(posedge clk) begin
     if (rst) begin
+      cfg_weight_wr_en_r      <= 1'b0;
+      cfg_weight_wr_data_r    <= '0;
+      cfg_threshold_wr_en_r   <= 1'b0;
+      cfg_threshold_wr_data_r <= '0;
+
       // w_wr_en_pipe_r             <= '0;
       // t_wr_en_pipe_r             <= '0;
       // cfg_weight_wr_data_pipe_r  <= '0;
@@ -189,6 +172,20 @@ module bnn_layer #(
         t_wr_addr_pipe_r[i] <= '0;
       end
     end else begin
+      // Stage 0: register the incoming config word at the layer boundary.
+      cfg_weight_wr_en_r    <= weight_wr_en;
+      cfg_threshold_wr_en_r <= threshold_wr_en;
+
+      if (weight_wr_en) begin
+        cfg_weight_wr_data_r <= weight_wr_data;
+      end
+
+      if (threshold_wr_en) begin
+        cfg_threshold_wr_data_r <= threshold_wr_data;
+      end
+
+      // Stage 1: one cycle later, register u_cfc's decoded bank/address and
+      // carry the matching Stage-0 payload forward to the per-bank RAM ports.
       w_wr_en_pipe_r             <= w_wr_en;
       t_wr_en_pipe_r             <= t_wr_en;
       cfg_weight_wr_data_pipe_r  <= cfg_weight_wr_data_r;

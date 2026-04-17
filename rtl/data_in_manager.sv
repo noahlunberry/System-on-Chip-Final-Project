@@ -1,37 +1,21 @@
 // -----------------------------------------------------------------------------
 // data_in_manager
 // -----------------------------------------------------------------------------
-// This module owns the entire "image input stream -> BNN input vector" path
-// that sits in front of `bnn`.
+// Converts the AXI image stream into fixed-width binary words for `bnn`.
 //
-// High-level flow:
-// 1. Accept AXI-style image beats from `bnn_fcc`.
-// 2. Pass each accepted beat through the registered `tkeep_byte_compactor` so
-//    only valid bytes are kept and packed contiguously.
-// 3. Count how many real bytes have arrived for the current image frame.
-// 4. After the last real beat, inject zero-valued padding bytes so the total
-//    byte count is a multiple of `PARALLEL_INPUTS`.
-// 5. Feed the compacted/padded byte stream into `vw_buffer`, which repacks the
-//    variable-size writes into fixed-width `INPUT_BUS_BYTES`-byte words.
-// 6. Binarize each emitted byte word into `INPUT_BUS_BYTES` bits.
-// 7. Push those fixed-width binary words into an internal `fifo_vr`, which
-//    width-converts them into `PARALLEL_INPUTS`-bit words for the BNN.
-// 8. Let the BNN consume from that FIFO, so BNN-side stalls are absorbed by the
-//    FIFO instead of feeding directly back into `vw_buffer`.
+// Flow:
+// 1. Compact valid bytes from each accepted beat.
+// 2. Count bytes in the current frame.
+// 3. Add zero padding after the last real beat so the frame length is a
+//    multiple of `PARALLEL_INPUTS`.
+// 4. Repack into fixed-width words with `vw_buffer`.
+// 5. Binarize each byte and queue the result for the BNN.
 //
-// Important timing detail:
-// `tkeep_byte_compactor` is intentionally registered. That means the accepted
-// AXI beat and the corresponding compacted output are separated by one cycle.
-// This module therefore tracks `data_in_last` in `compact_last_r` so the
-// frame-end marker stays aligned with the registered compacted data.
+// `tkeep_byte_compactor` is registered, so `compact_last_r` delays TLAST to
+// stay aligned with `compact_*`.
 //
-// Important contract with `vw_buffer`:
-// `vw_buffer` auto-asserts `rd_en` whenever a full output word is buffered.
-// Because that interface has no read handshake, this module immediately writes
-// each emitted word into an internal FIFO. Upstream backpressure is then based
-// on that FIFO's occupancy, with a little headroom reserved for in-flight data
-// that may still emerge from the compactor/vw_buffer path after AXI input has
-// been throttled.
+// `vw_buffer` has no read handshake, so its output is pushed into an internal
+// FIFO. Backpressure is based on that FIFO, with headroom for in-flight words.
 module data_in_manager #(
     parameter int INPUT_DATA_WIDTH    = 8,
     parameter int INPUT_BUS_WIDTH     = 64,
@@ -41,22 +25,22 @@ module data_in_manager #(
     input  logic                           clk,
     input  logic                           rst,
 
-    // Preserve the same top-level gating style used in bnn_fcc.
+    // Match the top-level gating used in bnn_fcc.
     input  logic                           config_ready,
     input  logic                           config_last,
 
-    // AXI-stream-like image input
+    // AXI-style image input
     input  logic                           data_in_valid,
     output logic                           data_in_ready,
     input  logic [  INPUT_BUS_WIDTH-1:0]   data_in_data,
     input  logic [INPUT_BUS_WIDTH/8-1:0]   data_in_keep,
     input  logic                           data_in_last,
 
-    // Downstream BNN-side control
+    // BNN-side flow control
     input  logic                           bnn_ready,
     input  logic                           bnn_en,
 
-    // To BNN
+    // BNN input
     output logic [PARALLEL_INPUTS-1:0]     bnn_data_in,
     output logic                           bnn_data_in_valid
 );
@@ -67,15 +51,11 @@ module data_in_manager #(
   localparam int FRAME_CNT_W     = $clog2(TOTAL_INPUTS + INPUT_BUS_BYTES + 1);
   localparam int INPUT_BINARIZATION_THRESHOLD = 1 << (INPUT_DATA_WIDTH - 1);
 
-  // Leave enough elastic buffering between the non-backpressureable vw_buffer
-  // output and the BNN-facing consumer so a few in-flight words can still land
-  // safely after upstream throttling begins.
+  // Reserve space for words still in flight after upstream throttling starts.
   localparam int BIN_FIFO_DEPTH_LOG2 = 4;
 
-  // Reserve three FIFO entries so one word already buffered in `vw_buffer`,
-  // one word sitting in the local write pipeline below, and one more word
-  // still emerging from the registered compactor can all drain safely after
-  // AXI input is throttled.
+  // Keep room for one word in `vw_buffer`, one in the local pipeline, and one
+  // still coming out of the registered compactor.
   localparam int BIN_FIFO_ALM_FULL_THRESH = 3;
 
   initial begin
@@ -91,48 +71,41 @@ module data_in_manager #(
              BIN_FIFO_ALM_FULL_THRESH);
     end
 
-    // This manager currently assumes byte-granular image inputs because the
-    // compactor and vw_buffer path operate in bytes.
+    // The compactor and vw_buffer operate on bytes.
     if (INPUT_DATA_WIDTH != 8) begin
       $fatal(1,
              "data_in_manager currently assumes INPUT_DATA_WIDTH == 8, got %0d.",
              INPUT_DATA_WIDTH);
     end
 
-    // TOTAL_INPUTS is used for frame-accounting sanity and to size the frame
-    // byte counter. A zero-sized frame would make the padding logic meaningless.
+    // A zero-sized frame would make the padding logic meaningless.
     if (TOTAL_INPUTS <= 0) begin
       $fatal(1, "data_in_manager requires TOTAL_INPUTS to be greater than 0.");
     end
   end
 
 
-  // Registered outputs of the TKEEP compactor. These correspond to the beat
-  // accepted on the previous cycle.
+  // Registered compactor output for the previously accepted beat.
   logic                       compact_wr_en;
   logic [INPUT_BUS_WIDTH-1:0] compact_wr_data;
   logic [COUNT_W-1:0]         compact_total_bytes;
 
-  // `compact_last_r` is the delayed copy of `data_in_last` aligned to the
-  // registered compacted outputs above.
+  // Delayed TLAST aligned with `compact_*`.
   logic                       compact_last_r;
 
-  // Tracks how many real image bytes have been accumulated so far in the
-  // current frame, excluding any synthetic zero-padding bytes.
+  // Real bytes seen so far in the current frame.
   logic [FRAME_CNT_W-1:0]     frame_byte_count_r;
 
-  // When `padding_r` is high, the manager is no longer consuming upstream AXI
-  // beats. Instead, it is writing zero bytes into the vw_buffer until the
-  // frame length has been rounded up to a multiple of PARALLEL_INPUTS.
+  // Padding state after the last real beat.
   logic                       padding_r;
   logic [PAD_W-1:0]           pad_remaining_r;
 
-  // Combinational bookkeeping for the current compacted beat or padding write.
+  // Current frame/padding bookkeeping.
   logic [FRAME_CNT_W-1:0]     frame_total_bytes;
   logic [PAD_W-1:0]           pad_bytes_needed;
   logic [COUNT_W-1:0]         pad_chunk_bytes;
 
-  // Write-side signals into the variable-write / fixed-read buffer.
+  // Write side of `vw_buffer`.
   logic                       vw_issue_en;
   logic [INPUT_BUS_WIDTH-1:0] vw_issue_data;
   logic [COUNT_W-1:0]         vw_issue_total_bytes;
@@ -140,12 +113,11 @@ module data_in_manager #(
   logic [INPUT_BUS_WIDTH-1:0] vw_wr_data_r;
   logic [COUNT_W-1:0]         vw_total_bytes_r;
 
-  // Output word from the vw_buffer before binarization.
+  // `vw_buffer` output before binarization.
   logic                       vw_rd_en;
   logic [INPUT_BUS_WIDTH-1:0] vw_rd_data;
 
-  // Internal binary FIFO signals. This FIFO is the actual elastic boundary
-  // between the input packing path and the BNN.
+  // Binary FIFO between packing and the BNN.
   logic [INPUT_BUS_BYTES-1:0]     bin_fifo_wr_data;
   logic [PARALLEL_INPUTS-1:0]     bin_fifo_rd_data;
   logic                           bin_fifo_full;
@@ -159,8 +131,8 @@ module data_in_manager #(
   assign input_accept = data_in_valid && data_in_ready;
 
 
-  // The compactor only sees accepted beats. Because it is registered, its
-  // outputs appear one cycle later and are handled below.
+  // The compactor only sees accepted beats, and its output appears one cycle
+  // later.
   tkeep_byte_compactor #(
       .INPUT_BUS_WIDTH(INPUT_BUS_WIDTH)
   ) tkeep_byte_compactor_i (
@@ -175,19 +147,16 @@ module data_in_manager #(
   );
 
   always_comb begin
-    // If the current registered compacted beat belongs to this frame, this is
-    // what the real frame size would become after accepting it.
+    // Frame size after applying the current compacted beat.
     frame_total_bytes = frame_byte_count_r + compact_total_bytes;
 
-    // Compute how many zero bytes must be appended after the last real beat so
-    // the vw_buffer can eventually emit full PARALLEL_INPUTS-byte words.
+    // Zero bytes needed to round the frame up to `PARALLEL_INPUTS`.
     if ((frame_total_bytes % PARALLEL_INPUTS) == 0)
       pad_bytes_needed = '0;
     else
       pad_bytes_needed = PAD_W'(PARALLEL_INPUTS - (frame_total_bytes % PARALLEL_INPUTS));
 
-    // Padding may need multiple writes if the upstream bus is wider than the
-    // number of bytes still left to inject.
+    // Limit each padding write to one input-bus word.
     if (pad_remaining_r > INPUT_BUS_BYTES)
       pad_chunk_bytes = COUNT_W'(INPUT_BUS_BYTES);
     else
@@ -195,19 +164,14 @@ module data_in_manager #(
   end
 
   always_comb begin
-    // Default to "no write". One of the branches below enables a write either
-    // for real compacted data or for synthetic zero-padding.
+    // Default to no write.
     vw_issue_en         = 1'b0;
     vw_issue_data       = '0;
     vw_issue_total_bytes = '0;
 
     if (padding_r) begin
-      // While padding, inject a block of zero bytes. These later binarize to 0
-      // and behave like padded-off image inputs.
-      //
-      // Padding writes are paused when the downstream binary FIFO is almost
-      // full. Real compacted data cannot be paused at this point, but padding
-      // is locally generated and can safely wait.
+      // Inject zero bytes while padding. Pause if the binary FIFO is nearly
+      // full; locally generated padding can wait.
       if (!bin_fifo_alm_full) begin
         vw_issue_en         = 1'b1;
         vw_issue_data       = '0;
@@ -215,16 +179,14 @@ module data_in_manager #(
       end
     end
     else begin
-      // Otherwise forward the registered compacted beat unchanged.
+      // Otherwise forward the compacted beat unchanged.
       vw_issue_en         = compact_wr_en;
       vw_issue_data       = compact_wr_data;
       vw_issue_total_bytes = compact_total_bytes;
     end
   end
 
-  // Register the merged real-data / padding write stream before it enters the
-  // variable-write buffer so `bin_fifo_alm_full` and padding control do not
-  // directly feed the vw_buffer write-state cone.
+  // Register the merged real-data/padding stream before `vw_buffer`.
   always_ff @(posedge clk) begin
     if (rst) begin
       vw_wr_en_r       <= 1'b0;
@@ -237,12 +199,9 @@ module data_in_manager #(
     end
   end
 
-  // Upstream can only send a new beat when:
-  // - configuration is complete enough to allow data streaming,
-  // - the internal binary FIFO still has enough reserved space,
-  // - we are not in the middle of padding,
-  // - and we are not sitting on the one-cycle "last beat is in compactor"
-  //   bubble where accepting another beat would misalign frames.
+  // Accept input only after config is done, while padding is idle, while the
+  // FIFO still has headroom, and after the last accepted beat has cleared the
+  // registered compactor.
   assign data_in_ready =
       config_ready      &&
       config_last       &&
@@ -264,8 +223,7 @@ module data_in_manager #(
   );
 
   always_comb begin
-    // Convert each emitted byte to a single binary activation bit. Pixels at or
-    // above the threshold map to 1; lower pixels map to 0.
+    // Binarize each byte.
     for (int i = 0; i < INPUT_BUS_BYTES; i++) begin
       bin_fifo_wr_data[i] = (vw_rd_data[i*8 +: 8] >= INPUT_BINARIZATION_THRESHOLD);
     end
@@ -291,8 +249,7 @@ module data_in_manager #(
       .empty           (bin_fifo_empty)
   );
 
-  // With registered FIFO outputs, keep a local valid bit so the staged word
-  // can wait here until the BNN consumes it.
+  // Hold FIFO output valid until the BNN accepts it.
   assign bin_fifo_word_accepted = bin_fifo_data_valid_r && bnn_ready && bnn_en;
   assign bin_fifo_rd_en = !bin_fifo_empty && (!bin_fifo_data_valid_r || bin_fifo_word_accepted);
 
@@ -315,14 +272,11 @@ module data_in_manager #(
         bin_fifo_data_valid_r <= 1'b0;
       end
 
-      // Delay TLAST so it lines up with the registered compacted beat. When
-      // compact_last_r is 1, compact_* refers to the final real data beat of
-      // the current frame.
+      // Delay TLAST to match the registered compactor output.
       compact_last_r <= input_accept && data_in_last;
 
       if (padding_r) begin
-        // Consume one zero-padding chunk each cycle that padding writes are
-        // allowed to proceed.
+        // Consume one padding chunk whenever padding can advance.
         if (!bin_fifo_alm_full) begin
           if (pad_remaining_r <= pad_chunk_bytes) begin
             padding_r       <= 1'b0;
@@ -335,8 +289,7 @@ module data_in_manager #(
       end
       else if (compact_wr_en) begin
         if (compact_last_r) begin
-          // The current registered compacted beat is the last real beat of the
-          // frame, so either enter padding mode or finish the frame cleanly.
+          // Last real beat of the frame: either start padding or finish.
           frame_byte_count_r <= '0;
 
           if (pad_bytes_needed != 0) begin
@@ -345,7 +298,7 @@ module data_in_manager #(
           end
         end
         else begin
-          // Intermediate real beat: accumulate the number of valid bytes so far.
+          // Intermediate beat: keep counting real bytes.
           frame_byte_count_r <= frame_total_bytes;
         end
       end
@@ -353,9 +306,7 @@ module data_in_manager #(
   end
 
   always_ff @(posedge clk) begin
-    // `vw_buffer` can emit without a handshake, so it must never do so when
-    // the downstream FIFO is truly full. If this fires, the reserved headroom
-    // above is not sufficient for the actual traffic pattern.
+    // `vw_buffer` has no read handshake, so this should never overflow.
     if (!rst && vw_rd_en) begin
       assert (!bin_fifo_full)
         else $fatal(1,
