@@ -30,8 +30,22 @@ module config_manager #(
   // =========================================================================
   // Local Parameters
   // =========================================================================
+  function automatic int get_max_payload_bytes();
+    int max_v;
+    begin
+      max_v = 1;
+      for (int i = 0; i < LAYERS; i++) begin
+        if (WEIGHT_TOTAL_BYTES[i] > max_v) max_v = WEIGHT_TOTAL_BYTES[i];
+        if (THRESHOLD_TOTAL_BYTES[i] > max_v) max_v = THRESHOLD_TOTAL_BYTES[i];
+      end
+      return max_v;
+    end
+  endfunction
+
   localparam int BUS_BYTES = BUS_WIDTH / 8;
   localparam int THRESH_WORD_BYTES = 4;
+  localparam int MAX_PAYLOAD_BYTES = get_max_payload_bytes();
+  localparam int PAYLOAD_COUNT_W = (MAX_PAYLOAD_BYTES > 1) ? $clog2(MAX_PAYLOAD_BYTES + 1) : 1;
   localparam int CONFIG_BYTE_FIFO_DEPTH_LOG2 = 6;
   localparam int CONFIG_BYTE_FIFO_DEPTH = 1 << CONFIG_BYTE_FIFO_DEPTH_LOG2;
   localparam int CONFIG_BYTE_FIFO_WRITE_CAPACITY = CONFIG_BYTE_FIFO_DEPTH / BUS_BYTES;
@@ -73,10 +87,8 @@ module config_manager #(
   logic [BUS_WIDTH-1:0] cfg_vw_rd_data;
   logic [7:0] cfg_byte_data;
   logic payload_byte_valid;
-  logic payload_byte_is_thresh;
   logic [7:0] payload_byte_data;
   logic payload_start;
-  logic [31:0] payload_read_count;
 
   // FIFO Status
   logic w_fifo_empty;
@@ -144,8 +156,8 @@ module config_manager #(
 
   assign w_rd_en             = fifo_rd_en && !msg_type_r && !w_stream_empty;
   assign t_rd_en             = fifo_rd_en && msg_type_r && !t_stream_empty;
-  assign w_wr_en             = payload_byte_valid && !payload_byte_is_thresh;
-  assign t_wr_en             = payload_byte_valid && payload_byte_is_thresh;
+  assign w_wr_en             = payload_byte_valid && !msg_type_r;
+  assign t_wr_en             = payload_byte_valid && msg_type_r;
   assign w_fetch_en          = !w_fifo_empty && (!w_data_valid_r || w_rd_en);
   assign t_fetch_en          = !t_fifo_empty && (!t_data_valid_r || t_rd_en);
 
@@ -235,36 +247,37 @@ module config_manager #(
   // across arbitrary beat boundaries.
   config_manager_parser #(
       .LAYERS               (LAYERS),
+      .PAYLOAD_COUNT_W      (PAYLOAD_COUNT_W),
       .WEIGHT_TOTAL_BYTES   (WEIGHT_TOTAL_BYTES),
       .THRESHOLD_TOTAL_BYTES(THRESHOLD_TOTAL_BYTES)
   ) config_manager_parser_i (
       .clk               (clk),
       .rst               (rst),
-      .cfg_byte_empty    (cfg_byte_empty),
+      .cfg_byte_valid    (!cfg_byte_empty),
       .cfg_byte_data     (cfg_byte_data),
       .empty             (empty),
       .stall             (pad_fsm_stall),
       .cfg_byte_rd_en    (cfg_byte_rd_en),
       .payload_byte_valid(payload_byte_valid),
-      .payload_byte_is_thresh(payload_byte_is_thresh),
       .payload_byte_data (payload_byte_data),
       .msg_type          (msg_type_r),
       .layer_id          (layer_id_r),
-      .payload_start     (payload_start),
-      .payload_read_count(payload_read_count)
+      .payload_start     (payload_start)
   );
 
   // Keep the weight-byte read/drain/pad control isolated from the rest of the
   // datapath so config_manager now just wires the controller to the FIFOs.
   config_manager_pad_fsm #(
       .LAYERS                (LAYERS),
+      .PAYLOAD_COUNT_W       (PAYLOAD_COUNT_W),
+      .WEIGHT_TOTAL_BYTES    (WEIGHT_TOTAL_BYTES),
+      .THRESHOLD_TOTAL_BYTES (THRESHOLD_TOTAL_BYTES),
       .WEIGHT_BYTES_PER_NEURON(WEIGHT_BYTES_PER_NEURON),
       .WEIGHT_BYTES_PER_WORD (WEIGHT_BYTES_PER_WORD)
   ) config_manager_pad_fsm_i (
       .clk               (clk),
       .rst               (rst),
       .payload_start     (payload_start),
-      .payload_read_count(payload_read_count),
       .msg_type          (msg_type_r),
       .layer_id          (layer_id_r),
       .active_stream_empty(active_stream_empty),
