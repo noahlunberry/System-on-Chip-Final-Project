@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 -------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version     : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date             : Fri Apr 17 03:56:08 2026
+| Date             : Fri Apr 17 16:33:10 2026
 | Host             : Acey running 64-bit major release  (build 9200)
 | Command          : report_power -file ./outputs/post_route_power.rpt
 | Design           : bnn_fcc_timing
@@ -30,14 +30,14 @@ Table of Contents
 ----------
 
 +--------------------------+--------------+
-| Total On-Chip Power (W)  | 6.157        |
+| Total On-Chip Power (W)  | 5.940        |
 | Design Power Budget (W)  | Unspecified* |
 | Power Budget Margin (W)  | NA           |
-| Dynamic (W)              | 3.152        |
-| Device Static (W)        | 3.004        |
+| Dynamic (W)              | 2.940        |
+| Device Static (W)        | 3.000        |
 | Effective TJA (C/W)      | 0.5          |
-| Max Ambient (C)          | 96.8         |
-| Junction Temperature (C) | 28.2         |
+| Max Ambient (C)          | 96.9         |
+| Junction Temperature (C) | 28.1         |
 | Confidence Level         | Medium       |
 | Setting File             | ---          |
 | Simulation Activity File | ---          |
@@ -52,18 +52,18 @@ Table of Contents
 +--------------------------+-----------+----------+-----------+-----------------+
 | On-Chip                  | Power (W) | Used     | Available | Utilization (%) |
 +--------------------------+-----------+----------+-----------+-----------------+
-| Clocks                   |     1.005 |        3 |       --- |             --- |
-| CLB Logic                |     1.143 |    97634 |       --- |             --- |
-|   LUT as Logic           |     0.847 |    27724 |   1728000 |            1.60 |
-|   Register               |     0.170 |    46752 |   3456000 |            1.35 |
-|   LUT as Distributed RAM |     0.119 |     8616 |    791040 |            1.09 |
+| Clocks                   |     0.967 |        3 |       --- |             --- |
+| CLB Logic                |     1.075 |    97597 |       --- |             --- |
+|   LUT as Logic           |     0.802 |    27723 |   1728000 |            1.60 |
+|   Register               |     0.157 |    46757 |   3456000 |            1.35 |
+|   LUT as Distributed RAM |     0.109 |     8616 |    791040 |            1.09 |
 |   CARRY8                 |     0.006 |      265 |    216000 |            0.12 |
-|   LUT as Shift Register  |    <0.001 |        9 |    791040 |           <0.01 |
-|   Others                 |     0.000 |    11642 |       --- |             --- |
+|   LUT as Shift Register  |     0.001 |        9 |    791040 |           <0.01 |
+|   Others                 |     0.000 |    11641 |       --- |             --- |
 |   F7/F8 Muxes            |     0.000 |      195 |   1728000 |            0.01 |
-| Signals                  |     1.004 |    54172 |       --- |             --- |
-| Static Power             |     3.004 |          |           |                 |
-| Total                    |     6.157 |          |           |                 |
+| Signals                  |     0.897 |    54143 |       --- |             --- |
+| Static Power             |     3.000 |          |           |                 |
+| Total                    |     5.940 |          |           |                 |
 +--------------------------+-----------+----------+-----------+-----------------+
 
 
@@ -73,10 +73,10 @@ Table of Contents
 +------------+-------------+-----------+-------------+------------+-------------+-------------+------------+
 | Source     | Voltage (V) | Total (A) | Dynamic (A) | Static (A) | Powerup (A) | Budget (A)  | Margin (A) |
 +------------+-------------+-----------+-------------+------------+-------------+-------------+------------+
-| Vccint     |       0.850 |     4.925 |       3.708 |      1.216 |       NA    | Unspecified | NA         |
+| Vccint     |       0.850 |     4.669 |       3.459 |      1.210 |       NA    | Unspecified | NA         |
 | Vccint_io  |       0.850 |     0.143 |       0.000 |      0.143 |       NA    | Unspecified | NA         |
 | Vccbram    |       0.850 |     0.021 |       0.000 |      0.021 |       NA    | Unspecified | NA         |
-| Vccaux     |       1.800 |     0.881 |       0.000 |      0.881 |       NA    | Unspecified | NA         |
+| Vccaux     |       1.800 |     0.882 |       0.000 |      0.882 |       NA    | Unspecified | NA         |
 | Vccaux_io  |       1.800 |     0.104 |       0.000 |      0.104 |       NA    | Unspecified | NA         |
 | Vcco33     |       3.300 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
 | Vcco25     |       2.500 |     0.000 |       0.000 |      0.000 |       NA    | Unspecified | NA         |
@@ -145,20 +145,20 @@ Table of Contents
 +-------------------------------------+-----------+
 | Name                                | Power (W) |
 +-------------------------------------+-----------+
-| bnn_fcc_timing                      |     3.152 |
-|   DUT                               |     3.149 |
-|     argmax_inst                     |     0.011 |
-|       l_recurse.left_tree           |     0.009 |
-|     bnn_main                        |     3.066 |
-|       g_layers[0].u_layer           |     1.860 |
-|       g_layers[1].u_layer           |     1.007 |
-|       g_layers[2].u_layer           |     0.199 |
-|     config_manager                  |     0.057 |
-|       config_manager_pad_fsm_i      |     0.002 |
-|       config_manager_parser_i       |     0.004 |
+| bnn_fcc_timing                      |     2.940 |
+|   DUT                               |     2.937 |
+|     argmax_inst                     |     0.012 |
+|       l_recurse.left_tree           |     0.008 |
+|     bnn_main                        |     2.852 |
+|       g_layers[0].u_layer           |     1.696 |
+|       g_layers[1].u_layer           |     0.964 |
+|       g_layers[2].u_layer           |     0.192 |
+|     config_manager                  |     0.059 |
+|       config_manager_pad_fsm_i      |     0.005 |
+|       config_manager_parser_i       |     0.003 |
 |       config_tkeep_byte_compactor_i |     0.002 |
-|       config_vw_buffer_i            |     0.007 |
-|       fifo_config_bytes             |     0.018 |
+|       config_vw_buffer_i            |     0.006 |
+|       fifo_config_bytes             |     0.019 |
 |       fifo_thresholds               |     0.001 |
 |       fifo_weights_bytes            |     0.002 |
 |       gen_packer[0].fifo_packer     |     0.006 |
@@ -167,7 +167,7 @@ Table of Contents
 |     data_in_manager_i               |     0.013 |
 |       bin_fifo                      |     0.010 |
 |       vw_buffer_i                   |     0.002 |
-|     out_fifo                        |     0.002 |
+|     out_fifo                        |     0.001 |
 +-------------------------------------+-----------+
 
 

@@ -79,17 +79,17 @@ module config_manager_pad_fsm #(
   always_ff @(posedge clk) begin
     if (rst) begin
       state_r               <= IDLE;
-      // remaining_count_r     <= '0;
-      // msg_type_r            <= 1'b0;
-      // layer_id_r            <= '0;
-      // bytes_per_neuron_r    <= WEIGHT_BYTES_PER_NEURON[0];
-      // bytes_per_word_r      <= WEIGHT_BYTES_PER_WORD[0];
-      // byte_idx_r            <= '0;
-      // pad_required_r        <= 1'b0;
-      // pad_count_init_r      <= '0;
-      // remaining_pad_count_r <= '0;
-      // pad_exit_to_drain_r   <= 1'b0;
-      // last_rd_r             <= 1'b0;
+      remaining_count_r     <= '0;
+      msg_type_r            <= 1'b0;
+      layer_id_r            <= '0;
+      bytes_per_neuron_r    <= WEIGHT_BYTES_PER_NEURON[0];
+      bytes_per_word_r      <= WEIGHT_BYTES_PER_WORD[0];
+      byte_idx_r            <= '0;
+      pad_required_r        <= 1'b0;
+      pad_count_init_r      <= '0;
+      remaining_pad_count_r <= '0;
+      pad_exit_to_drain_r   <= 1'b0;
+      last_rd_r             <= 1'b0;
     end else begin
       state_r               <= next_state;
       remaining_count_r     <= next_remaining_count;
