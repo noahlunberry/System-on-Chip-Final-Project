@@ -179,10 +179,10 @@ module bnn_layer #(
   // boundary while keeping one config write per cycle after pipeline fill.
   always_ff @(posedge clk) begin
     if (rst) begin
-      w_wr_en_pipe_r             <= '0;
-      t_wr_en_pipe_r             <= '0;
-      cfg_weight_wr_data_pipe_r  <= '0;
-      cfg_threshold_wr_data_pipe_r <= '0;
+      // w_wr_en_pipe_r             <= '0;
+      // t_wr_en_pipe_r             <= '0;
+      // cfg_weight_wr_data_pipe_r  <= '0;
+      // cfg_threshold_wr_data_pipe_r <= '0;
 
       for (int i = 0; i < PARALLEL_NEURONS; i++) begin
         w_wr_addr_pipe_r[i] <= '0;
@@ -247,8 +247,8 @@ module bnn_layer #(
 
       always_ff @(posedge clk) begin
         if (rst) begin
-          w_rd_addr_local_r <= '0;
-          t_rd_addr_local_r <= '0;
+          // w_rd_addr_local_r <= '0;
+          // t_rd_addr_local_r <= '0;
         end else begin
           if (w_rd_en) begin
             w_rd_addr_local_r <= w_rd_addr;

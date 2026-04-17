@@ -52,32 +52,25 @@ module config_controller #(
   // Weight datapath registers
   logic [W_WORD_COUNT_W-1:0] w_word_count_r, next_w_word_count;
   logic [PARALLEL_NEURONS-1:0] w_neuron_r, next_w_neuron;
-  logic [PARALLEL_NEURONS-1:0] w_neuron_active;
   logic [TOTAL_CYCLES_W-1:0] w_total_cycles_r, next_w_total_cycles;
   logic [W_RAM_ADDR_W-1:0] w_bank_addr_r   [PARALLEL_NEURONS];
   logic [W_RAM_ADDR_W-1:0] next_w_bank_addr[PARALLEL_NEURONS];
 
   // Threshold datapath registers
   logic [PARALLEL_NEURONS-1:0] t_neuron_r, next_t_neuron;
-  logic [PARALLEL_NEURONS-1:0] t_neuron_active;
   logic [TOTAL_CYCLES_W-1:0] t_total_cycles_r, next_t_total_cycles;
   logic [T_RAM_ADDR_W-1:0] t_bank_addr_r   [PARALLEL_NEURONS];
   logic [T_RAM_ADDR_W-1:0] next_t_bank_addr[PARALLEL_NEURONS];
-
-  // Keep the reset value all-zero so Vivado uses plain FDRE flops rather than
-  // preset-style one-hot registers for the active bank pointer.
-  assign w_neuron_active = (w_neuron_r == '0) ? ONEHOT0 : w_neuron_r;
-  assign t_neuron_active = (t_neuron_r == '0) ? ONEHOT0 : t_neuron_r;
 
   always_ff @(posedge clk) begin
     if (rst) begin
       state_r          <= CONFIGURE;
 
       w_word_count_r   <= '0;
-      w_neuron_r       <= '0;
+      w_neuron_r       <= ONEHOT0;
       w_total_cycles_r <= '0;
 
-      t_neuron_r       <= '0;
+      t_neuron_r       <= ONEHOT0;
       t_total_cycles_r <= '0;
 
       for (int i = 0; i < PARALLEL_NEURONS; i++) begin
@@ -106,10 +99,10 @@ module config_controller #(
     next_state          = state_r;
 
     next_w_word_count   = w_word_count_r;
-    next_w_neuron       = w_neuron_active;
+    next_w_neuron       = w_neuron_r;
     next_w_total_cycles = w_total_cycles_r;
 
-    next_t_neuron       = t_neuron_active;
+    next_t_neuron       = t_neuron_r;
     next_t_total_cycles = t_total_cycles_r;
 
     ram_weight_wr_en    = '0;
@@ -128,11 +121,11 @@ module config_controller #(
       CONFIGURE: begin
         // weights and thresholds are mutually exclusive
         if (weight_wr_en) begin
-          ram_weight_wr_en = w_neuron_active;
+          ram_weight_wr_en = w_neuron_r;
 
           // increment active weight bank address
           for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-            if (w_neuron_active[i]) begin
+            if (w_neuron_r[i]) begin
               next_w_bank_addr[i] = w_bank_addr_r[i] + 1'b1;
             end
           end
@@ -141,31 +134,31 @@ module config_controller #(
           if (w_word_count_r == W_ADDR_PER_CYCLE - 1) begin
             next_w_word_count = '0;
 
-            if (w_neuron_active[PARALLEL_NEURONS-1]) begin
+            if (w_neuron_r[PARALLEL_NEURONS-1]) begin
               next_w_neuron       = ONEHOT0;
               next_w_total_cycles = w_total_cycles_r + 1'b1;
             end else begin
-              next_w_neuron = w_neuron_active << 1;
+              next_w_neuron = w_neuron_r << 1;
             end
           end else begin
             next_w_word_count = w_word_count_r + 1'b1;
           end
         end else if (threshold_wr_en) begin
-          ram_threshold_wr_en = t_neuron_active;
+          ram_threshold_wr_en = t_neuron_r;
 
           // increment active threshold bank address
           for (int i = 0; i < PARALLEL_NEURONS; i++) begin
-            if (t_neuron_active[i]) begin
+            if (t_neuron_r[i]) begin
               next_t_bank_addr[i] = t_bank_addr_r[i] + 1'b1;
             end
           end
 
           // rotate threshold bank every write
-          if (t_neuron_active[PARALLEL_NEURONS-1]) begin
+          if (t_neuron_r[PARALLEL_NEURONS-1]) begin
             next_t_neuron       = ONEHOT0;
             next_t_total_cycles = t_total_cycles_r + 1'b1;
           end else begin
-            next_t_neuron = t_neuron_active << 1;
+            next_t_neuron = t_neuron_r << 1;
           end
         end
 
