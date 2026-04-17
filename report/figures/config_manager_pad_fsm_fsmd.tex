@@ -1,0 +1,86 @@
+\begin{tikzpicture}[
+  >=Latex,
+  state/.style={
+    draw,
+    thick,
+    rounded corners=2pt,
+    align=left,
+    font=\small,
+    text width=45mm,
+    minimum height=23mm
+  },
+  trans/.style={->, thick},
+  elab/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt},
+  note/.style={
+    draw,
+    dashed,
+    rounded corners=2pt,
+    font=\scriptsize,
+    align=left,
+    text width=94mm
+  }
+]
+
+\node[font=\Large\bfseries] at (0,2.1) {Pad FSM FSMD};
+
+\node[state] (idle) at (0,0) {\textbf{IDLE}\\
+latch parser metadata\\
+decode payload item count\\
+decode bytes per neuron and bytes per word\\
+precompute whether padding is required};
+
+\node[state] (read) at (-5.8,-4.0) {\textbf{READ}\\
+if stream is not empty:\\
+\texttt{fifo\_rd\_en}=1\\
+\texttt{buffer\_wr\_en}=1\\
+forward \texttt{w\_byte\_data}\\
+update counters and byte index};
+
+\node[state, text width=38mm] (pad) at (5.8,-4.0) {\textbf{PAD}\\
+emit synthetic \texttt{8'hFF}\\
+\texttt{buffer\_wr\_en}=1\\
+decrement pad counter};
+
+\node[state, text width=50mm] (drain) at (0,-8.2) {\textbf{DRAIN}\\
+\texttt{fifo\_rd\_en}=1\\
+flush the active stream until empty\\
+clear the last-read bookkeeping};
+
+\coordinate (idleLoopL) at ($(idle.north west)+(-1.2,1.1)$);
+\coordinate (idleLoopR) at ($(idle.north east)+(1.2,1.1)$);
+\coordinate (readLoopA) at ($(read.south west)+(-1.2,0)$);
+\coordinate (readLoopB) at ($(read.north west)+(-1.2,0)$);
+\coordinate (padLoopA) at ($(pad.north east)+(1.2,0)$);
+\coordinate (padLoopB) at ($(pad.south east)+(1.2,0)$);
+\coordinate (drainToIdleA) at ($(drain.north)+(0,1.1)$);
+
+\draw[trans] (idle.south) -- (read.north)
+  node[midway, left, elab] {\texttt{payload\_start}};
+
+\draw[trans] (read.north east) -- (pad.north west)
+  node[midway, above, elab] {weight message\\and end of neuron\\and padding required};
+
+\draw[trans] (read.south east) -- (drain.north west)
+  node[midway, right, elab] {\texttt{last\_rd\_r}};
+
+\draw[trans] (pad.south west) -- (drain.north east)
+  node[midway, right, elab] {pad counter done\\and message complete};
+
+\draw[trans] (pad.west) -- (read.east);
+\node[elab] at (0,-3.0) {pad counter done\\and more payload remains};
+
+\draw[trans] (drain.north) -- (drainToIdleA) -| (idle.south east);
+\node[elab, right] at ($(drainToIdleA)+(0.2,1.2)$) {\texttt{active\_stream\_empty}};
+
+\draw[trans] (idle.north west) |- (idleLoopL) -- (idleLoopR) -| (idle.north east);
+\node[elab] at ($(idle.north)+(0,1.5)$) {wait for next message};
+
+\draw[trans] (read.south west) -- (readLoopA) -- (readLoopB) -- (read.north west);
+\node[elab, left] at ($(read.west)+(-1.9,0)$) {normal payload\\consumption};
+
+\draw[trans] (pad.north east) -- (padLoopA) -- (padLoopB) -- (pad.south east);
+\node[elab, right] at ($(pad.east)+(1.9,0)$) {more pad bytes};
+
+\node[note] at (0,-11.0) {Simplified view of \texttt{rtl/config\_manager\_pad\_fsm.sv}. In the RTL, \texttt{stall=1} only in \textbf{PAD}, while \texttt{in\_read\_state=1} in \textbf{IDLE} and \textbf{READ}. The purpose of this controller is to hold the parser steady while synthetic alignment bytes are emitted between weight groups.};
+
+\end{tikzpicture}

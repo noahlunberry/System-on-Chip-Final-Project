@@ -1,0 +1,66 @@
+\begin{tikzpicture}[
+  >=Latex,
+  state/.style={
+    draw,
+    thick,
+    rounded corners=2pt,
+    align=left,
+    font=\small,
+    text width=50mm,
+    minimum height=24mm
+  },
+  trans/.style={->, thick},
+  elab/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt},
+  note/.style={
+    draw,
+    dashed,
+    rounded corners=2pt,
+    font=\scriptsize,
+    align=left,
+    text width=72mm
+  }
+]
+
+\node[font=\Large\bfseries] at (4.3,2.1) {Parser FSMD};
+
+\node[state] (header) at (0,0) {\textbf{PARSE\_HEADER}\\
+consume staged header bytes\\
+latch \texttt{msg\_type} at byte 0\\
+latch \texttt{layer\_id} at byte 1\\
+compute payload length for this message};
+
+\node[state] (payload) at (8.6,0) {\textbf{PARSE\_PAYLOAD}\\
+when a staged byte is valid and\\
+\texttt{stall=0}: emit \texttt{payload\_byte\_valid}\\
+forward \texttt{cfg\_byte\_data}\\
+increment payload byte counter};
+
+\node[state, text width=46mm] (done) at (4.3,-4.5) {\textbf{PARSE\_DONE}\\
+clear per-message counters\\
+wait for downstream datapath to drain\\
+before accepting the next header};
+
+\coordinate (headerLoopL) at ($(header.north west)+(-1.2,1.2)$);
+\coordinate (headerLoopR) at ($(header.north east)+(1.2,1.2)$);
+\coordinate (payloadLoopL) at ($(payload.north west)+(-1.2,1.2)$);
+\coordinate (payloadLoopR) at ($(payload.north east)+(1.2,1.2)$);
+\coordinate (doneReturnA) at ($(done.west)+(-2.2,0)$);
+
+\draw[trans] (header.east) -- (payload.west)
+  node[midway, above, elab] {staged header byte valid\\and last header byte\\/\ \texttt{payload\_start}=1};
+
+\draw[trans] (payload.south west) -- (done.north east)
+  node[midway, right, elab] {staged payload byte valid\\and \texttt{stall=0}\\and last payload byte};
+
+\draw[trans] (done.west) -- (doneReturnA) |- (header.south);
+\node[elab, right] at ($(doneReturnA)+(0.2,1.5)$) {\texttt{empty}};
+
+\draw[trans] (header.north west) |- (headerLoopL) -- (headerLoopR) -| (header.north east);
+\node[elab] at ($(header.north)+(0,1.6)$) {more header bytes};
+
+\draw[trans] (payload.north west) |- (payloadLoopL) -- (payloadLoopR) -| (payload.north east);
+\node[elab] at ($(payload.north)+(0,1.8)$) {remain here until\\last payload byte\\(\texttt{stall} can pause issue)};
+
+\node[note] at (4.3,-7.3) {Simplified view of \texttt{rtl/config\_manager\_parser.sv}. The actual RTL keeps one staged byte in \texttt{cfg\_byte\_data\_valid\_r}, so the parser requests the next byte while consuming the current one.};
+
+\end{tikzpicture}

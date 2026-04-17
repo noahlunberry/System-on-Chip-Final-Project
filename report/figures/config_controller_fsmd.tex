@@ -1,0 +1,66 @@
+\begin{tikzpicture}[
+  >=Latex,
+  state/.style={
+    draw,
+    thick,
+    rounded corners=2pt,
+    align=left,
+    font=\small,
+    text width=64mm,
+    minimum height=30mm
+  },
+  trans/.style={->, thick},
+  elab/.style={font=\scriptsize, align=center, fill=white, inner sep=1pt},
+  note/.style={
+    draw,
+    dashed,
+    rounded corners=2pt,
+    font=\scriptsize,
+    align=left,
+    text width=110mm
+  }
+]
+
+\node[font=\Large\bfseries] at (0,2.2) {Config Controller FSMD};
+
+\node[state] (cfg) at (-4.6,0) {\textbf{CONFIGURE}\\
+if \texttt{weight\_wr\_en}:\\
+assert one-hot \texttt{ram\_weight\_wr\_en}\\
+increment the active weight-bank address\\
+rotate to the next bank after \texttt{W\_ADDR\_PER\_CYCLE}\\
+increment \texttt{w\_total\_cycles} after the last bank\\[2pt]
+if \texttt{threshold\_wr\_en}:\\
+assert one-hot \texttt{ram\_threshold\_wr\_en}\\
+increment the active threshold-bank address\\
+rotate bank every threshold write};
+
+\node[state, text width=48mm] (done) at (5.0,0) {\textbf{DONE}\\
+\texttt{done}=1\\
+hold configured state\\[2pt]
+on a new configuration stream:\\
+reset the relevant counters and addresses\\
+consume the first write immediately};
+
+\coordinate (cfgLoopL) at ($(cfg.north west)+(-1.2,1.1)$);
+\coordinate (cfgLoopR) at ($(cfg.north east)+(1.2,1.1)$);
+\coordinate (doneToCfgTopA) at ($(done.north west)+(0,1.2)$);
+\coordinate (doneToCfgTopB) at ($(cfg.north east)+(0,1.2)$);
+\coordinate (doneToCfgBotA) at ($(done.south west)+(0,-1.2)$);
+\coordinate (doneToCfgBotB) at ($(cfg.south east)+(0,-1.2)$);
+
+\draw[trans] (cfg.east) -- (done.west)
+  node[midway, above, elab] {all required cycles complete\\
+  (\texttt{LAST\_LAYER} only needs weights)};
+
+\draw[trans] (done.north west) -- (doneToCfgTopA) -- (doneToCfgTopB) -- (cfg.north east);
+\node[elab] at (0,2.1) {new \texttt{weight\_wr\_en}\\reset weight-side state\\and consume first weight word};
+
+\draw[trans] (done.south west) -- (doneToCfgBotA) -- (doneToCfgBotB) -- (cfg.south east);
+\node[elab] at (0,-2.1) {new \texttt{threshold\_wr\_en}\\reset threshold-side state\\and consume first threshold word};
+
+\draw[trans] (cfg.north west) |- (cfgLoopL) -- (cfgLoopR) -| (cfg.north east);
+\node[elab] at ($(cfg.north)+(0,1.5)$) {more configuration writes};
+
+\node[note] at (0,-4.1) {Simplified view of \texttt{rtl/config\_controller.sv} as instantiated in \texttt{rtl/bnn\_layer.sv}. Although the RTL has only two states, the main datapath work happens inside \textbf{CONFIGURE}: a one-hot bank selector rotates across the per-neuron RAM banks while the corresponding write addresses advance independently.};
+
+\end{tikzpicture}

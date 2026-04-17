@@ -1,0 +1,27 @@
+\chapter{Verification}
+
+Verification collateral for this design is located under \texttt{verification/}
+and includes both directed testbenches and a UVM environment.
+
+\section{Available Test Infrastructure}
+
+The repository includes:
+
+\begin{itemize}
+  \item module-level and system-level testbenches,
+  \item AXI-stream interfaces and sequence items for transaction-level testing,
+  \item UVM tests targeting configuration ordering, backpressure, reset, and
+  partial reconfiguration cases, and
+  \item a coverage plan in \texttt{verification/coverage\_plan.txt}.
+\end{itemize}
+
+\section{Suggested Report Content}
+
+This section is a good place to summarize:
+
+\begin{itemize}
+  \item which tests you rely on most heavily,
+  \item which configuration corner cases drove the current implementation,
+  \item what failures were found during development, and
+  \item any remaining gaps or assumptions in the current verification scope.
+\end{itemize}

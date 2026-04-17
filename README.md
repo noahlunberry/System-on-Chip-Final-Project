@@ -147,3 +147,9 @@ If you edited a file that the organizers also updated, Git will ask you to choos
 For your submission, you must include a report.pdf that includes the timing results, area results, and verification results. Collecting these results can be done by following the instructions in the [openflex/](openflex/) folder.
 
 Additional instructions for submitting the repository with your design will be explained in EEL6935 Reconfigurable Computing 2.
+
+## Report Authoring
+
+A local LaTeX report workspace is available under [report](report). See
+[report/README.md](report/README.md) for local tool setup and compile
+instructions.

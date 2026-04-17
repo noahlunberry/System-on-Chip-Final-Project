@@ -1,0 +1,59 @@
+\chapter{Architecture Overview}
+
+The top-level module is \texttt{rtl/bnn\_fcc.sv}. It instantiates:
+
+\begin{itemize}
+  \item \texttt{config\_manager} for loading weights and thresholds,
+  \item \texttt{data\_in\_manager} for preparing input activations, and
+  \item \texttt{bnn} for the core fully connected inference pipeline.
+\end{itemize}
+
+The structure is intentionally streaming-oriented. Configuration and input data
+arrive over AXI-style interfaces, are reshaped internally to match the
+processing granularity of the design, and are then routed into the layer-local
+compute and storage paths.
+
+\section{Top-Level Dataflow}
+
+The top-level signal flow in \texttt{bnn\_fcc} is:
+
+\begin{enumerate}
+  \item configuration traffic enters \texttt{config\_manager},
+  \item image traffic enters \texttt{data\_in\_manager},
+  \item weight and threshold writes program the layer memories inside
+  \texttt{bnn}, and
+  \item classification outputs are staged into the output FIFO before leaving
+  the design.
+\end{enumerate}
+
+\section{Module Responsibilities}
+
+\texttt{config\_manager} is responsible for byte compaction, payload parsing,
+weight padding, and conversion into per-layer memory writes.
+
+\texttt{data\_in\_manager} converts the incoming image stream into the binary
+words expected by the first BNN layer.
+
+\texttt{bnn} and the instantiated \texttt{bnn\_layer} modules consume the
+prepared activations and stored parameters to compute the network output.
+
+\section{Input Path}
+
+The input side mirrors several of the same structural ideas used in the
+configuration path. \texttt{data\_in\_manager} first compacts valid AXI bytes
+with the registered \texttt{tkeep\_byte\_compactor}, applies local frame and
+padding control, repacks the stream with \texttt{vw\_buffer}, binarizes each
+pixel, and finally stages the result in a FIFO before handing it to
+\texttt{bnn}.
+
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{figures/data_in_manager_diagram}}
+  \caption{Block diagram of the \texttt{data\_in\_manager} datapath and its
+  primary interface signals.}
+  \label{fig:data-in-manager}
+\end{figure}
+
+% TODO:
+% - Add a full-system architecture figure here.
+% - Add a short paragraph explaining your chosen parallelization parameters.

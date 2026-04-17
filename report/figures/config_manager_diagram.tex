@@ -1,0 +1,144 @@
+\begin{tikzpicture}[
+  >=Latex,
+  block/.style={
+    draw,
+    thick,
+    rounded corners=1pt,
+    minimum width=60mm,
+    minimum height=17mm,
+    align=center,
+    font=\normalsize
+  },
+  wideblock/.style={
+    block,
+    minimum width=74mm
+  },
+  data/.style={->, thick},
+  bus/.style={
+    ->,
+    thick,
+    postaction={decorate},
+    decoration={
+      markings,
+      mark=at position 0.55 with {
+        \draw[thick] (-2.2pt,3pt) -- (2.2pt,-3pt);
+      }
+    }
+  },
+  ctrl/.style={->, thick, dashed},
+  sig/.style={font=\small\ttfamily, fill=white, inner sep=1pt},
+  lab/.style={font=\small, fill=white, inner sep=1pt}
+]
+
+\node[font=\Large\bfseries] at (0,3.3) {Config Manager};
+
+\node[block] (compact) at (0,0)
+  {TKEEP Byte Compactor\\[-1pt]\texttt{tkeep\_byte\_compactor}};
+
+\node[block] (vw) at (0,-4.1)
+  {VW Buffer\\[-1pt]\texttt{vw\_buffer}};
+
+\node[block] (cfgfifo) at (0,-8.2)
+  {Config Byte FIFO\\[-1pt]\texttt{fifo\_config\_bytes}};
+
+\node[wideblock] (parser) at (0,-12.4)
+  {Parser\\[-1pt]\texttt{config\_manager\_parser}};
+
+\node[block] (wfifo) at (-11.0,-18.3)
+  {Weight-Byte FIFO\\[-1pt]\texttt{fifo\_weights\_bytes}};
+
+\node[block] (pad) at (0,-18.3)
+  {Pad FSM\\[-1pt]\texttt{config\_manager\_pad\_fsm}};
+
+\node[block] (tfifo) at (11.0,-18.3)
+  {Threshold FIFO\\[-1pt]\texttt{fifo\_thresholds}};
+
+\node[block] (pack) at (0,-23.2)
+  {Layer Packers\\[-1pt]\texttt{fifo\_packer[i]}};
+
+% Top-level config inputs
+\draw[data] ([xshift=-21mm,yshift=18mm]compact.north) -- ([xshift=-21mm]compact.north)
+  node[pos=0.62,left,sig] {\texttt{config\_valid}};
+
+\draw[bus] ([yshift=18mm]compact.north) -- (compact.north)
+  node[pos=0.62,right,sig,xshift=2pt] {\texttt{config\_data}};
+
+\draw[bus] ([xshift=21mm,yshift=18mm]compact.north) -- ([xshift=21mm]compact.north)
+  node[pos=0.62,right,sig] {\texttt{config\_keep}};
+
+% Compactor -> VW buffer
+\draw[data] ([xshift=-22mm]compact.south) -- ([xshift=-22mm]vw.north)
+  node[pos=0.64,left,sig] {\texttt{compact\_wr\_en}};
+
+\draw[bus] (compact.south) -- (vw.north)
+  node[pos=0.38,right,sig,xshift=2pt] {\texttt{compact\_wr\_data}};
+
+\draw[bus] ([xshift=22mm]compact.south) -- ([xshift=22mm]vw.north)
+  node[pos=0.64,right,sig] {\texttt{compact\_total\_bytes}};
+
+% VW buffer -> config byte FIFO
+\draw[data] ([xshift=-15mm]vw.south) -- ([xshift=-15mm]cfgfifo.north)
+  node[pos=0.50,left,sig] {\texttt{cfg\_vw\_rd\_en}};
+
+\draw[bus] ([xshift=15mm]vw.south) -- ([xshift=15mm]cfgfifo.north)
+  node[pos=0.50,right,sig] {\texttt{cfg\_vw\_rd\_data}};
+
+% Config byte FIFO -> parser
+\draw[bus] (cfgfifo.south) -- (parser.north)
+  node[pos=0.58,right,sig] {\texttt{cfg\_byte\_data}};
+
+% config_ready routed back up as interface signal
+\coordinate (cfgreadyA) at ($(cfgfifo.east)+(3.8,0)$);
+\coordinate (cfgreadyTop) at ($(cfgreadyA |- compact.north)+(0,18mm)$);
+
+\draw[thick] (cfgfifo.east) -- (cfgreadyA);
+\draw[data] (cfgreadyA) -- (cfgreadyTop)
+  node[midway,right,sig] {\texttt{config\_ready}};
+
+% Parser -> payload destinations
+\draw[bus] ([xshift=-23mm]parser.south) -- (wfifo.north)
+  node[pos=0.48,above left,lab] {weight payload bytes};
+
+\draw[bus] ([xshift=23mm]parser.south) -- (tfifo.north)
+  node[pos=0.48,above right,lab] {threshold payload bytes};
+
+% Parser -> pad FSM control
+\draw[data] ([xshift=-20mm]parser.south) -- ([xshift=-20mm]pad.north)
+  node[pos=0.42,left,sig] {\texttt{msg\_type}};
+
+\draw[bus] (parser.south) -- (pad.north)
+  node[pos=0.42,right,sig,xshift=2pt] {\texttt{layer\_id}};
+
+\draw[data] ([xshift=20mm]parser.south) -- ([xshift=20mm]pad.north)
+  node[pos=0.42,right,sig] {\texttt{payload\_start}};
+
+% Pad FSM -> parser stall
+\coordinate (stallA) at ($(pad.north east)+(1.5,0)$);
+\coordinate (stallB) at ($(stallA)+(0,4.8)$);
+\coordinate (stallC) at ($(parser.east)+(1.2,0)$);
+
+\draw[ctrl] (pad.north east) -- (stallA) -- (stallB) -- (stallC) -- (parser.east);
+\node[sig,right] at ($(stallA)!0.55!(stallB)$) {\texttt{stall}};
+
+% Weight path
+\draw[bus] (wfifo.east) -- (pad.west)
+  node[pos=0.52,above,sig] {\texttt{w\_byte\_data}};
+
+\draw[bus] (pad.south) -- (pack.north)
+  node[pos=0.55,right,sig] {\texttt{data}};
+
+% Threshold outputs
+\draw[bus] ([xshift=-17mm]tfifo.south) -- ++(0,-2.6)
+  node[below,sig] {\texttt{threshold\_wr\_data}};
+
+\draw[data] ([xshift=17mm]tfifo.south) -- ++(0,-2.6)
+  node[below,sig] {\texttt{threshold\_wr\_en}};
+
+% Weight outputs
+\draw[bus] ([xshift=-17mm]pack.south) -- ++(0,-2.6)
+  node[below,sig] {\texttt{weight\_wr\_data}};
+
+\draw[data] ([xshift=17mm]pack.south) -- ++(0,-2.6)
+  node[below,sig] {\texttt{weight\_wr\_en}};
+
+\end{tikzpicture}

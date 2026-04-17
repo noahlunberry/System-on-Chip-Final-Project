@@ -1,0 +1,26 @@
+\chapter{Introduction}
+
+This report documents the architecture, configuration path, verification flow,
+and implementation results for the \texttt{bnn\_fcc} design in this repository.
+The focus is on the current RTL implementation rather than a generic BNN
+template, so module names and behavior are tied directly to the codebase under
+\texttt{rtl/} and \texttt{verification/}.
+
+The design accepts three primary streams:
+
+\begin{itemize}
+  \item a configuration AXI-stream carrying weights and thresholds,
+  \item an input AXI-stream carrying image data, and
+  \item an output AXI-stream carrying the final classification result.
+\end{itemize}
+
+At a high level, \texttt{rtl/bnn\_fcc.sv} integrates three major subsystems:
+\texttt{config\_manager}, \texttt{data\_in\_manager}, and \texttt{bnn}. The
+configuration path is especially important because it must correctly parse
+message headers, respect \texttt{config\_keep}, align payload data, and emit
+layer-specific write enables and write data for both weight and threshold
+storage.
+
+This template is intentionally compact. The next sections can be expanded with
+measured results, architectural tradeoffs, timing observations, and any contest-
+specific discussion once you decide on the final narrative.

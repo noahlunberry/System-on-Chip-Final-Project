@@ -1,0 +1,73 @@
+\chapter{Configuration Path}
+
+The configuration datapath is implemented in \texttt{rtl/config\_manager.sv}
+with key submodules in \texttt{rtl/tkeep\_byte\_compactor.sv},
+\texttt{rtl/vw\_buffer.sv}, \texttt{rtl/config\_manager\_parser.sv}, and
+\texttt{rtl/config\_manager\_pad\_fsm.sv}. The current implementation separates
+front-end byte handling from message parsing and downstream write alignment,
+which keeps the control problem manageable and limits long combinational paths.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/config_manager_diagram}}
+  \caption{Block diagram of the \texttt{config\_manager} datapath and its
+  primary interface signals.}
+  \label{fig:config-manager}
+\end{figure}
+
+\section{Front-End Byte Handling}
+
+The \texttt{tkeep\_byte\_compactor} removes invalid bytes indicated by
+\texttt{config\_keep} and repacks the accepted bytes into a contiguous stream.
+The resulting data is registered before entering \texttt{vw\_buffer}, which
+reassembles the compacted stream into bus-width chunks for the downstream
+byte-wide FIFO.
+
+\section{Message Parsing}
+
+\texttt{config\_manager\_parser} consumes the serialized byte stream from
+\texttt{fifo\_config\_bytes}. It decodes the header fields needed by the
+current design, then emits payload bytes toward either the weight path or the
+threshold path. The parser also provides the control metadata used by the pad
+state machine, including \texttt{msg\_type}, \texttt{layer\_id}, and
+\texttt{payload\_start}.
+
+\section{Weight and Threshold Handling}
+
+Threshold payload bytes are repacked into fixed-width threshold words and then
+driven out as \texttt{threshold\_wr\_data} and \texttt{threshold\_wr\_en}.
+
+Weight payload bytes first pass through the weight-byte FIFO and the pad FSM.
+The pad FSM inserts the required synthetic padding bytes so that layer packers
+can emit aligned write words. Those packers finally drive
+\texttt{weight\_wr\_data} and \texttt{weight\_wr\_en} toward the layer storage
+logic.
+
+\section{Simplified FSMD Views}
+
+The following diagrams are intentionally simplified. They do not attempt to
+show every registered temporary value or every default assignment in the RTL.
+Instead, they summarize the dominant control flow so a reader can understand
+how bytes move through the configuration path and how layer-local memory writes
+are sequenced.
+
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{figures/config_manager_parser_fsmd}}
+  \caption{Simplified FSMD view of \texttt{config\_manager\_parser}.}
+  \label{fig:parser-fsmd}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{figures/config_manager_pad_fsm_fsmd}}
+  \caption{Simplified FSMD view of \texttt{config\_manager\_pad\_fsm}.}
+  \label{fig:pad-fsmd}
+\end{figure}
+
+\begin{figure}[p]
+  \centering
+  \resizebox{0.96\textwidth}{!}{\input{figures/config_controller_fsmd}}
+  \caption{Simplified FSMD view of the layer-local \texttt{config\_controller}.}
+  \label{fig:config-controller-fsmd}
+\end{figure}
