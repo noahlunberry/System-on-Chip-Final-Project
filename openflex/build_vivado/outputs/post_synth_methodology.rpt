@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Thu Apr 16 05:14:56 2026
+| Date         : Thu Apr 16 22:34:00 2026
 | Host         : Acey running 64-bit major release  (build 9200)
 | Command      : report_methodology -file ./outputs/post_synth_methodology.rpt
 | Design       : bnn_fcc_timing
@@ -23,66 +23,15 @@ Table of Contents
           Floorplan: design_1
       Design limits: <entire design considered>
              Max checks: <unlimited>
-             Checks found: 171
-+-----------+----------+-----------------------------------------+--------+
-| Rule      | Severity | Description                             | Checks |
-+-----------+----------+-----------------------------------------+--------+
-| SYNTH-4   | Warning  | Shallow depth for a dedicated block RAM | 10     |
-| TIMING-18 | Warning  | Missing input or output delay           | 161    |
-+-----------+----------+-----------------------------------------+--------+
+             Checks found: 161
++-----------+----------+-------------------------------+--------+
+| Rule      | Severity | Description                   | Checks |
++-----------+----------+-------------------------------+--------+
+| TIMING-18 | Warning  | Missing input or output delay | 161    |
++-----------+----------+-------------------------------+--------+
 
 2. REPORT DETAILS
 -----------------
-SYNTH-4#1 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[0].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#2 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[1].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#3 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[2].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#4 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[3].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#5 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[4].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#6 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[5].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#7 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[6].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#8 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[7].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#9 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[8].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
-SYNTH-4#10 Warning
-Shallow depth for a dedicated block RAM  
-The instance DUT/bnn_main/g_layers[2].u_layer/gen_np_mems[9].u_w_ram/ram_reg is implemented as block RAM but is better mapped onto distributed LUT RAM for the following reason: The depth (4 address bits) is shallow. Please use attribute (* ram_style = "distributed" *)  to instruct Vivado to infer distributed LUT RAM.
-Related violations: <none>
-
 TIMING-18#1 Warning
 Missing input or output delay  
 An input delay is missing on config_data[0] relative to the rising and/or falling clock edge(s) of clk.
