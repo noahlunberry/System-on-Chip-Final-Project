@@ -1,0 +1,142 @@
+\begin{tikzpicture}[
+  >=Latex,
+  block/.style={
+    draw,
+    thick,
+    rounded corners=1pt,
+    minimum width=58mm,
+    minimum height=18mm,
+    align=center,
+    font=\normalsize
+  },
+  wideblock/.style={
+    block,
+    minimum width=72mm
+  },
+  data/.style={->, thick},
+  bus/.style={
+    ->,
+    thick,
+    postaction={decorate},
+    decoration={
+      markings,
+      mark=at position 0.55 with {
+        \draw[thick] (-2.2pt,3pt) -- (2.2pt,-3pt);
+      }
+    }
+  },
+  iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
+  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
+  lab/.style={font=\normalsize, fill=white, inner sep=1pt}
+]
+
+\node[font=\Large\bfseries] at (0,3.4) {Layer Config Write Distribution};
+
+\node[block] (wstage) at (-8.2,0)
+  {Weight Input Regs\\[-1pt]\textit{ingress timing cut}};
+
+\node[block] (tstage) at (8.2,0)
+  {Threshold Input Regs\\[-1pt]\textit{ingress timing cut}};
+
+\node[wideblock] (ctrlblk) at (0,-5.1)
+  {Config Controller\\[-1pt]\texttt{config\_controller}\\[-1pt]\textit{bank select + address generation}};
+
+\node[block] (wfan) at (-8.2,-10.7)
+  {Weight Fanout Regs\\[-1pt]\textit{timing cut before RAM banks}};
+
+\node[block] (tfan) at (8.2,-10.7)
+  {Threshold Fanout Regs\\[-1pt]\textit{timing cut before RAM banks}};
+
+\node[block] (wram) at (-8.2,-16.0)
+  {Weight RAM Banks\\[-1pt]\texttt{u\_w\_ram[gi]}\\[-1pt]\textit{one bank per NP}};
+
+\node[block] (tram) at (8.2,-16.0)
+  {Threshold RAM Banks\\[-1pt]\texttt{u\_t\_ram[gi]}\\[-1pt]\textit{one bank per NP}};
+
+% Top-level layer-local inputs
+\draw[bus] ([xshift=-12mm,yshift=18mm]wstage.north) -- ([xshift=-12mm]wstage.north);
+\node[iface] at ([xshift=-12mm,yshift=20.5mm]wstage.north) {\texttt{w\_data}};
+
+\draw[data] ([xshift=12mm,yshift=18mm]wstage.north) -- ([xshift=12mm]wstage.north);
+\node[iface] at ([xshift=12mm,yshift=20.5mm]wstage.north) {\texttt{w\_en}};
+
+\draw[bus] ([xshift=-12mm,yshift=18mm]tstage.north) -- ([xshift=-12mm]tstage.north);
+\node[iface] at ([xshift=-12mm,yshift=20.5mm]tstage.north) {\texttt{t\_data}};
+
+\draw[data] ([xshift=12mm,yshift=18mm]tstage.north) -- ([xshift=12mm]tstage.north);
+\node[iface] at ([xshift=12mm,yshift=20.5mm]tstage.north) {\texttt{t\_en}};
+
+% Stage -> controller enables, orthogonal
+\coordinate (wenA) at ([xshift=14mm]wstage.south);
+\coordinate (wenB) at ($(wenA)+(0,-1.2)$);
+\coordinate (wenC) at ($(ctrlblk.north west)+(-6mm,1.2)$);
+\draw[data] (wenA) -- (wenB) -- (wenC) -- ([xshift=-18mm]ctrlblk.north)
+  node[pos=0.56,above,sig] {\texttt{w\_en\_r}};
+
+\coordinate (tenA) at ([xshift=-14mm]tstage.south);
+\coordinate (tenB) at ($(tenA)+(0,-1.2)$);
+\coordinate (tenC) at ($(ctrlblk.north east)+(6mm,1.2)$);
+\draw[data] (tenA) -- (tenB) -- (tenC) -- ([xshift=18mm]ctrlblk.north)
+  node[pos=0.56,above,sig] {\texttt{t\_en\_r}};
+
+% Staged write data bypasses controller and goes straight down
+\draw[bus] ([xshift=-14mm]wstage.south) -- ([xshift=-14mm]wfan.north)
+  node[pos=0.50,left,sig] {\texttt{w\_data\_r}};
+
+\draw[bus] ([xshift=14mm]tstage.south) -- ([xshift=14mm]tfan.north)
+  node[pos=0.50,right,sig] {\texttt{t\_data\_r}};
+
+% Controller outputs -> fanout timing cut, orthogonal
+\coordinate (wselA) at ([xshift=-21mm]ctrlblk.south);
+\coordinate (wselB) at ($(wselA)+(0,-1.2)$);
+\coordinate (wselT) at ([xshift=16mm]wfan.north);
+\coordinate (wselC) at (wselT |- wselB);
+\draw[data] (wselA) -- (wselB) -- (wselC) -- (wselT);
+\node[above,sig] at ($(wselB)!0.5!(wselC)$) {\texttt{w\_sel}};
+
+\coordinate (waddrA) at ([xshift=-7mm]ctrlblk.south);
+\coordinate (waddrB) at ($(waddrA)+(0,-2.1)$);
+\coordinate (waddrT) at (wfan.north);
+\coordinate (waddrC) at (waddrT |- waddrB);
+\draw[bus] (waddrA) -- (waddrB) -- (waddrC) -- (waddrT);
+\node[above,sig] at ($(waddrB)!0.5!(waddrC)$) {\texttt{w\_addr[i]}};
+
+\coordinate (taddrA) at ([xshift=7mm]ctrlblk.south);
+\coordinate (taddrB) at ($(taddrA)+(0,-2.1)$);
+\coordinate (taddrT) at (tfan.north);
+\coordinate (taddrC) at (taddrT |- taddrB);
+\draw[bus] (taddrA) -- (taddrB) -- (taddrC) -- (taddrT);
+\node[above,sig] at ($(taddrB)!0.5!(taddrC)$) {\texttt{t\_addr[i]}};
+
+\coordinate (tselA) at ([xshift=21mm]ctrlblk.south);
+\coordinate (tselB) at ($(tselA)+(0,-1.2)$);
+\coordinate (tselT) at ([xshift=-16mm]tfan.north);
+\coordinate (tselC) at (tselT |- tselB);
+\draw[data] (tselA) -- (tselB) -- (tselC) -- (tselT);
+\node[above,sig] at ($(tselB)!0.5!(tselC)$) {\texttt{t\_sel}};
+
+% config_done routed upward as a layer-local control signal
+\coordinate (cfgdoneTop) at ($(ctrlblk.north)+(0,6.4)$);
+\draw[data] (ctrlblk.north) -- (cfgdoneTop);
+\node[iface] at ($(cfgdoneTop)+(0,2.3mm)$) {\texttt{done}};
+
+% Fanout timing cut -> RAM banks
+\draw[data] ([xshift=-16mm]wfan.south) -- ([xshift=-16mm]wram.north)
+  node[pos=0.52,left,sig] {\texttt{w\_sel\_p[i]}};
+
+\draw[bus] (wfan.south) -- (wram.north)
+  node[pos=0.52,right,sig] {\texttt{w\_addr\_p[i]}};
+
+\draw[bus] ([xshift=16mm]wfan.south) -- ([xshift=16mm]wram.north)
+  node[pos=0.52,right,sig] {\texttt{w\_data\_p}};
+
+\draw[data] ([xshift=-16mm]tfan.south) -- ([xshift=-16mm]tram.north)
+  node[pos=0.52,left,sig] {\texttt{t\_sel\_p[i]}};
+
+\draw[bus] (tfan.south) -- (tram.north)
+  node[pos=0.52,right,sig] {\texttt{t\_addr\_p[i]}};
+
+\draw[bus] ([xshift=16mm]tfan.south) -- ([xshift=16mm]tram.north)
+  node[pos=0.52,right,sig] {\texttt{t\_data\_p}};
+
+\end{tikzpicture}

@@ -43,6 +43,27 @@ can emit aligned write words. Those packers finally drive
 \texttt{weight\_wr\_data} and \texttt{weight\_wr\_en} toward the layer storage
 logic.
 
+\section{Layer-Local Write Distribution}
+
+Inside each \texttt{bnn\_layer}, the incoming per-layer write stream is staged
+once before entering \texttt{config\_controller}. The controller generates the
+one-hot bank-select enables and the per-bank write addresses, while the staged
+weight and threshold data bypass the controller datapath. A second set of local
+pipeline registers then fans the enables, addresses, and aligned write data out
+to the replicated RAM banks. That extra stage is important in this repo: it
+cuts the long controller-to-BRAM fanout while preserving one configuration
+write per cycle after the pipeline fills.
+
+\begin{figure}[p]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/config_controller_diagram}}
+  \caption{Layer-local config-write distribution around
+  \texttt{config\_controller} in \texttt{rtl/bnn\_layer.sv}. The highlighted
+  fanout pipeline registers are the timing-cut stage that drives the per-bank
+  weight and threshold RAMs.}
+  \label{fig:config-controller-block}
+\end{figure}
+
 \section{Simplified FSMD Views}
 
 The following diagrams are intentionally simplified. They do not attempt to

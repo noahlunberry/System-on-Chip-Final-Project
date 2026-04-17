@@ -45,6 +45,29 @@ You can see an example in [example.csv](example.csv).
 
 If you get errors when running openflex here, make sure that Vivado is in your PATH, that the YAML file contains all required source files, and that openflex is activated.
 
+## Recovering A Failed Route On Windows
+
+If Vivado crashes during router physical synthesis but `build_vivado/outputs/post_place.dcp` exists, you can finish the run and still generate the normal OpenFlex CSV row with:
+
+```powershell
+.\resume_openflex_route.ps1 -Csv final6.csv
+```
+
+This helper:
+
+- copies [route_from_post_place_openflex_finish.tcl](route_from_post_place_openflex_finish.tcl) into `build_vivado`
+- reruns routing from `post_place.dcp` with `route_design -no_psir`
+- regenerates the standard OpenFlex outputs such as `post_route_timing_summary.rpt`, `route_paths.rpt`, `route_vios.rpt`, and `vivado_report.txt`
+- appends the CSV row using OpenFlex's own `process_vivado_results()` logic
+
+You can override the defaults if needed:
+
+```powershell
+.\resume_openflex_route.ps1 -Yaml bnn_fcc_timing.yml -Csv bnn_fcc.csv -DriveLetter Y:
+```
+
+This script assumes the OpenFlex Python environment is active, or that `python.exe` from the OpenFlex install is available at `~/envs/openflex/Scripts/python.exe`.
+
 ## Verification
 
 For verifying your final design, update the [bnn_fcc_verification.yml](bnn_fcc_verification.yml) file with your design sources like before. You do not need bnn_fcc_timing.sv here.

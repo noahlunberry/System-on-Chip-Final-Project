@@ -26,6 +26,15 @@ The top-level signal flow in \texttt{bnn\_fcc} is:
   the design.
 \end{enumerate}
 
+\begin{figure}[p]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/bnn_fcc_diagram}}
+  \caption{Top-level organization of \texttt{rtl/bnn\_fcc.sv}. Configuration,
+  activation ingress, compute, argmax reduction, and output buffering are shown
+  with the main inter-module control signals.}
+  \label{fig:bnn-fcc-top}
+\end{figure}
+
 \section{Module Responsibilities}
 
 \texttt{config\_manager} is responsible for byte compaction, payload parsing,
@@ -36,6 +45,27 @@ words expected by the first BNN layer.
 
 \texttt{bnn} and the instantiated \texttt{bnn\_layer} modules consume the
 prepared activations and stored parameters to compute the network output.
+
+\section{Layer Compute Flow}
+
+Inside \texttt{rtl/bnn\_layer.sv}, the forward path is organized around three
+cooperating pieces: the replay/input side, the RAM/control side, and the neuron
+processor array. Input activations are buffered and aligned before entering the
+parallel neuron processors. In parallel, \texttt{neuron\_controller} sequences
+shared RAM reads, while the layer-local config path fans weight and threshold
+writes into the per-bank memories. The diagram below keeps those write and read
+paths visible because both sets of local fanout registers matter to how the RTL
+meets timing.
+
+\begin{figure}[p]
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
+  \caption{Simplified block view of the compute flow inside one
+  \texttt{bnn\_layer}. The replay buffer, controller-driven RAM reads, local
+  fanout registers, and neuron-processor array are shown together so the layer
+  timing cuts remain visible.}
+  \label{fig:bnn-layer-compute}
+\end{figure}
 
 \section{Input Path}
 
@@ -54,6 +84,4 @@ pixel, and finally stages the result in a FIFO before handing it to
   \label{fig:data-in-manager}
 \end{figure}
 
-% TODO:
-% - Add a full-system architecture figure here.
 % - Add a short paragraph explaining your chosen parallelization parameters.

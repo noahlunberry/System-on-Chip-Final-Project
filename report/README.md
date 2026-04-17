@@ -33,6 +33,12 @@ first compile may take longer and may require internet access.
 - `figures/config_manager_diagram_standalone.tex`: standalone preview wrapper
 - `figures/data_in_manager_diagram.tex`: data-input datapath figure
 - `figures/data_in_manager_diagram_standalone.tex`: standalone preview wrapper
+- `figures/config_controller_diagram.tex`: layer-local config-write block diagram
+- `figures/config_controller_diagram_standalone.tex`: standalone preview wrapper
+- `figures/bnn_fcc_diagram.tex`: top-level `bnn_fcc` architecture figure
+- `figures/bnn_fcc_diagram_standalone.tex`: standalone preview wrapper
+- `figures/bnn_layer_compute_diagram.tex`: `bnn_layer` compute-flow figure
+- `figures/bnn_layer_compute_diagram_standalone.tex`: standalone preview wrapper
 - `figures/config_manager_parser_fsmd.tex`: parser FSMD figure
 - `figures/config_manager_pad_fsm_fsmd.tex`: pad-FSM FSMD figure
 - `figures/config_controller_fsmd.tex`: layer-local config-controller FSMD figure

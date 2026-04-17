@@ -26,8 +26,9 @@
     }
   },
   ctrl/.style={->, thick, dashed},
-  sig/.style={font=\small\ttfamily, fill=white, inner sep=1pt},
-  lab/.style={font=\small, fill=white, inner sep=1pt}
+  iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
+  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
+  lab/.style={font=\normalsize, fill=white, inner sep=1pt}
 ]
 
 \node[font=\Large\bfseries] at (0,3.3) {Data In Manager};
@@ -48,14 +49,20 @@
   {Binary FIFO\\[-1pt]\texttt{bin\_fifo}};
 
 % Top-level image inputs
-\draw[data] ([xshift=-21mm,yshift=18mm]compact.north) -- ([xshift=-21mm]compact.north)
-  node[pos=0.62,left,sig] {\texttt{data\_in\_valid}};
+\coordinate (divTop) at ([xshift=-48mm,yshift=18mm]compact.north);
+\coordinate (divTurnA) at ([xshift=-48mm,yshift=8mm]compact.north);
+\coordinate (divTurnB) at ([xshift=-20mm,yshift=8mm]compact.north);
+\draw[data] (divTop) -- (divTurnA) -- (divTurnB) -- ([xshift=-20mm]compact.north);
+\node[iface] at ($(divTop)+(0,2.5mm)$) {\texttt{data\_in\_valid}};
 
-\draw[bus] ([yshift=18mm]compact.north) -- (compact.north)
-  node[pos=0.62,right,sig,xshift=2pt] {\texttt{data\_in\_data}};
+\draw[bus] ([yshift=18mm]compact.north) -- (compact.north);
+\node[iface] at ([yshift=20.5mm]compact.north) {\texttt{data\_in\_data}};
 
-\draw[bus] ([xshift=21mm,yshift=18mm]compact.north) -- ([xshift=21mm]compact.north)
-  node[pos=0.62,right,sig] {\texttt{data\_in\_keep}};
+\coordinate (dikTop) at ([xshift=48mm,yshift=18mm]compact.north);
+\coordinate (dikTurnA) at ([xshift=48mm,yshift=8mm]compact.north);
+\coordinate (dikTurnB) at ([xshift=20mm,yshift=8mm]compact.north);
+\draw[bus] (dikTop) -- (dikTurnA) -- (dikTurnB) -- ([xshift=20mm]compact.north);
+\node[iface] at ($(dikTop)+(0,2.5mm)$) {\texttt{data\_in\_keep}};
 
 % Compactor -> frame/pad control
 \draw[data] ([xshift=-22mm]compact.south) -- ([xshift=-22mm]ctrlblk.north)
@@ -69,21 +76,21 @@
 
 % Side inputs into frame/pad control
 \draw[data] ([xshift=-38mm,yshift=7mm]ctrlblk.west) -- ([yshift=7mm]ctrlblk.west)
-  node[pos=0.48,above,sig] {\texttt{config\_ready}};
+  node[pos=0.48,above,iface] {\texttt{config\_ready}};
 
 \draw[data] ([xshift=-38mm]ctrlblk.west) -- (ctrlblk.west)
-  node[pos=0.48,above,sig] {\texttt{config\_last}};
+  node[pos=0.48,above,iface] {\texttt{config\_last}};
 
 \draw[data] ([xshift=-38mm,yshift=-7mm]ctrlblk.west) -- ([yshift=-7mm]ctrlblk.west)
-  node[pos=0.48,below,sig] {\texttt{data\_in\_last}};
+  node[pos=0.48,below,iface] {\texttt{data\_in\_last}};
 
 % data_in_ready routed back up as interface signal
 \coordinate (dinreadyA) at ($(ctrlblk.east)+(4.0,0)$);
 \coordinate (dinreadyTop) at ($(dinreadyA |- compact.north)+(0,18mm)$);
 
 \draw[thick] (ctrlblk.east) -- (dinreadyA);
-\draw[data] (dinreadyA) -- (dinreadyTop)
-  node[midway,right,sig] {\texttt{data\_in\_ready}};
+\draw[data] (dinreadyA) -- (dinreadyTop);
+\node[iface] at ($(dinreadyTop)+(0,2.3mm)$) {\texttt{data\_in\_ready}};
 
 % Frame/pad control -> vw_buffer
 \draw[data] ([xshift=-22mm]ctrlblk.south) -- ([xshift=-22mm]vw.north)
@@ -115,16 +122,16 @@
 
 % BNN-side control into fifo staging
 \draw[data] ([xshift=38mm,yshift=6mm]binfifo.east) -- ([yshift=6mm]binfifo.east)
-  node[pos=0.48,above,sig] {\texttt{bnn\_ready}};
+  node[pos=0.48,above,iface] {\texttt{bnn\_ready}};
 
 \draw[data] ([xshift=38mm,yshift=-6mm]binfifo.east) -- ([yshift=-6mm]binfifo.east)
-  node[pos=0.48,below,sig] {\texttt{bnn\_en}};
+  node[pos=0.48,below,iface] {\texttt{bnn\_en}};
 
 % Outputs to BNN
 \draw[bus] ([xshift=-17mm]binfifo.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{bnn\_data\_in}};
+  node[below,iface] {\texttt{bnn\_data\_in}};
 
 \draw[data] ([xshift=17mm]binfifo.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{bnn\_data\_in\_valid}};
+  node[below,iface] {\texttt{bnn\_data\_in\_valid}};
 
 \end{tikzpicture}

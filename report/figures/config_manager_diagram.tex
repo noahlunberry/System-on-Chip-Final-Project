@@ -26,8 +26,9 @@
     }
   },
   ctrl/.style={->, thick, dashed},
-  sig/.style={font=\small\ttfamily, fill=white, inner sep=1pt},
-  lab/.style={font=\small, fill=white, inner sep=1pt}
+  iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
+  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
+  lab/.style={font=\normalsize, fill=white, inner sep=1pt}
 ]
 
 \node[font=\Large\bfseries] at (0,3.3) {Config Manager};
@@ -57,14 +58,20 @@
   {Layer Packers\\[-1pt]\texttt{fifo\_packer[i]}};
 
 % Top-level config inputs
-\draw[data] ([xshift=-21mm,yshift=18mm]compact.north) -- ([xshift=-21mm]compact.north)
-  node[pos=0.62,left,sig] {\texttt{config\_valid}};
+\coordinate (cfgvTop) at ([xshift=-50mm,yshift=18mm]compact.north);
+\coordinate (cfgvTurnA) at ([xshift=-50mm,yshift=8mm]compact.north);
+\coordinate (cfgvTurnB) at ([xshift=-20mm,yshift=8mm]compact.north);
+\draw[data] (cfgvTop) -- (cfgvTurnA) -- (cfgvTurnB) -- ([xshift=-20mm]compact.north);
+\node[iface] at ($(cfgvTop)+(0,2.5mm)$) {\texttt{config\_valid}};
 
-\draw[bus] ([yshift=18mm]compact.north) -- (compact.north)
-  node[pos=0.62,right,sig,xshift=2pt] {\texttt{config\_data}};
+\draw[bus] ([yshift=18mm]compact.north) -- (compact.north);
+\node[iface] at ([yshift=20.5mm]compact.north) {\texttt{config\_data}};
 
-\draw[bus] ([xshift=21mm,yshift=18mm]compact.north) -- ([xshift=21mm]compact.north)
-  node[pos=0.62,right,sig] {\texttt{config\_keep}};
+\coordinate (cfgkTop) at ([xshift=50mm,yshift=18mm]compact.north);
+\coordinate (cfgkTurnA) at ([xshift=50mm,yshift=8mm]compact.north);
+\coordinate (cfgkTurnB) at ([xshift=20mm,yshift=8mm]compact.north);
+\draw[bus] (cfgkTop) -- (cfgkTurnA) -- (cfgkTurnB) -- ([xshift=20mm]compact.north);
+\node[iface] at ($(cfgkTop)+(0,2.5mm)$) {\texttt{config\_keep}};
 
 % Compactor -> VW buffer
 \draw[data] ([xshift=-22mm]compact.south) -- ([xshift=-22mm]vw.north)
@@ -88,12 +95,12 @@
   node[pos=0.58,right,sig] {\texttt{cfg\_byte\_data}};
 
 % config_ready routed back up as interface signal
-\coordinate (cfgreadyA) at ($(cfgfifo.east)+(3.8,0)$);
+\coordinate (cfgreadyA) at ($(cfgfifo.east)+(5.0,0)$);
 \coordinate (cfgreadyTop) at ($(cfgreadyA |- compact.north)+(0,18mm)$);
 
 \draw[thick] (cfgfifo.east) -- (cfgreadyA);
-\draw[data] (cfgreadyA) -- (cfgreadyTop)
-  node[midway,right,sig] {\texttt{config\_ready}};
+\draw[data] (cfgreadyA) -- (cfgreadyTop);
+\node[iface] at ($(cfgreadyTop)+(0,2.3mm)$) {\texttt{config\_ready}};
 
 % Parser -> payload destinations
 \draw[bus] ([xshift=-23mm]parser.south) -- (wfifo.north)
@@ -128,17 +135,23 @@
   node[pos=0.55,right,sig] {\texttt{data}};
 
 % Threshold outputs
-\draw[bus] ([xshift=-17mm]tfifo.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{threshold\_wr\_data}};
+\coordinate (thDataA) at ([xshift=-12mm]tfifo.south);
+\coordinate (thDataB) at ($(thDataA)+(0,-1.0)$);
+\coordinate (thDataC) at ($(thDataB)+(-18mm,0)$);
+\draw[bus] (thDataA) -- (thDataB) -- (thDataC) -- ++(0,-1.6);
+\node[below,iface] at ($(thDataC)+(0,-1.6)$) {\texttt{threshold\_wr\_data}};
 
-\draw[data] ([xshift=17mm]tfifo.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{threshold\_wr\_en}};
+\coordinate (thEnA) at ([xshift=12mm]tfifo.south);
+\coordinate (thEnB) at ($(thEnA)+(0,-1.0)$);
+\coordinate (thEnC) at ($(thEnB)+(18mm,0)$);
+\draw[data] (thEnA) -- (thEnB) -- (thEnC) -- ++(0,-1.6);
+\node[below,iface] at ($(thEnC)+(0,-1.6)$) {\texttt{threshold\_wr\_en}};
 
 % Weight outputs
 \draw[bus] ([xshift=-17mm]pack.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{weight\_wr\_data}};
+  node[below,iface] {\texttt{weight\_wr\_data}};
 
 \draw[data] ([xshift=17mm]pack.south) -- ++(0,-2.6)
-  node[below,sig] {\texttt{weight\_wr\_en}};
+  node[below,iface] {\texttt{weight\_wr\_en}};
 
 \end{tikzpicture}
