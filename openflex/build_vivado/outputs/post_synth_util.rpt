@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 ---------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date         : Thu Apr 16 22:34:04 2026
+| Date         : Fri Apr 17 00:23:29 2026
 | Host         : Acey running 64-bit major release  (build 9200)
 | Command      : report_utilization -file ./outputs/post_synth_util.rpt
 | Design       : bnn_fcc_timing
@@ -35,15 +35,15 @@ Table of Contents
 +----------------------------+-------+-------+------------+-----------+-------+
 |          Site Type         |  Used | Fixed | Prohibited | Available | Util% |
 +----------------------------+-------+-------+------------+-----------+-------+
-| CLB LUTs*                  | 35258 |     0 |          0 |   1728000 |  2.04 |
-|   LUT as Logic             | 26551 |     0 |          0 |   1728000 |  1.54 |
+| CLB LUTs*                  | 35706 |     0 |          0 |   1728000 |  2.07 |
+|   LUT as Logic             | 26999 |     0 |          0 |   1728000 |  1.56 |
 |   LUT as Memory            |  8707 |     0 |          0 |    791040 |  1.10 |
 |     LUT as Distributed RAM |  8696 |     0 |            |           |       |
 |     LUT as Shift Register  |    11 |     0 |            |           |       |
-| CLB Registers              | 46187 |     0 |          0 |   3456000 |  1.34 |
-|   Register as Flip Flop    | 46187 |     0 |          0 |   3456000 |  1.34 |
+| CLB Registers              | 46003 |     0 |          0 |   3456000 |  1.33 |
+|   Register as Flip Flop    | 46003 |     0 |          0 |   3456000 |  1.33 |
 |   Register as Latch        |     0 |     0 |          0 |   3456000 |  0.00 |
-| CARRY8                     |   279 |     0 |          0 |    216000 |  0.13 |
+| CARRY8                     |   265 |     0 |          0 |    216000 |  0.12 |
 | F7 Muxes                   |    98 |     0 |          0 |    864000 |  0.01 |
 | F8 Muxes                   |    32 |     0 |          0 |    432000 | <0.01 |
 | F9 Muxes                   |     0 |     0 |          0 |    216000 |  0.00 |
@@ -67,8 +67,8 @@ Warning! For any ECO changes, please run place_design if there are unplaced inst
 | 0     |          Yes |           - |            - |
 | 0     |          Yes |           - |          Set |
 | 0     |          Yes |           - |        Reset |
-| 10    |          Yes |         Set |            - |
-| 46177 |          Yes |       Reset |            - |
+| 57    |          Yes |         Set |            - |
+| 45946 |          Yes |       Reset |            - |
 +-------+--------------+-------------+--------------+
 
 
@@ -161,21 +161,21 @@ Warning! For any ECO changes, please run place_design if there are unplaced inst
 +----------+-------+---------------------+
 | Ref Name |  Used | Functional Category |
 +----------+-------+---------------------+
-| FDRE     | 46177 |            Register |
-| LUT2     | 12678 |                 CLB |
+| FDRE     | 45946 |            Register |
+| LUT2     | 12295 |                 CLB |
 | RAMD64E  |  7488 |                 CLB |
-| LUT4     |  5348 |                 CLB |
-| LUT3     |  4515 |                 CLB |
-| LUT6     |  3289 |                 CLB |
+| LUT4     |  5556 |                 CLB |
+| LUT3     |  5522 |                 CLB |
+| LUT6     |  3015 |                 CLB |
 | RAMD32   |  2100 |                 CLB |
-| LUT5     |  1273 |                 CLB |
+| LUT5     |  1353 |                 CLB |
 | RAMS32   |   316 |                 CLB |
-| CARRY8   |   279 |                 CLB |
+| CARRY8   |   265 |                 CLB |
 | MUXF7    |    98 |                 CLB |
-| LUT1     |    97 |                 CLB |
+| FDSE     |    57 |            Register |
+| LUT1     |    33 |                 CLB |
 | MUXF8    |    32 |                 CLB |
 | SRL16E   |    11 |                 CLB |
-| FDSE     |    10 |            Register |
 +----------+-------+---------------------+
 
 
