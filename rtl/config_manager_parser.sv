@@ -12,12 +12,12 @@ module config_manager_parser #(
     input logic       empty,
     input logic       stall,
 
-    output logic        cfg_byte_rd_en,
-    output logic        payload_byte_valid,
-    output logic [ 7:0] payload_byte_data,
-    output logic        msg_type,
-    output logic [ 1:0] layer_id,
-    output logic        payload_start
+    output logic       cfg_byte_rd_en,
+    output logic       payload_byte_valid,
+    output logic [7:0] payload_byte_data,
+    output logic       msg_type,
+    output logic [1:0] layer_id,
+    output logic       payload_start
 );
 
   localparam int HEADER_BYTES = 16;
@@ -30,12 +30,12 @@ module config_manager_parser #(
 
   // Keep the parser in its explicit binary encoding so reset stays a plain
   // synchronous clear instead of becoming a preset-driven one-hot state bit.
-  (* fsm_encoding = "user" *) parse_state_t parse_state_r;
-  parse_state_t next_parse_state;
+  (* fsm_encoding = "user" *)parse_state_t       parse_state_r;
+  parse_state_t       next_parse_state;
 
   // Registered message metadata for the payload currently being emitted.
-  logic       next_msg_type;
-  logic [1:0] next_layer_id;
+  logic               next_msg_type;
+  logic         [1:0] next_layer_id;
 
   // Header progress tracking.
   logic [$clog2(HEADER_BYTES+1)-1:0] header_count_r, next_header_count;
@@ -50,10 +50,8 @@ module config_manager_parser #(
   // available to consume in the current cycle.
   logic cfg_byte_data_valid_r, next_cfg_byte_data_valid;
 
-  function automatic logic [PAYLOAD_COUNT_W-1:0] calc_payload_bytes(
-      input logic       cfg_msg_type,
-      input logic [1:0] cfg_layer_id
-  );
+  function automatic logic [PAYLOAD_COUNT_W-1:0] calc_payload_bytes(input logic cfg_msg_type,
+                                                                    input logic [1:0] cfg_layer_id);
     calc_payload_bytes = '0;
     if (cfg_layer_id < LAYERS) begin
       calc_payload_bytes = cfg_msg_type ? THRESHOLD_TOTAL_BYTES[cfg_layer_id] :
@@ -95,7 +93,6 @@ module config_manager_parser #(
   //    current message before accepting the next header.
   always_comb begin
     logic cfg_byte_consume;
-    logic [PAYLOAD_COUNT_W-1:0] decoded_payload_bytes;
     logic header_last_byte;
     logic payload_last_byte;
 
@@ -108,16 +105,20 @@ module config_manager_parser #(
     next_cfg_byte_data_valid = cfg_byte_data_valid_r;
     next_payload_start       = 1'b0;
 
-    cfg_byte_rd_en         = 1'b0;
-    payload_byte_valid     = 1'b0;
-    payload_byte_data      = cfg_byte_data;
-    cfg_byte_consume       = 1'b0;
-    decoded_payload_bytes  = '0;
-    header_last_byte       = (header_count_r == (HEADER_BYTES - 1));
-    payload_last_byte      = 1'b0;
+    cfg_byte_rd_en           = cfg_byte_valid
+                               && ((parse_state_r == PARSE_HEADER)
+                                   || ((parse_state_r == PARSE_PAYLOAD) && !stall));
+    payload_byte_valid       = 1'b0;
+    payload_byte_data        = cfg_byte_data;
+    cfg_byte_consume         = 1'b0;
+    header_last_byte         = (header_count_r == (HEADER_BYTES - 1));
+    payload_last_byte        = 1'b0;
 
     case (parse_state_r)
       PARSE_HEADER: begin
+        next_payload_count = '0;
+        next_payload_bytes = calc_payload_bytes(msg_type, layer_id);
+
         if (cfg_byte_data_valid_r) begin
           cfg_byte_consume = 1'b1;
 
@@ -128,34 +129,20 @@ module config_manager_parser #(
           end
 
           if (header_last_byte) begin
-            decoded_payload_bytes = calc_payload_bytes(next_msg_type, next_layer_id);
             next_payload_start = 1'b1;
-            next_payload_bytes = decoded_payload_bytes;
-            next_header_count = '0;
-            next_payload_count = '0;
+            next_header_count  = '0;
 
-            // Start payload hot by requesting the first payload byte as soon
-            // as one is available after the header completes.
-            next_parse_state = PARSE_PAYLOAD;
-
-            if (cfg_byte_valid) begin
-              cfg_byte_rd_en = 1'b1;
-            end
+            // The shared read-enable rule above keeps the byte stream hot
+            // across the header -> payload transition whenever data is ready.
+            next_parse_state   = PARSE_PAYLOAD;
           end else begin
             next_header_count = header_count_r + 1'b1;
-
-            if (cfg_byte_valid) begin
-              cfg_byte_rd_en = 1'b1;
-            end
           end
-        end else if (cfg_byte_valid) begin
-          cfg_byte_rd_en = 1'b1;
         end
       end
 
       PARSE_PAYLOAD: begin
-        payload_last_byte = (payload_bytes_r != '0)
-                            && (payload_count_r == (payload_bytes_r - 1'b1));
+        payload_last_byte = (payload_bytes_r != '0) && (payload_count_r == (payload_bytes_r - 1'b1));
 
         // Hold the staged payload byte whenever pad_fsm is emitting synthetic
         // padding so weight parsing does not outrun the downstream consumer.
@@ -168,12 +155,6 @@ module config_manager_parser #(
             next_parse_state = PARSE_DONE;
           end
 
-          if (cfg_byte_valid) begin
-            cfg_byte_rd_en = 1'b1;
-          end
-
-        end else if (cfg_byte_valid && !stall) begin
-          cfg_byte_rd_en = 1'b1;
         end
       end
 

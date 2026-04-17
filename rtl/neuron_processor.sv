@@ -97,23 +97,50 @@ module neuron_processor #(
   logic [THRESHOLD_WIDTH-1:0] final_sum_r;
   logic [THRESHOLD_WIDTH-1:0] threshold_final_r;
   logic compare_valid_r;
+  logic [ACC_WIDTH-1:0] next_acc_r;
+  logic [THRESHOLD_WIDTH-1:0] final_sum_next;
 
   assign y_valid = y_valid_r;
   assign y = y_r;
+  assign final_sum_next = acc_r + THRESHOLD_WIDTH'(tree_sum);
+
+  always_comb begin
+    next_acc_r = acc_r;
+
+    if (tree_valid_out) begin
+      if (tree_last_out) begin
+        // last chunk: clear accumulator for next neuron
+        next_acc_r = '0;
+      end else begin
+        // Non-final chunk: keep accumulating
+        next_acc_r = acc_r + ACC_WIDTH'(tree_sum);
+      end
+    end
+  end
 
   // accumulator control
   always_ff @(posedge clk) begin
     if (rst) begin
       acc_r <= '0;
     end else begin
-      if (tree_valid_out) begin
-        if (tree_last_out) begin
-          // last chunk: clear accumulator for next neuron
-          acc_r <= '0;
-        end else begin
-          // Non-final chunk: keep accumulating
-          acc_r <= acc_r + tree_sum;
-        end
+      acc_r <= next_acc_r;
+    end
+  end
+
+  // final-sum capture
+  always_ff @(posedge clk) begin
+    if (rst) begin
+      // final_sum_r      <= '0;
+      // threshold_final_r <= '0;
+      // compare_valid_r  <= 1'b0;
+    end else begin
+      compare_valid_r <= tree_last_out;
+
+      if (tree_last_out) begin
+        // Register the final accumulated sum locally so the threshold compare
+        // happens in its own cycle instead of on the add-tree output path.
+        final_sum_r       <= final_sum_next;
+        threshold_final_r <= threshold_out_r;
       end
     end
   end
@@ -121,23 +148,11 @@ module neuron_processor #(
   // output and y_valid control
   always_ff @(posedge clk) begin
     if (rst) begin
-      // final_sum_r      <= '0;
-      // threshold_final_r <= '0;
-      // compare_valid_r  <= 1'b0;
       // y_r              <= 1'b0;
       // count_out        <= '0;
       // y_valid_r <= 1'b0;
     end else begin
-      compare_valid_r <= 1'b0;
       y_valid_r       <= 1'b0;
-
-      if (tree_last_out) begin
-        // Register the final accumulated sum locally so the threshold compare
-        // happens in its own cycle instead of on the add-tree output path.
-        final_sum_r      <= acc_r + THRESHOLD_WIDTH'(tree_sum);
-        threshold_final_r <= threshold_out_r;
-        compare_valid_r  <= 1'b1;
-      end
 
       if (compare_valid_r) begin
         y_r       <= (final_sum_r >= threshold_final_r);
