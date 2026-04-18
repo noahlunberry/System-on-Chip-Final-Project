@@ -62,12 +62,20 @@ If the grading script asks for a single testbench to measure functional coverage
 
 This top-level is a dedicated coverage testbench with `config_in_if`, `data_in_if`, and `data_out_if` defined directly under `bnn_fcc_coverage_tb`, so grader scripts can attach protocol monitors at the top level without traversing through an inner wrapper instance. By default it runs `bnn_fcc_coverage_sweep_test`, so the evaluator does **not** need to iterate over individual UVM tests or merge coverage afterwards.
 
+The standalone regression currently contains `21` discovered tests, and the
+composite sweep serializes those same `21` scenario classes into one run.
+Use `make list-tests` to print the current standalone regression list.
+
 ### Local commands
 
 * `make coverage-sweep`
   Runs the one-shot coverage evaluation using `bnn_fcc_coverage_tb`.
+* `make sim-coverage`
+  Alias for the same one-shot coverage evaluation using `bnn_fcc_coverage_tb`.
 * `make coverage-sweep-report`
   Runs the same one-shot evaluation and writes `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`.
+* `make reportcov UVM_TESTNAME=bnn_fcc_coverage_sweep_test`
+  Regenerates the text report from an existing one-shot sweep UCDB.
 * `make regress`
   Keeps the original per-test regression flow for debugging and isolated test development.
 

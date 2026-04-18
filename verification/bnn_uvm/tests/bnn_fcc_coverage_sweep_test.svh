@@ -294,6 +294,15 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         wait (env.out_vif.tvalid == 1'b1);
     endtask
 
+    protected task post_test_drain();
+        // Most standalone regression tests intentionally leave a few extra
+        // clocks after their final scoreboard hit so registered compactor,
+        // FIFO, and output paths settle before the test ends. Keep the same
+        // quiesce window between serialized sweep scenarios so the one-shot
+        // flow mirrors the per-test regression behavior more closely.
+        repeat (5) @(posedge env.in_vif.aclk);
+    endtask
+
     protected task run_full_packet_cfg(
         input string seq_name,
         BNN_FCC_Model #(bnn_fcc_uvm_pkg::CONFIG_BUS_WIDTH) source_model,
@@ -430,27 +439,33 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         `uvm_info(get_type_name(), "Coverage sweep: single-beat baseline scenario.", UVM_LOW)
         run_full_beat_cfg("sweep_single_beat_cfg", model, model, "coverage sweep single-beat full configuration");
         run_beat_image_phase("sweep_single_beat_img", num_test_images);
+        post_test_drain();
     endtask
 
-    protected task run_tkeep_scenarios();
-        bnn_fcc_config_tkeep_packet_sequence cfg_tkeep_seq;
-
-        `uvm_info(get_type_name(), "Coverage sweep: TKEEP scenarios.", UVM_LOW)
+    protected task run_input_tkeep_only_scenario();
+        `uvm_info(get_type_name(), "Coverage sweep: input-only TKEEP scenario.", UVM_LOW)
 
         run_full_packet_cfg("sweep_input_tkeep_cfg", model, model, "coverage sweep input-tkeep full configuration");
         run_input_tkeep_phase("sweep_input_tkeep_img", num_test_images);
+        post_test_drain();
+    endtask
+
+    protected task run_cfg_and_input_tkeep_scenario();
+        bnn_fcc_config_tkeep_packet_sequence cfg_tkeep_seq;
+
+        `uvm_info(get_type_name(), "Coverage sweep: config-plus-input TKEEP scenario.", UVM_LOW)
 
         publish_model_handle(model);
         cfg_tkeep_seq = bnn_fcc_config_tkeep_packet_sequence::type_id::create("sweep_cfg_tkeep_seq");
         run_config_sequence(cfg_tkeep_seq, model, "coverage sweep full config with contiguous partial TKEEP");
         run_input_tkeep_phase("sweep_dual_tkeep_img", num_test_images);
+        post_test_drain();
     endtask
 
-    protected task run_output_directed_scenarios();
+    protected task run_output_class0_long_run_scenario();
         int image_indices[$];
 
-        `uvm_info(get_type_name(), "Coverage sweep: directed output scenarios.", UVM_LOW)
-
+        `uvm_info(get_type_name(), "Coverage sweep: class-0 first/repeat/long-run scenario.", UVM_LOW)
         image_indices.delete();
         for (int i = 0; i < 12; i++)
             image_indices.push_back(3);
@@ -458,31 +473,67 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         run_output_directed_phase("out_cfg_class0", "out_img_class0",
                                   "coverage sweep class-0 first/repeat/long-run configuration",
                                   image_indices);
+        post_test_drain();
+    endtask
+
+    protected task run_output_class1_first_repeat_scenario();
+        int image_indices[$];
+
+        `uvm_info(get_type_name(), "Coverage sweep: class-1 first/repeat scenario.", UVM_LOW)
 
         image_indices = '{2, 2, 3};
         run_output_directed_phase("out_cfg_class1", "out_img_class1",
                                   "coverage sweep class-1 first/repeat configuration",
                                   image_indices);
+        post_test_drain();
+    endtask
+
+    protected task run_output_class4_first_scenario();
+        int image_indices[$];
+
+        `uvm_info(get_type_name(), "Coverage sweep: class-4 first scenario.", UVM_LOW)
 
         image_indices = '{4, 18, 30, 0};
         run_output_directed_phase("out_cfg_class4", "out_img_class4",
                                   "coverage sweep class-4 first configuration",
                                   image_indices);
+        post_test_drain();
+    endtask
+
+    protected task run_output_class6_first_scenario();
+        int image_indices[$];
+
+        `uvm_info(get_type_name(), "Coverage sweep: class-6 first scenario.", UVM_LOW)
 
         image_indices = '{8, 0, 17, 3};
         run_output_directed_phase("out_cfg_class6", "out_img_class6",
                                   "coverage sweep class-6 first configuration",
                                   image_indices);
+        post_test_drain();
+    endtask
+
+    protected task run_output_class8_backpressure_scenario();
+        int image_indices[$];
+
+        `uvm_info(get_type_name(), "Coverage sweep: class-8 backpressure scenario.", UVM_LOW)
 
         image_indices = '{84, 84, 3};
         run_output_directed_phase("out_cfg_class8", "out_img_class8",
                                   "coverage sweep class-8 backpressure configuration",
                                   image_indices, 1'b1);
+        post_test_drain();
+    endtask
+
+    protected task run_output_class9_first_repeat_scenario();
+        int image_indices[$];
+
+        `uvm_info(get_type_name(), "Coverage sweep: class-9 first/repeat scenario.", UVM_LOW)
 
         image_indices = '{7, 7, 3};
         run_output_directed_phase("out_cfg_class9", "out_img_class9",
                                   "coverage sweep class-9 first/repeat configuration",
                                   image_indices);
+        post_test_drain();
     endtask
 
     protected task run_threshold_preamble_scenario();
@@ -529,6 +580,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
 
         image_indices = '{15, 15, 7};
         run_scripted_packet_phase("sweep_thresh_preamble_img", image_indices);
+        post_test_drain();
     endtask
 
     protected task run_config_order_scenario();
@@ -569,6 +621,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         run_full_packet_cfg("sweep_cfg_order_full_cfg", model, model,
                             "coverage sweep final full configuration after config-order scenario");
         repeat (10) @(posedge env.cfg_vif.aclk);
+        post_test_drain();
     endtask
 
     protected task run_threshold_abs_scenario();
@@ -581,6 +634,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         run_full_packet_cfg("sweep_thresh_abs_cfg", extreme_model, extreme_model,
                             "coverage sweep threshold-absolute extremes configuration");
         repeat (5) @(posedge env.in_vif.aclk);
+        post_test_drain();
     endtask
 
     protected task run_density_extremes_scenario();
@@ -599,6 +653,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
             image_indices.push_back(3);
         image_indices.push_back(1);
         run_scripted_packet_phase("sweep_density_img", image_indices);
+        post_test_drain();
     endtask
 
     protected task run_pixel_value_scenario();
@@ -606,6 +661,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         run_full_packet_cfg("sweep_pixel_cfg", model, model,
                             "coverage sweep pixel-values full configuration");
         run_pixel_value_phase();
+        post_test_drain();
     endtask
 
     protected task run_input_stress_scenario();
@@ -620,6 +676,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         for (int i = 1; i < INPUT_STRESS_IMAGES; i++)
             image_indices.push_back((i - 1) % 100);
         run_scripted_packet_phase("sweep_input_stress_img", image_indices);
+        post_test_drain();
     endtask
 
     protected task drive_output_ready_gap_profile(input int num_outputs, input int gap_cycles[$]);
@@ -710,6 +767,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         wait_for_scoreboard_total(expected_total);
         set_runtime_num_images(num_test_images);
         ctrl_vif.release_output_ready();
+        post_test_drain();
     endtask
 
     protected task run_weights_only_reconfig_scenario();
@@ -737,6 +795,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
 
         publish_model_handle(expected_model);
         run_beat_image_phase("sweep_weights_post_img", 4);
+        post_test_drain();
     endtask
 
     protected task run_thresh_only_reconfig_scenario();
@@ -770,6 +829,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
 
         publish_model_handle(expected_model);
         run_beat_image_phase("sweep_thresh_only_post_img", 4);
+        post_test_drain();
     endtask
 
     protected task run_partial_reconfig_scenario();
@@ -802,6 +862,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
 
         publish_model_handle(expected_model);
         run_packet_image_phase("sweep_partial_post_img", 5);
+        post_test_drain();
     endtask
 
     protected task run_reset_bins_scenario();
@@ -834,6 +895,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
             many_images.push_back(i % 100);
         run_scripted_packet_phase("sweep_reset_bins_many_img", many_images);
         pulse_reset(5, 1'b1);
+        post_test_drain();
     endtask
 
     protected task run_reset_reconfig_scenario();
@@ -874,6 +936,7 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
         post_img_seq = bnn_fcc_image_packet_sequence::type_id::create("sweep_reset_reconfig_post_img");
         post_img_seq.start(env.in_agent.sequencer);
         wait_for_scoreboard_total(scoreboard_total_before_reset + 4);
+        post_test_drain();
     endtask
 
     task run_phase(uvm_phase phase);
@@ -886,8 +949,14 @@ class bnn_fcc_coverage_sweep_test extends bnn_fcc_reconfig_base_test;
             verify_reference_model();
 
         run_single_beat_scenario();
-        run_tkeep_scenarios();
-        run_output_directed_scenarios();
+        run_input_tkeep_only_scenario();
+        run_cfg_and_input_tkeep_scenario();
+        run_output_class0_long_run_scenario();
+        run_output_class1_first_repeat_scenario();
+        run_output_class4_first_scenario();
+        run_output_class6_first_scenario();
+        run_output_class8_backpressure_scenario();
+        run_output_class9_first_repeat_scenario();
         run_threshold_preamble_scenario();
         run_config_order_scenario();
         run_threshold_abs_scenario();
