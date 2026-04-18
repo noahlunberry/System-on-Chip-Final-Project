@@ -4,7 +4,7 @@
 
 Table~\ref{tab:design-space-results} summarizes the explored design points.
 The first three columns specify the architectural parameters used in each run:
-input bus width, parallel input consumption, and per-layer neuron
+input bus width, parallel inputs, and per-layer neuron
 partitioning. Several design points exceed the maximum operating frequency
 typically associated with BRAM on the target device. However, these results
 were achieved using LUTRAM rather than BRAM, indicating that the datapath
@@ -14,7 +14,7 @@ which excludes board-level I/O and other full-system constraints.
 Consequently, these frequencies should be interpreted as optimistic upper-bound
 estimates rather than fully realizable system-level results. Following the
 FINN-style reporting convention, FPS is computed from the steady-state
-throughput rather than the end-to-end latency:
+throughput:
 \[
 \mathrm{FPS} = \frac{F_{\max}}{\text{cycles/output}}
 \]

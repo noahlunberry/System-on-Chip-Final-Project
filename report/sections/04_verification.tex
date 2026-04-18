@@ -1,18 +1,98 @@
 \section{Verification}
 
-Verification collateral for this design lives under \texttt{verification/} and
-is split between baseline directed smoke tests and a broader UVM environment.
-The initial pass/fail entry point is the checked-in
-\texttt{bnn\_fcc\_single\_beat\_test}. For one-shot functional coverage, the
-repository provides \texttt{bnn\_fcc\_uvm\_cov\_tb} and the composite
-\texttt{bnn\_fcc\_coverage\_sweep\_test}. The README packages that path as the
-\texttt{coverage-sweep-report} flow, which is the most judge-friendly way to
-produce one simulation run, one UCDB, and one text coverage report.
+The UVM environment was built by extending the existing directed
+\texttt{bnn\_fcc\_tb} flow rather than replacing it. The original testbench
+already had the important design-specific assets: the 
+\texttt{BNN\_FCC\_Model}, configuration encoding, image stimulus generation,
+probability-based valid throttling, randomized output backpressure, and
+end-to-end pass/fail checking. The UVM work reorganized those capabilities into
+reusable layers so new tests could vary configuration order, partial
+reconfiguration, \texttt{TKEEP} packetization, reset timing, and image
+selection without rewriting low-level AXI signal code.
 
-The extended UVM tests are targeted at the behaviors that shaped the current
-RTL: partial-beat \texttt{TKEEP} packets, reordered or partial
-reconfiguration, delay-gap and reset corner cases, extreme weight and threshold
-values, extreme pixel values, and deeper custom topologies including the
-ten-hidden-layer stress case. Together, those tests complement the baseline
-smoke result and provide evidence that the stream-oriented control logic works
-outside the simplest configuration and inference sequence.
+\subsection{Top-Level UVM Wrapper}
+
+The top wrapper in \texttt{bnn\_fcc\_uvm\_tb.sv}
+preserves the same runtime controls as the original testbench: topology
+selection, image count, model-verification enable, valid probabilities,
+backpressure mode, timeout, and clock period. It instantiates the DUT together
+with the three AXI4-Stream interfaces for configuration input, image input, and
+output, then publishes those interfaces through \texttt{uvm\_config\_db}.
+
+One useful addition in the UVM flow is \texttt{bnn\_fcc\_ctrl\_if}. That shared
+control interface gives tests, the scoreboard, and the coverage components a
+clean place to coordinate reset and output-ready forcing without directly
+reaching into the top module internals. The wrapper also keeps the output-side
+protocol assertions local to the signal layer, while the scoreboard handles the
+end-to-end functional checks.
+
+\subsection{Environment and Agents}
+
+The main environment in \texttt{bnn\_fcc\_env.sv}
+assembles three protocol agents, one scoreboard, and four coverage collectors.
+The configuration and image agents are active AXI4-Stream masters, while the
+output agent is passive because the DUT owns the output channel. This mirrors
+the real interface roles and keeps the output monitoring separate from output
+ready generation.
+
+The environment forces all three monitors into packet-level mode before
+connecting them. That decision matters because the scoreboard and coverage
+components reason about full configuration messages, full image packets, and
+full outputs rather than isolated beats. The environment then connects each
+monitor to both the scoreboard and the configuration, input, output, and
+cross-stream system coverage blocks.
+
+\subsection{Sequence Architecture}
+
+Most of the reuse in the UVM flow lives in the shared sequence library
+\texttt{bnn\_fcc\_sequences.svh}. The configuration side is built around one
+common base sequence that reuses the shared \texttt{BNN\_FCC\_Model} to
+generate exactly the same legal configuration messages as the original
+testbench. Its key knobs select whether weights and thresholds are included,
+which layers are touched, and what message ordering is used. Together those
+controls cover the important reconfiguration scenarios: full configuration,
+partial configuration, weights-only updates, thresholds-only updates, and
+reordered traffic such as thresholds-first or layer-interleaved streams.
+
+The image side follows the same pattern. A shared base image sequence loads
+stimulus from the same reference path used by the directed testbench, or
+generates randomized images for custom topologies, then packs those images into
+AXI beats. Thin derived classes change only the presentation style: beat-level
+traffic, packet-level traffic, scripted image-index traffic, scripted raw-pixel
+traffic, and \texttt{TKEEP}-repacked packet traffic. This is what keeps
+derived tests short: they choose a scenario, but they do not reimplement model
+knowledge or packet formatting.
+
+\subsection{Scoreboard and Reset Handling}
+
+The scoreboard in \texttt{bnn\_fcc\_scoreboard.svh} is
+state-aware because this design supports both reconfiguration and reset during
+test execution. Instead of comparing outputs immediately at the moment they
+appear, the scoreboard queues expected predictions when input packets arrive.
+Each queued entry stores the expected class, the logical image index, and a
+configuration epoch. Tests call \texttt{commit\_model()} after sending a new
+configuration, and the scoreboard copies that model into an internal snapshot.
+That protects the checks from later test-side edits to the shared model handle.
+
+Reset handling is also explicit. When reset asserts through
+\texttt{ctrl\_if.rst}, the scoreboard clears all pending expectations, marks
+itself unconfigured, and ignores later outputs until a fresh post-reset model
+is committed. This avoids stale pre-reset expectations being compared against
+post-reset outputs. The same scoreboard also tracks average latency and average
+throughput using handshake timestamps reconstructed by the packet monitors.
+
+\subsection{Coverage-Oriented Tests}
+
+Because the infrastructure is layered, focused tests stay short. A test only
+needs to choose a configuration sequence flavor, an image sequence flavor,
+timing stress knobs, and optional reset or reconfiguration events. The shared
+environment handles the agent connections, the scoreboard model snapshots, and
+the coverage collection. The dedicated \texttt{bnn\_fcc\_coverage\_sweep\_test}
+then serializes many of these directed scenarios into one judge-friendly run,
+producing one simulation log, one UCDB, and one text coverage report.
+
+The result is a verification flow that is specific to \texttt{bnn\_fcc} rather
+than a generic UVM demo. The original model and stimulus logic are still the
+source of truth, but UVM turns them into reusable protocol-layer components,
+scenario-driven sequences, and a reset-aware scoreboard that can support a much
+broader set of verification scenarios than the original monolithic testbench.
