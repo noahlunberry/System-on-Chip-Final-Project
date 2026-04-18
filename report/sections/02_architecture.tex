@@ -8,13 +8,12 @@ payloads from threshold payloads. Then each \texttt{bnn\_layer} uses a local
 \texttt{config\_controller} path to distribute those writes across replicated
 RAM banks.
 
-The top-level configuration datapath is implemented in
-\texttt{rtl/config\_manager.sv} with support from
-\texttt{tkeep\_byte\_compactor}, \texttt{vw\_buffer},
-\texttt{config\_manager\_parser}, and \texttt{config\_manager\_pad\_fsm}. Its
-job is to accept the external configuration stream, compact away invalid bytes,
-recover message structure, and emit write-oriented streams that are already
-separated into the weight and threshold paths.
+The top-level configuration datapath is implemented in the top-level
+configuration-manager RTL module. It uses four support blocks: the byte
+compactor, the variable-width buffer, the message parser, and the padding FSM.
+Its job is to accept the external configuration stream, compact away invalid
+bytes, recover message structure, and emit write-oriented streams that are
+already separated into the weight and threshold paths.
 
 The front end of this path is byte-oriented because the external interface can
 arrive with sparse valid-byte patterns. The parser then restores the higher
@@ -65,6 +64,40 @@ packer FIFOs into the wider aligned write words expected by each layer. Using
 the same variable-read FIFO style for both staging and repacking keeps the byte
 injection mechanism simple: the pad FSM only has to control one downstream
 byte-write interface, even though the final writes leave as much wider words.
+
+\subsection{FIFO Sizing and Backpressure}
+
+The configuration path was also an opportunity to minimize buffering rather
+than maximize throughput. Unlike the compute phase, there was no contest
+performance target on the configuration stream, so the FIFOs were sized only
+large enough to decouple adjacent stages and absorb the known in-flight data
+already inside the pipeline. That kept the storage structures small and avoided
+adding unnecessary area or deeper buffer-management logic to a path that only
+needs to configure the design before inference.
+
+The main place where this matters is the byte-serialization FIFO inside
+\texttt{rtl/config\_manager.sv}. The external stream first arrives in wide AXI
+beats, then gets compacted and repacked before the parser consumes only one
+byte per cycle. That width conversion creates the real burst-mismatch point in
+the design, so this serializer FIFO is the only configuration buffer that
+needs meaningful headroom. Even there, the design still keeps the FIFO small
+and relies on early backpressure: \texttt{config\_ready} is driven from the
+FIFO's almost-full flag rather than from its true full flag. The almost-full
+threshold is set with an explicit reserve for the three whole write words that
+can still be in flight after \texttt{config\_ready} deasserts: one word
+buffered in \texttt{vw\_buffer}, one in the local write pipeline, and one more
+still emerging from the registered byte compactor. By stalling one write slot
+early, the design guarantees those words still fit without having to over-size
+the FIFO.
+
+The downstream buffers are kept even smaller because they are only local
+decoupling points. The weight-byte FIFO is just a short queue between the
+parser and the pad FSM, the threshold FIFO only needs enough storage to repack
+threshold bytes into words, and each layer packer FIFO holds only a very small
+number of aligned output words. In other words, the design uses just enough
+elasticity to tolerate local staging differences, then leans on almost-full
+driven upstream throttling and explicit FSM stall signals to keep the
+configuration stream safe instead of paying for large buffers everywhere.
 
 \clearpage
 \begin{strip}
