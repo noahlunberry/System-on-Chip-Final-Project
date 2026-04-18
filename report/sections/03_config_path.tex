@@ -51,44 +51,51 @@ first-layer datapath.
 \end{strip}
 \clearpage
 
-\subsection{Replay and Input Alignment}
-
-Inside \texttt{rtl/bnn\_layer.sv}, the forward path begins with the local
-\texttt{replay\_buffer}. This block allows one accepted activation frame to be
-reused across the repeated neuron-group computations required by the layer,
-instead of demanding the external source resend the same activations for every
-parallel-neuron slice. The replayed activation word then passes through the
-explicit alignment delay stage so it reaches the neuron processors in step with
-the parameter-read pipeline.
-
-That alignment stage matters because the RAM path is not a single-cycle lookup.
-Between the controller scheduling, local per-bank address registers, and the
-registered RAM outputs, the weight and threshold operands emerge several cycles
-after the replay buffer launches the activation word. Keeping the input side
-explicitly delayed in the diagram makes that timing relationship much easier to
-understand than burying it inside the controller or RAM descriptions.
-
-\subsection{Read Control and Neuron Array}
-
-The second half of the compute phase is the parameter-read and evaluation path.
-\texttt{neuron\_controller} sequences the shared weight and threshold read
-addresses, while the banked RAM structures provide one local operand stream per
-parallel neuron. The gray read-register stages shown in the diagram represent
-the staging/alignment points that keep the controller side, RAM side, and
-neuron-processor side synchronized. Finally, the \texttt{u\_np[gi]} array
-consumes aligned activations, weights, and thresholds and produces the next
-layer's output bits along with the accumulator counts used by the last-stage
-argmax tree.
-
-As in the configuration phase, the implementation is easier to follow because
-the responsibilities are divided cleanly: replay and alignment handle the
-activation side, the controller and RAM banks handle operand scheduling, and
-the neuron processors perform the actual XNOR-accumulate-and-threshold work.
-
 \clearpage
 \begin{strip}
+  \begin{minipage}[t]{0.48\textwidth}
+    \subsection{Replay and Input Alignment}
+
+    Inside \texttt{rtl/bnn\_layer.sv}, the forward path begins with the local
+    \texttt{replay\_buffer}. This block allows one accepted activation frame to
+    be reused across the repeated neuron-group computations required by the
+    layer, instead of demanding the external source resend the same activations
+    for every parallel-neuron slice. The replayed activation word then passes
+    through the explicit alignment delay stage so it reaches the neuron
+    processors in step with the parameter-read pipeline.
+
+    That alignment stage matters because the RAM path is not a single-cycle
+    lookup. Between the controller scheduling, local per-bank address registers,
+    and the registered RAM outputs, the weight and threshold operands emerge
+    several cycles after the replay buffer launches the activation word.
+    Keeping the input side explicitly delayed in the diagram makes that timing
+    relationship much easier to understand than burying it inside the
+    controller or RAM descriptions.
+  \end{minipage}\hfill
+  \begin{minipage}[t]{0.48\textwidth}
+    \subsection{Read Control and Neuron Array}
+
+    The second half of the compute phase is the parameter-read and evaluation
+    path. \texttt{neuron\_controller} sequences the shared weight and threshold
+    read addresses, while the banked RAM structures provide one local operand
+    stream per parallel neuron. The gray read-register stages shown in the
+    diagram represent the staging/alignment points that keep the controller
+    side, RAM side, and neuron-processor side synchronized. Finally, the
+    \texttt{u\_np[gi]} array consumes aligned activations, weights, and
+    thresholds and produces the next layer's output bits along with the
+    accumulator counts used by the last-stage argmax tree.
+
+    As in the configuration phase, the implementation is easier to follow
+    because the responsibilities are divided cleanly: replay and alignment
+    handle the activation side, the controller and RAM banks handle operand
+    scheduling, and the neuron processors perform the actual
+    XNOR-accumulate-and-threshold work.
+  \end{minipage}
+
+  \vspace{0.75em}
+
   \centering
-  \resizebox{0.95\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
+  \resizebox{0.86\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
   \captionof{figure}{Simplified compute flow inside one \texttt{bnn\_layer}.
   The light gray blocks mark the explicit staging and alignment registers in the
   activation and read-data paths.}
@@ -97,4 +104,29 @@ the neuron processors perform the actual XNOR-accumulate-and-threshold work.
   RAM banks, and the final neuron-processor array that produces outputs.}
   \label{fig:bnn-layer-compute}
 \end{strip}
+
+\subsection{Recursive Reduction Trees}
+
+Inside the neuron datapath, the XNOR-popcount reduction is implemented with the
+recursive pipelined tree in \texttt{rtl/xnor\_add\_tree.sv}, which then hands
+its partial counts to the recursive \texttt{rtl/add\_tree.sv} reduction stage.
+The structure was inspired by Greg Stitt's recursive adder-tree approach on
+StittHub, but adapted here for the binary XNOR-accumulate workload used by the
+BNN layer. The main benefit of that recursive structure is that it naturally
+builds a balanced pipelined reduction instead of a long linear accumulation
+chain, so the reduction depth grows logarithmically with the parallel-input
+count.
+
+There is also one more explicit register cut after the tree output inside
+\texttt{rtl/neuron\_processor.sv}. When the last partial sum for a neuron
+arrives, the final accumulated count and aligned threshold are first captured
+locally, and only in the following cycle does the design perform the
+threshold-compare operation. That extra register stage splits the reduction path
+from the comparison logic so the tree output plus compare no longer form one
+combined critical path.
+
+The output block uses the same general idea. The class-score reduction in
+\texttt{rtl/argmax\_tree.sv} is also implemented as a recursive pipelined tree,
+with generated alignment delays on the shorter branch and a registered compare
+at each merge point.
 \clearpage

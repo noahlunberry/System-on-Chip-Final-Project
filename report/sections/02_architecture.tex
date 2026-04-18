@@ -106,4 +106,31 @@ own step in the overall configuration phase.
   \label{fig:config-controller-block}
 \end{strip}
 
+\subsection{Timing Optimizations}
+
+This layer-local write-distribution block turned into one of the important
+timing problems in the overall design because it sits between a relatively
+compact control source and a wide set of physically distributed RAM banks. As
+the neuron count grows, the weight and threshold write enables, bank selects,
+addresses, and data all have to fan out across many destinations. That makes
+the path sensitive not only to logic depth, but also to placement and routing
+distance.
+
+The solution used here was to instantiate the staging registers explicitly and
+preserve them with \texttt{keep}. Without that constraint, synthesis tended to
+absorb or merge the hand-placed pipeline stages back into neighboring logic,
+which removed the intended timing cut and recreated the same long fanout path.
+By keeping those registers structurally visible, the implementation preserves a
+clear controller stage followed by a separate fanout stage.
+
+In practice, two register stages are used. The first stage captures the
+incoming write stream and controller-facing control signals near the local
+configuration ingress. The second stage sits at the RAM-distribution boundary
+and re-drives the per-bank write signals toward the replicated memories. That
+extra stage matters because the RAM banks can end up placed far apart after
+implementation; they are not guaranteed to remain close to the controller or to
+each other. With the additional retiming point, the placer and router have much
+more freedom to cluster the final fanout stage near the RAM banks, which is why
+this path no longer dominates the critical timing after optimization.
+
 \clearpage
