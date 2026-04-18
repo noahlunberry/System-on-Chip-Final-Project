@@ -2,6 +2,10 @@
 
 This folder contains a parameterized SystemVerilog testbench for verifying the fully connected binary neural network classifier. It supports both a fixed SFC topology (784-256-256-10) for MNIST digit recognition and user-defined custom topologies.
 
+Legacy module-level testbenches such as `bnn_layer_tb.sv`, `bnn_layer_preconfig_tb.sv`,
+`bnn_tb.sv`, `bnn_tb_pkg.sv`, and `neuron_processor_tb.sv` are stored under
+`verification/unit tests/`.
+
 ## Features
 * **Dual Mode Operation**: Toggle between trained MNIST weights or randomized models for architectural exploration.
 * **AXI4-Stream Integration**: Fully compliant handshaking with configurable bus widths and randomized back-pressure/validity.
@@ -23,7 +27,9 @@ This folder contains a parameterized SystemVerilog testbench for verifying the f
 #### GUI Mode
 
 1. Create a project in your simulator.
-1. Add all files in the rtl/ and verification/ folder.
+1. Add all files in the `rtl/` and `verification/` folders. If you want to run
+   the legacy module-level benches, also include the files under
+   `verification/unit tests/`.
 1. Edit the parameters in bnn_fcc_tb.sv to customize your simulation.
 1. Compile all files.
 1. Start a simulation using the bnn_fcc_tb testbench.
