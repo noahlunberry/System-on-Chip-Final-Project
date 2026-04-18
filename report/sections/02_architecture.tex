@@ -18,17 +18,6 @@ job is to accept the external configuration stream, compact away invalid bytes,
 recover message structure, and emit write-oriented streams that are already
 separated into the weight and threshold paths.
 
-\begin{strip}
-  \centering
-  \resizebox{!}{0.41\textheight}{\input{figures/config_manager_diagram}}
-  \captionof{figure}{Block diagram of the \texttt{config\_manager} datapath and
-  its primary interface signals.}
-  \Description{Vertical block diagram of the configuration manager showing
-  byte compaction, repacking, parsing, weight padding, threshold packing, and
-  the external write interfaces that leave the module.}
-  \label{fig:config-manager}
-\end{strip}
-
 The front end of this path is byte-oriented because the external interface can
 arrive with sparse valid-byte patterns. The parser then restores the higher
 level meaning of the stream by decoding the message header, choosing the weight
@@ -37,6 +26,16 @@ padding logic. On the weight side, the pad state machine inserts synthetic
 bytes so the downstream layer packers can emit aligned write words.
 
 \clearpage
+\begin{strip}
+  \centering
+  \resizebox{!}{0.73\textheight}{\input{figures/config_manager_diagram}}
+  \captionof{figure}{Block diagram of the \texttt{config\_manager} datapath and
+  its primary interface signals.}
+  \Description{Vertical block diagram of the configuration manager showing
+  byte compaction, repacking, parsing, weight padding, threshold packing, and
+  the external write interfaces that leave the module.}
+  \label{fig:config-manager}
+\end{strip}
 
 \subsection{Layer-Local Write Distribution}
 
@@ -47,22 +46,23 @@ surrounding staging registers in \texttt{rtl/bnn\_layer.sv}. The controller
 generates the bank-select and address signals, while the aligned data stream
 bypasses the controller datapath and is retimed for fanout.
 
-\begin{figure*}[t]
-  \centering
-  \resizebox{!}{0.31\textheight}{\input{figures/config_controller_diagram}}
-  \caption{Layer-local config-write distribution around
-  \texttt{config\_controller}. The highlighted fanout pipeline registers are
-  the timing-cut stage that drives the per-bank weight and threshold RAMs.}
-  \Description{Block diagram of the layer-local configuration write path
-  showing staged weight and threshold inputs, the config controller, timing-cut
-  fanout registers, and replicated RAM banks for weight and threshold storage.}
-  \label{fig:config-controller-block}
-\end{figure*}
-
 Those fanout pipeline registers are a central part of the implementation, not a
 minor detail. They cut the long controller-to-BRAM distribution path into a
 manageable stage while preserving a steady stream of writes after the pipeline
 fills. That is why this report treats the local write-distribution block as its
 own step in the overall configuration phase.
+
+\clearpage
+\begin{strip}
+  \centering
+  \resizebox{0.90\textwidth}{!}{\input{figures/config_controller_diagram}}
+  \captionof{figure}{Layer-local config-write distribution around
+  \texttt{config\_controller}. The light gray fanout pipeline registers mark
+  the timing-cut stage that drives the per-bank weight and threshold RAMs.}
+  \Description{Block diagram of the layer-local configuration write path
+  showing staged weight and threshold inputs, the config controller, timing-cut
+  fanout registers, and replicated RAM banks for weight and threshold storage.}
+  \label{fig:config-controller-block}
+\end{strip}
 
 \clearpage

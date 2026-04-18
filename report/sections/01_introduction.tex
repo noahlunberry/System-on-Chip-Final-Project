@@ -24,9 +24,3 @@ contains the replicated layer datapaths that perform inference.
   \label{fig:bnn-fcc-top}
 \end{strip}
 
-The top-level structure is intentionally streaming-oriented. Rather than
-converting everything into a single global control machine, each phase reshapes
-the incoming stream into a form that is locally useful to the next stage. That
-same idea appears again inside the configuration and compute phases, where
-staging FIFOs and fanout pipeline registers are used to keep the control
-problem manageable and the timing paths short.

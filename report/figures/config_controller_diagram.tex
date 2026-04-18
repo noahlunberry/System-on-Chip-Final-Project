@@ -13,6 +13,10 @@
     block,
     minimum width=72mm
   },
+  timingblock/.style={
+    block,
+    fill=black!8
+  },
   data/.style={->, thick},
   bus/.style={
     ->,
@@ -41,10 +45,10 @@
 \node[wideblock] (ctrlblk) at (0,-5.1)
   {Config Controller\\[-1pt]\texttt{config\_controller}\\[-1pt]\textit{bank select + address generation}};
 
-\node[block] (wfan) at (-8.2,-10.7)
+\node[timingblock] (wfan) at (-8.2,-10.7)
   {Weight Fanout Regs\\[-1pt]\textit{timing cut before RAM banks}};
 
-\node[block] (tfan) at (8.2,-10.7)
+\node[timingblock] (tfan) at (8.2,-10.7)
   {Threshold Fanout Regs\\[-1pt]\textit{timing cut before RAM banks}};
 
 \node[block] (wram) at (-8.2,-16.0)

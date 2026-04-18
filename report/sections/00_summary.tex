@@ -21,7 +21,7 @@ the final submission measurements once the selected point is locked.
       \textbf{Throughput} & \textbf{Latency} &
       \textbf{FPS} & \textbf{Resource Utilization} \\
       \midrule
-      64   & 32  & ---           & 722 & 105  & 290.2 & --- & --- \\
+      64   & 32  & 64,32,10      & 722 & 105  & 290.2 & --- & --- \\
       128  & 64  & 64,32,10      & 635 & 56.1 & 195.2 & --- & --- \\
       256  & 128 & 64,64,10      & 501 & 32.2 & 130.2 & --- & --- \\
       512  & 128 & 256,64,10     & --- & 17.8 & 95.2  & --- & --- \\
@@ -30,6 +30,12 @@ the final submission measurements once the selected point is locked.
     \end{tabular}%
   }
 \end{strip}
+
+\paragraph{Important Judging Notes.}
+Use -p 1.2 in OpenFLEX when building the design. I found this to be most consistent 
+as Vivado gives up early otherwise.
+Also, I was not able to get the openFLEX timing to work, as I am on a Windows device and 
+the commands did not work. To verify results please use make sim-original-tb.
 
 \subsection{Implementation and Tradeoffs}
 
@@ -66,8 +72,7 @@ between image streams, as well as customizable hidden layers and topologies.
 
 The base testbench was extended into a UVM flow to verify functionality beyond
 the nominal contest path and to provide more complete coverage of the design.
-The UVM sweep was used to verify the extended functionality beyond the nominal
-contest path: partial \texttt{TKEEP} configuration and input streams,
+Some of this behavior includes: partial \texttt{TKEEP} configuration and input streams,
 interleaved and reordered configuration traffic, weights-only and
 thresholds-only reconfiguration, partial-layer updates, deeper hidden-layer
 topologies, extreme threshold/weight/pixel values, long inter-transaction

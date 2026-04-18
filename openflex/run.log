@@ -53,3 +53,45 @@ Reading pref.tcl
 
 # 2020.1
 
+# vsim -c work.bnn_fcc_tb -do "run -all; quit -f" -gINPUT_BUS_WIDTH=64 -gINPUT_DATA_WIDTH=8 -gBASE_DIR=../../python -gOUTPUT_BUS_WIDTH=8 -gOUTPUT_DATA_WIDTH=4 -gCONFIG_VALID_PROBABILITY=0.8 -gCONFIG_BUS_WIDTH=64 -gTOGGLE_DATA_OUT_READY=0 -gTOTAL_LAYERS=4 -gDATA_IN_VALID_PROBABILITY=0.8 -gUSE_CUSTOM_TOPOLOGY=0 
+# Start time: 22:44:15 on Apr 17,2026
+# Loading sv_std.std
+# Loading work.bnn_fcc_tb_pkg
+# Loading work.bnn_fcc_tb
+# Loading work.axi4_stream_if
+# Loading work.bnn_fcc
+# Loading work.config_manager
+# Loading work.tkeep_byte_compactor
+# Loading work.vw_buffer
+# Loading work.fifo_vr
+# Loading work.config_manager_parser
+# Loading work.config_manager_pad_fsm
+# Loading work.data_in_manager
+# Loading work.bnn
+# Loading work.argmax_tree
+# Loading work.delay
+# Loading work.bnn_layer
+# Loading work.replay_buffer
+# Loading work.ram_sdp
+# Loading work.config_controller
+# Loading work.neuron_controller
+# Loading work.register
+# Loading work.neuron_processor
+# Loading work.xnor_add_tree
+# Loading work.add_tree
+# ** Warning: (vsim-8311) System Verilog assertions are supported only in Questasim.
+# ** Warning: Design size of 11584 instances exceeds ModelSim - Intel FPGA Starter Edition recommended capacity.
+# This may because you are loading cell libraries which are not recommended with
+# the ModelSim - Intel FPGA Edition. Expect performance to be adversely affected.
+# run -all
+# --- Loading Trained Model ---
+# BNN_FCC_Stimulus: Loaded 100 vectors from ../../python/test_vectors/inputs.hex
+# SV model successfully verified.
+# --- Configuration created: 4466 words (64-bit wide) ---
+# --- Loading Test Vectors ---
+# BNN_FCC_Stimulus: Loaded 50 vectors from ../../python/test_vectors/inputs.hex
+# BNN Model: 3 Layers, 784 Inputs
+#   Layer 0 (hidden): 256 Neurons
+#   Layer 1 (hidden): 256 Neurons
+#   Layer 2 (output): 10 Neurons
+# [95 ns] Streaming weights and thresholds.
