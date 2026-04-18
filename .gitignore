@@ -17,3 +17,6 @@ wlftorkTRp
 *.ucdb
 coverage/logs
 modelsim.ini
+AGENTS.md
+make.log
+doc/
