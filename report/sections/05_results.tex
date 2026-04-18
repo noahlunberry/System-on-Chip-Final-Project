@@ -1,21 +1,19 @@
-\chapter{Results}
+\section{Results}
 
-Implementation and synthesis-related artifacts already exist in the repository,
-especially under \texttt{openflex/}. This section can be used to consolidate
-the final numbers and explain the tradeoffs behind them.
+Table~\ref{tab:design-space-results} front-loads the main quantitative summary
+for judging, so this section only records the interpretation. Across the sweep,
+wider input buses and more aggressive neuron parallelism reduce latency and
+raise throughput, but they also push harder on timing closure and memory
+distribution. That trend is consistent with the structure of the RTL: the
+compute side can consume more work per step only if the replay path, banked
+RAMs, and neuron processors all scale with it.
 
-\section{Recommended Additions}
-
-Consider adding:
-
-\begin{itemize}
-  \item resource utilization tables,
-  \item timing summaries,
-  \item throughput estimates,
-  \item memory-structure tradeoffs, and
-  \item comparisons across the CSV result sets in \texttt{openflex/csv\_runs/}.
-\end{itemize}
-
-% TODO:
-% - Add a table populated from the final OpenFlex/Vivado run you want to cite.
-% - Add a short explanation of the chosen design point.
+The implementation strategy for that tradeoff is visible in the architecture
+figures. Configuration writes are staged and fanned out through explicit
+pipeline registers, while the compute path uses replay buffering and separate
+read-control logic to keep activation availability decoupled from local RAM
+access sequencing. Final synthesis and implementation artifacts are stored
+under \texttt{openflex/}, especially the CSV summaries in
+\texttt{openflex/csv\_runs/}. The submitted operating point should therefore be
+the row that best balances throughput gain against LUT, register, BRAM, and
+timing cost once the final resource numbers are locked.

@@ -1,87 +1,68 @@
-\chapter{Architecture Overview}
+\section{Configuration Phase}
 
-The top-level module is \texttt{rtl/bnn\_fcc.sv}. It instantiates:
+The configuration phase runs before inference and is responsible for converting
+the serialized parameter stream into aligned per-layer writes. In this design,
+that work is intentionally split into two levels. First, the top-level
+\texttt{config\_manager} reshapes the incoming byte stream and separates weight
+payloads from threshold payloads. Then each \texttt{bnn\_layer} uses a local
+\texttt{config\_controller} path to distribute those writes across replicated
+RAM banks.
 
-\begin{itemize}
-  \item \texttt{config\_manager} for loading weights and thresholds,
-  \item \texttt{data\_in\_manager} for preparing input activations, and
-  \item \texttt{bnn} for the core fully connected inference pipeline.
-\end{itemize}
+\subsection{Configuration Manager}
 
-The structure is intentionally streaming-oriented. Configuration and input data
-arrive over AXI-style interfaces, are reshaped internally to match the
-processing granularity of the design, and are then routed into the layer-local
-compute and storage paths.
+The top-level configuration datapath is implemented in
+\texttt{rtl/config\_manager.sv} with support from
+\texttt{tkeep\_byte\_compactor}, \texttt{vw\_buffer},
+\texttt{config\_manager\_parser}, and \texttt{config\_manager\_pad\_fsm}. Its
+job is to accept the external configuration stream, compact away invalid bytes,
+recover message structure, and emit write-oriented streams that are already
+separated into the weight and threshold paths.
 
-\section{Top-Level Dataflow}
-
-The top-level signal flow in \texttt{bnn\_fcc} is:
-
-\begin{enumerate}
-  \item configuration traffic enters \texttt{config\_manager},
-  \item image traffic enters \texttt{data\_in\_manager},
-  \item weight and threshold writes program the layer memories inside
-  \texttt{bnn}, and
-  \item classification outputs are staged into the output FIFO before leaving
-  the design.
-\end{enumerate}
-
-\begin{figure}[p]
+\begin{strip}
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/bnn_fcc_diagram}}
-  \caption{Top-level organization of \texttt{rtl/bnn\_fcc.sv}. Configuration,
-  activation ingress, compute, argmax reduction, and output buffering are shown
-  with the main inter-module control signals.}
-  \label{fig:bnn-fcc-top}
-\end{figure}
+  \resizebox{!}{0.41\textheight}{\input{figures/config_manager_diagram}}
+  \captionof{figure}{Block diagram of the \texttt{config\_manager} datapath and
+  its primary interface signals.}
+  \Description{Vertical block diagram of the configuration manager showing
+  byte compaction, repacking, parsing, weight padding, threshold packing, and
+  the external write interfaces that leave the module.}
+  \label{fig:config-manager}
+\end{strip}
 
-\section{Module Responsibilities}
+The front end of this path is byte-oriented because the external interface can
+arrive with sparse valid-byte patterns. The parser then restores the higher
+level meaning of the stream by decoding the message header, choosing the weight
+or threshold destination, and generating the control metadata needed by the
+padding logic. On the weight side, the pad state machine inserts synthetic
+bytes so the downstream layer packers can emit aligned write words.
 
-\texttt{config\_manager} is responsible for byte compaction, payload parsing,
-weight padding, and conversion into per-layer memory writes.
+\clearpage
 
-\texttt{data\_in\_manager} converts the incoming image stream into the binary
-words expected by the first BNN layer.
+\subsection{Layer-Local Write Distribution}
 
-\texttt{bnn} and the instantiated \texttt{bnn\_layer} modules consume the
-prepared activations and stored parameters to compute the network output.
+After the top-level parser finishes that global reshaping step, each
+\texttt{bnn\_layer} still has to fan the write stream out to replicated local
+memories. That is the purpose of \texttt{config\_controller} and the
+surrounding staging registers in \texttt{rtl/bnn\_layer.sv}. The controller
+generates the bank-select and address signals, while the aligned data stream
+bypasses the controller datapath and is retimed for fanout.
 
-\section{Layer Compute Flow}
-
-Inside \texttt{rtl/bnn\_layer.sv}, the forward path is organized around three
-cooperating pieces: the replay/input side, the RAM/control side, and the neuron
-processor array. Input activations are buffered and aligned before entering the
-parallel neuron processors. In parallel, \texttt{neuron\_controller} sequences
-shared RAM reads, while the layer-local config path fans weight and threshold
-writes into the per-bank memories. The diagram below keeps those write and read
-paths visible because both sets of local fanout registers matter to how the RTL
-meets timing.
-
-\begin{figure}[p]
+\begin{figure*}[t]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
-  \caption{Simplified block view of the compute flow inside one
-  \texttt{bnn\_layer}. The replay buffer, controller-driven RAM reads, local
-  fanout registers, and neuron-processor array are shown together so the layer
-  timing cuts remain visible.}
-  \label{fig:bnn-layer-compute}
-\end{figure}
+  \resizebox{!}{0.31\textheight}{\input{figures/config_controller_diagram}}
+  \caption{Layer-local config-write distribution around
+  \texttt{config\_controller}. The highlighted fanout pipeline registers are
+  the timing-cut stage that drives the per-bank weight and threshold RAMs.}
+  \Description{Block diagram of the layer-local configuration write path
+  showing staged weight and threshold inputs, the config controller, timing-cut
+  fanout registers, and replicated RAM banks for weight and threshold storage.}
+  \label{fig:config-controller-block}
+\end{figure*}
 
-\section{Input Path}
+Those fanout pipeline registers are a central part of the implementation, not a
+minor detail. They cut the long controller-to-BRAM distribution path into a
+manageable stage while preserving a steady stream of writes after the pipeline
+fills. That is why this report treats the local write-distribution block as its
+own step in the overall configuration phase.
 
-The input side mirrors several of the same structural ideas used in the
-configuration path. \texttt{data\_in\_manager} first compacts valid AXI bytes
-with the registered \texttt{tkeep\_byte\_compactor}, applies local frame and
-padding control, repacks the stream with \texttt{vw\_buffer}, binarizes each
-pixel, and finally stages the result in a FIFO before handing it to
-\texttt{bnn}.
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{figures/data_in_manager_diagram}}
-  \caption{Block diagram of the \texttt{data\_in\_manager} datapath and its
-  primary interface signals.}
-  \label{fig:data-in-manager}
-\end{figure}
-
-% - Add a short paragraph explaining your chosen parallelization parameters.
+\clearpage

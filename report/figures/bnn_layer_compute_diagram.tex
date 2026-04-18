@@ -18,15 +18,10 @@
     draw,
     thick,
     rounded corners=1pt,
-    minimum width=42mm,
+    minimum width=44mm,
     minimum height=20mm,
     align=center,
     font=\large
-  },
-  wideblock/.style={
-    block,
-    minimum width=98mm,
-    minimum height=32mm
   },
   data/.style={->, thick},
   bus/.style={
@@ -40,172 +35,135 @@
       }
     }
   },
-  ctrl/.style={->, thick, dashed},
   iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
   sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
   portsig/.style={font=\normalsize\bfseries\ttfamily, fill=white, inner sep=1pt, anchor=east, align=right}
 ]
 
-\node[font=\Large\bfseries] at (2.8,5.7) {BNN Layer Compute Flow};
+\node[font=\Large\bfseries] at (3.0,3.8) {BNN Layer Compute Flow};
 
-\node[wideblock] (cfg) at (0,0)
-  {Config Path\\[-1pt]\textit{staging + addr gen}};
-
-\node[smallblock] (wwrite) at (7.0,-4.5)
-  {W Write\\Reg};
-
-\node[smallblock] (twrite) at (13.0,-4.5)
-  {T Write\\Reg};
-
-\node[block] (replay) at (-14,-9.6)
+\node[block] (replay) at (-14.0,-5.0)
   {Replay Buffer\\[-1pt]\texttt{replay\_buffer}};
 
-\node[smallblock] (align) at (-6.4,-9.6)
+\node[smallblock] (align) at (-6.6,-5.0)
   {Align\\Delay};
 
-\node[block] (wram) at (7.0,-9.6)
-  {Weight RAM Banks\\[-1pt]\texttt{u\_w\_ram[gi]}};
-
-\node[wideblock] (nc) at (-14,-15.0)
-  {Neuron Controller\\[-1pt]\texttt{neuron\_controller}};
-
-\node[smallblock] (wread) at (-0.8,-9.6)
+\node[smallblock] (wread) at (-0.4,-5.0)
   {W Read\\Regs};
 
-\node[smallblock] (tread) at (-0.8,-15.0)
+\node[block] (wram) at (8.0,-5.0)
+  {Weight RAM Banks\\[-1pt]\texttt{u\_w\_ram[gi]}};
+
+\node[block] (nc) at (-14.0,-10.8)
+  {Neuron Controller\\[-1pt]\texttt{neuron\_controller}};
+
+\node[smallblock] (tread) at (-0.4,-10.8)
   {T Read\\Regs};
 
-\node[block] (tram) at (7.0,-15.0)
+\node[block] (tram) at (8.0,-10.8)
   {Threshold RAM Banks\\[-1pt]\texttt{u\_t\_ram[gi]}};
 
-\node[tallblock] (np) at (21.0,-12.0)
+\node[tallblock] (np) at (20.8,-7.9)
   {Neuron Processors\\[-1pt]\texttt{u\_np[gi]}\\[-1pt]\textit{+ output regs}};
 
-\coordinate (npXin) at ([yshift=7mm]np.west);
-\coordinate (npWin) at ([yshift=3mm]np.west);
-\coordinate (npTin) at ([yshift=-5mm]np.west);
-\coordinate (npVin) at ([yshift=-10mm]np.west);
-\coordinate (npLastin) at ([yshift=-14mm]np.west);
-\coordinate (xEntry) at ($(npXin)+(-4mm,0)$);
-\coordinate (wEntry) at ($(npWin)+(-12mm,0)$);
-\coordinate (tEntry) at ($(npTin)+(-10mm,0)$);
-\coordinate (vEntry) at ($(npVin)+(-8mm,0)$);
-\coordinate (lastEntry) at ($(npLastin)+(-6mm,0)$);
+\coordinate (npXin) at ([yshift=8mm]np.west);
+\coordinate (npWin) at ([yshift=4mm]np.west);
+\coordinate (npTin) at ([yshift=-3mm]np.west);
+\coordinate (npVin) at ([yshift=-8mm]np.west);
+\coordinate (npLastin) at ([yshift=-13mm]np.west);
+
+\coordinate (xEntry) at ([xshift=-14mm]npXin);
+\coordinate (wEntry) at ([xshift=-12mm]npWin);
+\coordinate (tEntry) at ([xshift=-10mm]npTin);
+\coordinate (vEntry) at ([xshift=-8mm]npVin);
+\coordinate (lastEntry) at ([xshift=-6mm]npLastin);
 
 % Layer interface inputs
-\draw[bus] ([xshift=-30mm,yshift=18mm]cfg.north) -- ([xshift=-30mm]cfg.north);
-\node[iface] at ([xshift=-30mm,yshift=20.5mm]cfg.north) {\texttt{w\_data}};
-
-\draw[data] ([xshift=-10mm,yshift=18mm]cfg.north) -- ([xshift=-10mm]cfg.north);
-\node[iface] at ([xshift=-10mm,yshift=20.5mm]cfg.north) {\texttt{w\_en}};
-
-\draw[bus] ([xshift=10mm,yshift=18mm]cfg.north) -- ([xshift=10mm]cfg.north);
-\node[iface] at ([xshift=10mm,yshift=20.5mm]cfg.north) {\texttt{t\_data}};
-
-\draw[data] ([xshift=30mm,yshift=18mm]cfg.north) -- ([xshift=30mm]cfg.north);
-\node[iface] at ([xshift=30mm,yshift=20.5mm]cfg.north) {\texttt{t\_en}};
-
-\draw[bus] ([yshift=4mm]replay.west) -- ++(-4.0,0);
+\draw[bus] ([yshift=4mm]replay.west) -- ++(-4.2,0);
 \node[iface] at ($(replay.west)+(-23mm,4mm)$) {\texttt{data\_in}};
 
-\draw[data] ([yshift=-4mm]replay.west) -- ++(-4.0,0);
+\draw[data] ([yshift=-4mm]replay.west) -- ++(-4.2,0);
 \node[iface] at ($(replay.west)+(-23mm,-4mm)$) {\texttt{valid\_in}};
 
 \coordinate (rdyLane) at ($(replay.north west)+(-1.8,0)$);
-\coordinate (rdyTop) at ($(rdyLane |- cfg.north)+(0,10mm)$);
+\coordinate (rdyTop) at ($(rdyLane)+(0,9.5)$);
 \draw[thick] (replay.north west) -- (rdyLane);
 \draw[data] (rdyLane) -- (rdyTop);
 \node[iface] at ($(rdyTop)+(0,2.3mm)$) {\texttt{ready\_in}};
 
 % Layer outputs
-\draw[data] ([yshift=10mm]np.east) -- ++(4.6,0);
+\draw[data] ([yshift=10mm]np.east) -- ++(4.8,0);
 \node[iface] at ($(np.east)+(24mm,10mm)$) {\texttt{valid\_out}};
 
-\draw[bus] (np.east) -- ++(4.6,0);
-\node[iface] at ($(np.east)+(24mm,0mm)$) {\texttt{data\_out}};
+\draw[bus] (np.east) -- ++(4.8,0);
+\node[iface] at ($(np.east)+(24mm,0)$) {\texttt{data\_out}};
 
 \draw[bus] ([xshift=10mm]np.south) -- ++(0,-2.8);
 \node[iface] at ([xshift=10mm,yshift=-3.4mm]np.south) {\texttt{count\_out}};
-
-% Config write path to RAMs
-\coordinate (cfgW0) at ([xshift=14mm]cfg.south);
-\coordinate (cfgW1) at ($(wwrite.north)+(0,0.9)$);
-\coordinate (cfgW2) at (cfgW1 -| cfgW0);
-\draw[ctrl] (cfgW0) -- (cfgW2) -- (cfgW1) -- (wwrite.north);
-
-\coordinate (cfgT0) at ([xshift=28mm]cfg.south);
-\coordinate (cfgT1) at ($(twrite.north)+(0,0.9)$);
-\coordinate (cfgT2) at (cfgT1 -| cfgT0);
-\draw[ctrl] (cfgT0) -- (cfgT2) -- (cfgT1) -- (twrite.north);
-
-\draw[bus] (wwrite.south) -- (wram.north);
-
-\coordinate (tWriteIn) at ([xshift=18mm]tram.north);
-\coordinate (tWriteA) at ($(tWriteIn)+(0,1.1)$);
-\coordinate (tWriteB) at (tWriteA -| twrite.south);
-\draw[bus] (twrite.south) -- (tWriteB) -- (tWriteA) -- (tWriteIn);
 
 % Replay path
 \draw[bus] (replay.east) -- (align.west)
   node[pos=0.50,above,sig] {\texttt{x\_buf}};
 
-\coordinate (xLaneA) at ([xshift=2mm]align.east);
-\coordinate (xLaneB) at ($(xLaneA)+(0,28mm)$);
-\coordinate (xLaneCBase) at ([xshift=-10mm]wwrite.west);
-\coordinate (xLaneC) at (xLaneCBase |- xLaneB);
-\coordinate (xLaneD) at ($(xLaneC |- wwrite.north)+(0,5mm)$);
-\coordinate (xLaneE) at (xLaneD -| xEntry);
-\draw[bus] (align.east) -- (xLaneA) -- (xLaneB) -- (xLaneC) -- (xLaneD) -- (xLaneE) -- (xEntry) -- (npXin);
+\coordinate (xTap) at ([yshift=5mm]align.east);
+\coordinate (xLaneTopA) at ($(xTap)+(0,13mm)$);
+\coordinate (xLaneTopB) at (xEntry |- xLaneTopA);
+\draw[bus] (xTap) -- (xLaneTopA) -- (xLaneTopB) -- (xEntry) -- (npXin);
 
-% Replay / config control into neuron controller
+% Replay / controller path
 \draw[data] (replay.south) -- (nc.north)
   node[pos=0.52,left,sig] {\texttt{issue}};
-
-\coordinate (doneA) at ($(cfg.south west)+(-4.5,0)$);
-\coordinate (doneB) at (doneA |- nc.north);
-\coordinate (doneC) at ([xshift=-22mm]nc.north);
-\draw[ctrl] (cfg.south west) -- (doneA) -- (doneB) -- (doneC) -- (nc.north);
-\node[sig,left] at ($(doneA)!0.50!(doneB)$) {\texttt{cfg\_done}};
 
 % Read address path
 \coordinate (wReadSide) at ([yshift=4mm]wread.west);
 \coordinate (tReadSide) at ([yshift=-4mm]tread.west);
-\coordinate (addrLaneTop) at ([xshift=-9mm,yshift=4mm]wread.west);
-\coordinate (addrLaneBot) at ([xshift=-9mm,yshift=-4mm]tread.west);
+\coordinate (addrLaneBase) at ([xshift=-10mm]wread.west);
 
 \coordinate (wAddr0) at ([yshift=4mm]nc.east);
-\coordinate (wAddr1) at (addrLaneTop |- wAddr0);
-\draw[data] (wAddr0) -- (wAddr1) -- (addrLaneTop) -- (wReadSide);
+\coordinate (wAddr1) at ($(wAddr0)+(10mm,0)$);
+\coordinate (wAddr2) at (addrLaneBase |- wAddr1);
+\coordinate (wAddr3) at (addrLaneBase |- wReadSide);
+\draw[data] (wAddr0) -- (wAddr1) -- (wAddr2) -- (wAddr3) -- (wReadSide);
 \node[sig,above] at ($(wAddr0)!0.55!(wAddr1)$) {\texttt{w\_addr}};
 
 \coordinate (tAddr0) at ([yshift=-4mm]nc.east);
-\coordinate (tAddr1) at (addrLaneBot |- tAddr0);
-\draw[data] (tAddr0) -- (tAddr1) -- (addrLaneBot) -- (tReadSide);
+\coordinate (tAddr1) at ($(tAddr0)+(10mm,0)$);
+\coordinate (tAddr2) at (addrLaneBase |- tAddr1);
+\coordinate (tAddr3) at (addrLaneBase |- tReadSide);
+\draw[data] (tAddr0) -- (tAddr1) -- (tAddr2) -- (tAddr3) -- (tReadSide);
 \node[sig,below] at ($(tAddr0)!0.55!(tAddr1)$) {\texttt{t\_addr}};
 
+% Read data path
 \draw[data] (wread.east) -- (wram.west);
 
 \draw[data] (tread.east) -- (tram.west)
-  node[pos=0.50,below,sig] {\texttt{t regs}};
+  node[pos=0.50,below,sig] {\texttt{t\_regs}};
 
 % RAM data to neuron processors
-\coordinate (wToNpStart) at ([yshift=4mm]wram.east);
-\coordinate (wToNpA) at (wToNpStart -| wEntry);
-\draw[bus] (wToNpStart) -- (wToNpA) -- (wEntry) -- (npWin);
+\coordinate (wToNp0) at ([yshift=4mm]wram.east);
+\coordinate (wToNp1) at ($(wToNp0)+(10mm,0)$);
+\coordinate (wToNp2) at (wToNp1 |- wEntry);
+\draw[bus] (wToNp0) -- (wToNp1) -- (wToNp2) -- (wEntry) -- (npWin);
 
-\coordinate (tToNpA) at (tram.east -| tEntry);
-\draw[bus] (tram.east) -- (tToNpA) -- (tEntry) -- (npTin);
+\coordinate (tToNp0) at (tram.east);
+\coordinate (tToNp1) at ($(tToNp0)+(12mm,0)$);
+\coordinate (tToNp2) at (tToNp1 |- tEntry);
+\draw[bus] (tToNp0) -- (tToNp1) -- (tToNp2) -- (tEntry) -- (npTin);
 
 % Controller -> neuron processors
-\coordinate (vLane0) at ([yshift=-6mm]nc.east);
-\coordinate (vLane1) at ($(vLane0)+(3.2,0)$);
-\coordinate (vLane2) at (vLane1 |- vEntry);
-\draw[data] (vLane0) -- (vLane1) -- (vLane2) -- (vEntry) -- (npVin);
+\coordinate (v0) at ([yshift=-3mm]nc.east);
+\coordinate (vA) at ($(v0)+(10mm,0)$);
+\coordinate (vLaneBase) at ([yshift=-8mm]tram.south);
+\coordinate (v1) at (vA |- vLaneBase);
+\coordinate (v2) at (vEntry |- vLaneBase);
+\draw[data] (v0) -- (vA) -- (v1) -- (v2) -- (vEntry) -- (npVin);
 
-\coordinate (last0) at ([yshift=-12mm]nc.east);
-\coordinate (last1) at ($(last0)+(3.2,0)$);
-\coordinate (last2) at (last1 |- lastEntry);
-\draw[data] (last0) -- (last1) -- (last2) -- (lastEntry) -- (npLastin);
+\coordinate (last0) at ([yshift=-9mm]nc.east);
+\coordinate (lastA) at ($(last0)+(10mm,0)$);
+\coordinate (lastLaneBase) at ([yshift=-14mm]tram.south);
+\coordinate (last1) at (lastA |- lastLaneBase);
+\coordinate (last2) at (lastEntry |- lastLaneBase);
+\draw[data] (last0) -- (lastA) -- (last1) -- (last2) -- (lastEntry) -- (npLastin);
 
 % Processor-side interface labels
 \node[portsig] at ($(npXin)+(-2mm,0)$) {\texttt{x}};

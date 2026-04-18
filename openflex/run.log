@@ -1,0 +1,55 @@
+Model Technology ModelSim - Intel FPGA Edition vlog 2020.1 Compiler 2020.02 Feb 28 2020
+Start time: 22:44:15 on Apr 17,2026
+vlog -sv -timescale=1ns/100ps C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_fcc.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn_layer.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_controller.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager_parser.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager_pad_fsm.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\config_manager.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\delay.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\data_in_manager.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\fifo_vr.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_controller.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\neuron_processor.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\ram_sdp.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\replay_buffer.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\tkeep_byte_compactor.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\vw_buffer.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb.sv 
+-- Compiling interface axi4_stream_if
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv(34): (vlog-2186) SystemVerilog testbench feature
+(randomization, coverage or assertion) detected in the design.
+These features are only supported in Questasim.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\axi4_stream_if.sv(8): (vlog-2186) SystemVerilog testbench feature
+(randomization, coverage or assertion) detected in the design.
+These features are only supported in Questasim.
+-- Compiling package bnn_fcc_tb_pkg
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\verification\bnn_fcc_tb_pkg.sv(502): (vlog-2186) SystemVerilog testbench feature
+(randomization, coverage or assertion) detected in the design.
+These features are only supported in Questasim.
+-- Compiling module bnn_fcc
+-- Compiling module add_tree
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\add_tree.sv(11): (vlog-13314) Defaulting port 'inputs' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module argmax_tree
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\argmax_tree.sv(13): (vlog-13314) Defaulting port 'inputs' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+-- Compiling module bnn_layer
+-- Compiling module bnn
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv(131): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\bnn.sv(132): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+-- Compiling module config_controller
+-- Compiling module config_manager_parser
+-- Compiling module config_manager_pad_fsm
+-- Compiling module config_manager
+-- Compiling module register
+-- Compiling module delay
+-- Compiling module data_in_manager
+-- Compiling module fifo_vr
+-- Compiling module neuron_controller
+-- Compiling module neuron_processor
+-- Compiling module ram_sdp
+-- Compiling module replay_buffer
+-- Compiling module tkeep_byte_compactor
+-- Compiling module vw_buffer
+-- Compiling module xnor_add_tree
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(20): (vlog-13314) Defaulting port 'in1' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(21): (vlog-13314) Defaulting port 'in2' kind to 'var' rather than 'wire' due to default compile option setting of -svinputport=relaxed.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(54): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(55): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(55): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+** Warning: C:\Users\pawin\UF\spring26\RC2\bnn_fcc_contest\rtl\xnor_add_tree.sv(56): (vlog-2583) [SVCHK] - Extra checking for conflicts with always_comb and always_latch variables is done at vopt time.
+-- Compiling module bnn_fcc_tb
+-- Importing package bnn_fcc_tb_pkg
+
+Top level modules:
+	bnn_fcc_tb
+End time: 22:44:15 on Apr 17,2026, Elapsed time: 0:00:00
+Errors: 0, Warnings: 13
+Reading pref.tcl
+
+# 2020.1
+

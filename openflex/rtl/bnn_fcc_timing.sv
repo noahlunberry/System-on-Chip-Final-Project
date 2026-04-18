@@ -21,8 +21,8 @@ module bnn_fcc_timing #(
     parameter int TOPOLOGY[TOTAL_LAYERS] = '{0: 784, 1: 256, 2: 256, 3: 10, default: 0},
 
     // TODO: UPDATE BASED ON IMPLEMENTATION-SPECIFIC PARAMETERS
-    parameter int PARALLEL_INPUTS = 128,
-    parameter int PARALLEL_NEURONS[TOTAL_LAYERS-1] = '{64, 64, 10}    
+    parameter int PARALLEL_INPUTS = 32,
+    parameter int PARALLEL_NEURONS[TOTAL_LAYERS-1] = '{64, 32, 10}    
 ) (
     input logic clk,
     input logic rst,

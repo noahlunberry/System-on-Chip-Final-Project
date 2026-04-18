@@ -1,44 +1,45 @@
-\documentclass[11pt]{report}
+\documentclass[sigconf,nonacm]{acmart}
 
-\usepackage[margin=1in]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
-\usepackage{lmodern}
-\usepackage{setspace}
 \usepackage{amsmath}
 \usepackage{booktabs}
-\usepackage{hyperref}
+\usepackage{cuted}
 \usepackage{graphicx}
+\usepackage{xcolor}
 \usepackage{tikz}
-\usepackage{float}
 \usetikzlibrary{arrows.meta,calc,decorations.markings}
 
-\hypersetup{
-  colorlinks=true,
-  linkcolor=blue!50!black,
-  urlcolor=blue!50!black,
-  citecolor=blue!50!black
-}
+\settopmatter{printacmref=false}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\setcopyright{none}
+\setlength{\textfloatsep}{10pt plus 2pt minus 2pt}
+\setlength{\floatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\stripsep}{8pt plus 2pt minus 2pt}
 
-\setstretch{1.08}
-\setlength{\parskip}{0.5em}
-\setlength{\parindent}{0pt}
-
-\title{BNN FCC Contest Report}
+\title[Design Phases of \texttt{bnn\_fcc}]{Design Phases of the \texttt{bnn\_fcc} Accelerator}
 \author{Author Name}
-\date{\today}
+\affiliation{%
+  \institution{Course or Lab}
+  \city{Gainesville}
+  \state{Florida}
+  \country{USA}
+}
+\email{email@example.com}
+\renewcommand{\shortauthors}{Author Name}
 
 \begin{document}
 
 \maketitle
-\tableofcontents
-\clearpage
 
+\input{sections/00_summary}
+\clearpage
 \input{sections/01_introduction}
+\clearpage
 \input{sections/02_architecture}
 \input{sections/03_config_path}
-\input{sections/04_verification}
-\input{sections/05_results}
-\input{sections/06_conclusion}
+\clearpage
+\input{sections/07_appendix_fsmd}
 
 \end{document}

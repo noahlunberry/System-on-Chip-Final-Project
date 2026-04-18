@@ -1,0 +1,87 @@
+\section{Summary}
+
+\subsection{Results}
+
+Table~\ref{tab:design-space-results} summarizes the explored design points.
+The first three columns identify the architectural choice for each run: input
+bus width, parallel input consumption, and the per-layer neuron split. The
+remaining columns are the judging metrics: FMAX, throughput, latency, FPS, and
+resource utilization. The blank FPS and resource fields are placeholders for
+the final submission measurements once the selected point is locked.
+
+\begin{strip}
+  \centering
+  \captionof{table}{Current design-space results summary.}
+  \label{tab:design-space-results}
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}rrrrrrrr@{}}
+      \toprule
+      \textbf{Input Bus Width} & \textbf{Parallel Inputs} &
+      \textbf{Parallel Neurons} & \textbf{FMAX} &
+      \textbf{Throughput} & \textbf{Latency} &
+      \textbf{FPS} & \textbf{Resource Utilization} \\
+      \midrule
+      64   & 32  & ---           & 722 & 105  & 290.2 & --- & --- \\
+      128  & 64  & 64,32,10      & 635 & 56.1 & 195.2 & --- & --- \\
+      256  & 128 & 64,64,10      & 501 & 32.2 & 130.2 & --- & --- \\
+      512  & 128 & 256,64,10     & --- & 17.8 & 95.2  & --- & --- \\
+      1024 & 128 & 256,64,10     & --- & 10.6 & 78.4  & --- & --- \\
+      \bottomrule
+    \end{tabular}%
+  }
+\end{strip}
+
+\subsection{Implementation and Tradeoffs}
+
+The implementation target was to maximize throughput first and then optimize
+for clock frequency. Another design priority was parameterization. I wanted 
+every component to be parameterized to be fully scalable to any power-of-two amount of 
+parallel neurons, parallel inputs, and input width. This allowed me to gather 
+these results for various configurations as I scaled up the input bus width.
+
+Throughput is increased by replicating neuron processors
+and the corresponding weight and threshold RAM banks, allowing more neurons to
+be processed in parallel each cycle. However, that same replication creates
+difficult timing paths because the RAM-side control and data signals become
+large fanout nets with significant routing cost. To address this, multiple
+pipeline stages were inserted on the interfaces that communicate with the
+weight and threshold RAM units, breaking these long paths into shorter stages
+and improving timing closure.
+
+A similar approach is used in the compute reductions. The XNOR accumulation and
+argmax logic are implemented as recursive balanced trees, which makes it
+natural to pipeline the computation between tree levels. This reduces the logic
+depth of each stage and allows the design to scale to wider buses and larger
+parallel neuron counts without collapsing FMAX. The design is also heavily
+parameterized, which made it possible to evaluate the architecture across a
+range of bus widths, parallel-input counts, and neuron configurations while
+preserving the same overall structure.
+
+The design also supports functionality beyond what was tested for the project.
+Notably, the design supports partial configuration and input buses as specified
+by TKEEP, it also supports complete reconfiguration of weights and thresholds in
+between image streams, as well as customizable hidden layers and topologies.
+
+\subsection{Verification/Testbench}
+
+The base testbench was extended into a UVM flow to verify functionality beyond
+the nominal contest path and to provide more complete coverage of the design.
+The UVM sweep was used to verify the extended functionality beyond the nominal
+contest path: partial \texttt{TKEEP} configuration and input streams,
+interleaved and reordered configuration traffic, weights-only and
+thresholds-only reconfiguration, partial-layer updates, deeper hidden-layer
+topologies, extreme threshold/weight/pixel values, long inter-transaction
+gaps, output backpressure, and reset/reconfigure behavior.
+
+\begin{itemize}
+  \item Functional coverage was collected with \texttt{make coverage-sweep}.
+  \item A text coverage report was generated with \texttt{make coverage-sweep-report}.
+  \item The achieved-coverage report is written to\\
+  \hspace*{1.5em}\texttt{coverage/bnn\_fcc\_coverage\_sweep\_test\_coverage.txt}.
+  \item Supports partial \texttt{TKEEP} configuration and input streams.
+  \item Supports reconfiguring weights and thresholds after a few images.
+  \item Supports interleaved configuration streams, including thresholds-first and out-of-order layer updates.
+  \item Supports deeper hidden-layer stacks; see \texttt{make sim-ten-hidden}.
+  \item Tested long delay gaps and extreme weight, threshold, and pixel values.
+  \item Scales to higher neuron counts when the input bus width increases.
+\end{itemize}

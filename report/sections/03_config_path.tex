@@ -1,94 +1,62 @@
-\chapter{Configuration Path}
+\section{Compute Phase}
 
-The configuration datapath is implemented in \texttt{rtl/config\_manager.sv}
-with key submodules in \texttt{rtl/tkeep\_byte\_compactor.sv},
-\texttt{rtl/vw\_buffer.sv}, \texttt{rtl/config\_manager\_parser.sv}, and
-\texttt{rtl/config\_manager\_pad\_fsm.sv}. The current implementation separates
-front-end byte handling from message parsing and downstream write alignment,
-which keeps the control problem manageable and limits long combinational paths.
+Once the model parameters are loaded, the design switches to the compute phase.
+This phase again has two main pieces. The first is the input-preparation path
+in \texttt{data\_in\_manager}, which converts the incoming activation stream
+into the binary words expected by the network. The second is the layer-local
+forward datapath inside \texttt{bnn\_layer}, where buffered activations, RAM
+reads, and neuron-processor outputs are coordinated.
 
-\begin{figure}[H]
+\subsection{Input Preparation}
+
+\texttt{rtl/data\_in\_manager.sv} mirrors several of the same structural ideas
+used in the configuration path. It begins with byte compaction on the external
+stream, repacks the resulting bytes into bus-width words, applies the local
+frame and padding rules needed by the design, binarizes pixel values, and then
+stages the resulting binary words before handing them to the BNN core.
+
+\begin{strip}
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/config_manager_diagram}}
-  \caption{Block diagram of the \texttt{config\_manager} datapath and its
-  primary interface signals.}
-  \label{fig:config-manager}
-\end{figure}
+  \resizebox{!}{0.39\textheight}{\input{figures/data_in_manager_diagram}}
+  \captionof{figure}{Block diagram of the \texttt{data\_in\_manager} datapath
+  and its primary interface signals.}
+  \Description{Block diagram of the data input manager showing valid-byte
+  compaction, repacking, input framing, binarization, and the staged interface
+  that feeds the BNN core.}
+  \label{fig:data-in-manager}
+\end{strip}
 
-\section{Front-End Byte Handling}
+This preprocessing stage is important because it decouples the external input
+stream shape from the internal datapath width. By the time activations leave
+\texttt{data\_in\_manager}, they already match the first layer's expected
+binary format and can be replayed locally without repeatedly revisiting the
+original byte-level protocol.
 
-The \texttt{tkeep\_byte\_compactor} removes invalid bytes indicated by
-\texttt{config\_keep} and repacks the accepted bytes into a contiguous stream.
-The resulting data is registered before entering \texttt{vw\_buffer}, which
-reassembles the compacted stream into bus-width chunks for the downstream
-byte-wide FIFO.
+\clearpage
 
-\section{Message Parsing}
+\subsection{Layer Compute Flow}
 
-\texttt{config\_manager\_parser} consumes the serialized byte stream from
-\texttt{fifo\_config\_bytes}. It decodes the header fields needed by the
-current design, then emits payload bytes toward either the weight path or the
-threshold path. The parser also provides the control metadata used by the pad
-state machine, including \texttt{msg\_type}, \texttt{layer\_id}, and
-\texttt{payload\_start}.
+Inside \texttt{rtl/bnn\_layer.sv}, the forward path is organized around the
+replay buffer, the read-side control logic, the banked parameter memories, and
+the neuron-processor array. The intent is to keep the activation stream and the
+shared RAM-read schedule locally synchronized while still exposing the timing
+registers that matter to the implementation.
 
-\section{Weight and Threshold Handling}
-
-Threshold payload bytes are repacked into fixed-width threshold words and then
-driven out as \texttt{threshold\_wr\_data} and \texttt{threshold\_wr\_en}.
-
-Weight payload bytes first pass through the weight-byte FIFO and the pad FSM.
-The pad FSM inserts the required synthetic padding bytes so that layer packers
-can emit aligned write words. Those packers finally drive
-\texttt{weight\_wr\_data} and \texttt{weight\_wr\_en} toward the layer storage
-logic.
-
-\section{Layer-Local Write Distribution}
-
-Inside each \texttt{bnn\_layer}, the incoming per-layer write stream is staged
-once before entering \texttt{config\_controller}. The controller generates the
-one-hot bank-select enables and the per-bank write addresses, while the staged
-weight and threshold data bypass the controller datapath. A second set of local
-pipeline registers then fans the enables, addresses, and aligned write data out
-to the replicated RAM banks. That extra stage is important in this repo: it
-cuts the long controller-to-BRAM fanout while preserving one configuration
-write per cycle after the pipeline fills.
-
-\begin{figure}[p]
+\begin{figure*}[t]
   \centering
-  \resizebox{\textwidth}{!}{\input{figures/config_controller_diagram}}
-  \caption{Layer-local config-write distribution around
-  \texttt{config\_controller} in \texttt{rtl/bnn\_layer.sv}. The highlighted
-  fanout pipeline registers are the timing-cut stage that drives the per-bank
-  weight and threshold RAMs.}
-  \label{fig:config-controller-block}
-\end{figure}
+  \resizebox{0.95\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
+  \caption{Simplified compute flow inside one \texttt{bnn\_layer}. The replay
+  buffer, read-control path, RAM banks, and neuron-processor array are shown in
+  the order they participate in inference.}
+  \Description{Block diagram of the layer compute flow showing replay buffering
+  of activations, alignment, controller-driven reads from weight and threshold
+  RAM banks, and the final neuron-processor array that produces outputs.}
+  \label{fig:bnn-layer-compute}
+\end{figure*}
 
-\section{Simplified FSMD Views}
-
-The following diagrams are intentionally simplified. They do not attempt to
-show every registered temporary value or every default assignment in the RTL.
-Instead, they summarize the dominant control flow so a reader can understand
-how bytes move through the configuration path and how layer-local memory writes
-are sequenced.
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{figures/config_manager_parser_fsmd}}
-  \caption{Simplified FSMD view of \texttt{config\_manager\_parser}.}
-  \label{fig:parser-fsmd}
-\end{figure}
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{figures/config_manager_pad_fsm_fsmd}}
-  \caption{Simplified FSMD view of \texttt{config\_manager\_pad\_fsm}.}
-  \label{fig:pad-fsmd}
-\end{figure}
-
-\begin{figure}[p]
-  \centering
-  \resizebox{0.96\textwidth}{!}{\input{figures/config_controller_fsmd}}
-  \caption{Simplified FSMD view of the layer-local \texttt{config\_controller}.}
-  \label{fig:config-controller-fsmd}
-\end{figure}
+The replay buffer and align-delay logic keep the activation side available when
+the local controller issues parameter reads. In parallel,
+\texttt{neuron\_controller} sequences the weight and threshold-bank access
+pattern, and the neuron processors combine those operands to generate the next
+layer's outputs. Together, these blocks form the runtime half of the design
+that follows the earlier configuration phase.

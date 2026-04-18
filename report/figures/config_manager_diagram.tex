@@ -4,14 +4,14 @@
     draw,
     thick,
     rounded corners=1pt,
-    minimum width=60mm,
-    minimum height=17mm,
+    minimum width=66mm,
+    minimum height=19mm,
     align=center,
-    font=\normalsize
+    font=\large
   },
   wideblock/.style={
     block,
-    minimum width=74mm
+    minimum width=82mm
   },
   data/.style={->, thick},
   bus/.style={
@@ -26,12 +26,12 @@
     }
   },
   ctrl/.style={->, thick, dashed},
-  iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
-  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
-  lab/.style={font=\normalsize, fill=white, inner sep=1pt}
+  iface/.style={font=\Large\bfseries\ttfamily, fill=white, inner sep=1pt},
+  sig/.style={font=\large\ttfamily, fill=white, inner sep=1pt},
+  lab/.style={font=\large, fill=white, inner sep=1pt}
 ]
 
-\node[font=\Large\bfseries] at (0,3.3) {Config Manager};
+\node[font=\LARGE\bfseries] at (0,3.8) {Config Manager};
 
 \node[block] (compact) at (0,0)
   {TKEEP Byte Compactor\\[-1pt]\texttt{tkeep\_byte\_compactor}};

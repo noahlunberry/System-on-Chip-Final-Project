@@ -1,27 +1,18 @@
-\chapter{Verification}
+\section{Verification}
 
-Verification collateral for this design is located under \texttt{verification/}
-and includes both directed testbenches and a UVM environment.
+Verification collateral for this design lives under \texttt{verification/} and
+is split between baseline directed smoke tests and a broader UVM environment.
+The initial pass/fail entry point is the checked-in
+\texttt{bnn\_fcc\_single\_beat\_test}. For one-shot functional coverage, the
+repository provides \texttt{bnn\_fcc\_uvm\_cov\_tb} and the composite
+\texttt{bnn\_fcc\_coverage\_sweep\_test}. The README packages that path as the
+\texttt{coverage-sweep-report} flow, which is the most judge-friendly way to
+produce one simulation run, one UCDB, and one text coverage report.
 
-\section{Available Test Infrastructure}
-
-The repository includes:
-
-\begin{itemize}
-  \item module-level and system-level testbenches,
-  \item AXI-stream interfaces and sequence items for transaction-level testing,
-  \item UVM tests targeting configuration ordering, backpressure, reset, and
-  partial reconfiguration cases, and
-  \item a coverage plan in \texttt{verification/coverage\_plan.txt}.
-\end{itemize}
-
-\section{Suggested Report Content}
-
-This section is a good place to summarize:
-
-\begin{itemize}
-  \item which tests you rely on most heavily,
-  \item which configuration corner cases drove the current implementation,
-  \item what failures were found during development, and
-  \item any remaining gaps or assumptions in the current verification scope.
-\end{itemize}
+The extended UVM tests are targeted at the behaviors that shaped the current
+RTL: partial-beat \texttt{TKEEP} packets, reordered or partial
+reconfiguration, delay-gap and reset corner cases, extreme weight and threshold
+values, extreme pixel values, and deeper custom topologies including the
+ten-hidden-layer stress case. Together, those tests complement the baseline
+smoke result and provide evidence that the stream-oriented control logic works
+outside the simplest configuration and inference sequence.

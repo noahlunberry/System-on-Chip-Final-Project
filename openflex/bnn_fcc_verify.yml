@@ -10,30 +10,33 @@ files:
   #- ../rtl/binary_layer.sv
   #- ../rtl/bnn.sv
 
-  # These are common to all projects.  
+  # Verification-specific support files must come before the testbench top.
+  - ../verification/axi4_stream_if.sv
+  - ../verification/bnn_fcc_tb_pkg.sv
+
+  # DUT RTL
   - ../rtl/bnn_fcc.sv
-  #- ../verification/axi4_stream_if.sv
-  #- ../verification/bnn_fcc_tb_pkg.sv
-  #- ../verification/bnn_fcc_tb.sv
   - ../rtl/add_tree.sv
   - ../rtl/argmax_tree.sv
   - ../rtl/bnn_layer.sv
   - ../rtl/bnn.sv
   - ../rtl/config_controller.sv
+  - ../rtl/config_manager_parser.sv
+  - ../rtl/config_manager_pad_fsm.sv
   - ../rtl/config_manager.sv
   - ../rtl/delay.sv
   - ../rtl/data_in_manager.sv
   - ../rtl/fifo_vr.sv
-  - ../rtl/fifo_vw.sv
   - ../rtl/neuron_controller.sv
   - ../rtl/neuron_processor.sv
-  - ../rtl/parser_controller.sv
   - ../rtl/ram_sdp.sv
   - ../rtl/replay_buffer.sv
-  - ../rtl/sync_fifo.sv
   - ../rtl/tkeep_byte_compactor.sv
   - ../rtl/vw_buffer.sv
   - ../rtl/xnor_add_tree.sv
+
+  # Top-level verification module
+  - ../verification/bnn_fcc_tb.sv
 
 parameters:
   USE_CUSTOM_TOPOLOGY: [0]

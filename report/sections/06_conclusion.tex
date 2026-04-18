@@ -1,12 +1,9 @@
-\chapter{Conclusion}
+\section{Conclusion}
 
-This report scaffold now captures the main structure of the current
-\texttt{bnn\_fcc} implementation and provides a place to document the final
-design narrative. The next useful step is usually one of the following:
-
-\begin{itemize}
-  \item add a full-system architecture figure,
-  \item fill in quantitative implementation results,
-  \item refine the configuration-path discussion with cycle-level detail, or
-  \item tailor the template to a specific course, paper, or contest format.
-\end{itemize}
+The \texttt{bnn\_fcc} report is intentionally concise. It front-loads the
+verification evidence and current design-space results for judging, then uses a
+small number of architecture diagrams to explain how the RTL handles
+configuration and compute. The main design tradeoff is wider bandwidth and more
+parallel neurons versus timing and memory fanout cost, and the chosen
+submission point should be the configuration that best balances those
+constraints once the final implementation numbers are fixed.

@@ -1,7 +1,7 @@
 Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
 --------------------------------------------------------------------------------------------------------------------------------------------------
 | Tool Version      : Vivado v.2024.2 (win64) Build 5239630 Fri Nov 08 22:35:27 MST 2024
-| Date              : Fri Apr 17 19:47:06 2026
+| Date              : Fri Apr 17 21:16:41 2026
 | Host              : Acey running 64-bit major release  (build 9200)
 | Command           : report_timing_summary -file ./outputs/post_synth_timing_summary.rpt
 | Design            : bnn_fcc_timing
@@ -44,7 +44,8 @@ Timing Summary Report
 
 Rule       Severity  Description                    Violations  
 ---------  --------  -----------------------------  ----------  
-TIMING-18  Warning   Missing input or output delay  377         
+TIMING-16  Warning   Large setup violation          1000        
+TIMING-18  Warning   Missing input or output delay  665         
 
 Note: This report is based on the most recent report_methodology run and may not be up-to-date. Run report_methodology on the current design for the latest report.
 
@@ -58,7 +59,7 @@ Table of Contents
 2. checking constant_clock (0)
 3. checking pulse_width_clock (0)
 4. checking unconstrained_internal_endpoints (0)
-5. checking no_input_delay (142)
+5. checking no_input_delay (206)
 6. checking no_output_delay (7)
 7. checking multiple_clock (0)
 8. checking generated_clocks (0)
@@ -89,9 +90,9 @@ Table of Contents
  There are 0 pins that are not constrained for maximum delay due to constant clock.
 
 
-5. checking no_input_delay (142)
+5. checking no_input_delay (206)
 --------------------------------
- There are 142 input ports with no input delay specified. (HIGH)
+ There are 206 input ports with no input delay specified. (HIGH)
 
  There are 0 input ports with no input delay but user has a false path constraint.
 
@@ -143,7 +144,7 @@ Table of Contents
 
     WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
     -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-     -0.451      -87.915                    976               238443        0.046        0.000                      0               238443        0.093        0.000                       0                126242  
+     -8.390    -4664.480                   4639               686642        0.046        0.000                      0               686642        0.093        0.000                       0                426417  
 
 
 Timing constraints are not met.
@@ -166,7 +167,7 @@ clk    {0.000 0.625}        1.250           800.000
 
 Clock             WNS(ns)      TNS(ns)  TNS Failing Endpoints  TNS Total Endpoints      WHS(ns)      THS(ns)  THS Failing Endpoints  THS Total Endpoints     WPWS(ns)     TPWS(ns)  TPWS Failing Endpoints  TPWS Total Endpoints  
 -----             -------      -------  ---------------------  -------------------      -------      -------  ---------------------  -------------------     --------     --------  ----------------------  --------------------  
-clk                -0.451      -87.915                    976               238443        0.046        0.000                      0               238443        0.093        0.000                       0                126242  
+clk                -8.390    -4664.480                   4639               686642        0.046        0.000                      0               686642        0.093        0.000                       0                426417  
 
 
 ------------------------------------------------------------------------------------------------
@@ -197,7 +198,7 @@ Path Group    From Clock    To Clock          WNS(ns)      TNS(ns)  TNS Failing 
 From Clock:  clk
   To Clock:  clk
 
-Setup :          976  Failing Endpoints,  Worst Slack       -0.451ns,  Total Violation      -87.915ns
+Setup :         4639  Failing Endpoints,  Worst Slack       -8.390ns,  Total Violation    -4664.480ns
 Hold  :            0  Failing Endpoints,  Worst Slack        0.046ns,  Total Violation        0.000ns
 PW    :            0  Failing Endpoints,  Worst Slack        0.093ns,  Total Violation        0.000ns
 ---------------------------------------------------------------------------------------------------
@@ -205,16 +206,16 @@ PW    :            0  Failing Endpoints,  Worst Slack        0.093ns,  Total Vio
 
 Max Delay Paths
 --------------------------------------------------------------------------------------
-Slack (VIOLATED) :        -0.451ns  (required time - arrival time)
-  Source:                 DUT/data_in_manager_i/vw_total_bytes_r_reg[3]/C
+Slack (VIOLATED) :        -8.390ns  (required time - arrival time)
+  Source:                 DUT/data_in_manager_i/vw_total_bytes_r_reg[4]_rep/C
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
-  Destination:            DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[127]/D
+  Destination:            DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[623]/D
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
   Path Group:             clk
   Path Type:              Setup (Max at Slow Process Corner)
   Requirement:            1.250ns  (clk rise@1.250ns - clk rise@0.000ns)
-  Data Path Delay:        1.691ns  (logic 0.494ns (29.213%)  route 1.197ns (70.787%))
-  Logic Levels:           6  (LUT3=1 LUT5=1 LUT6=4)
+  Data Path Delay:        9.630ns  (logic 2.030ns (21.080%)  route 7.600ns (78.920%))
+  Logic Levels:           32  (LUT3=1 LUT4=5 LUT5=6 LUT6=20)
   Clock Uncertainty:      0.035ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
     Total System Jitter     (TSJ):    0.071ns
     Total Input Jitter      (TIJ):    0.000ns
@@ -225,38 +226,90 @@ Slack (VIOLATED) :        -0.451ns  (required time - arrival time)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=126241, unset)       0.000     0.000    DUT/data_in_manager_i/clk
-                         FDRE                                         r  DUT/data_in_manager_i/vw_total_bytes_r_reg[3]/C
+                         net (fo=426416, unset)       0.000     0.000    DUT/data_in_manager_i/clk
+                         FDRE                                         r  DUT/data_in_manager_i/vw_total_bytes_r_reg[4]_rep/C
   -------------------------------------------------------------------    -------------------
-                         FDRE (Prop_FDRE_C_Q)         0.077     0.077 r  DUT/data_in_manager_i/vw_total_bytes_r_reg[3]/Q
-                         net (fo=100, unplaced)       0.239     0.316    DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r_reg[1]_0[3]
-                         LUT6 (Prop_LUT6_I0_O)        0.150     0.466 r  DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r[5]_i_22/O
-                         net (fo=7, unplaced)         0.210     0.676    DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r[5]_i_22_n_0
-                         LUT3 (Prop_LUT3_I1_O)        0.038     0.714 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[495]_i_15/O
-                         net (fo=5, unplaced)         0.155     0.869    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[495]_i_15_n_0
-                         LUT6 (Prop_LUT6_I1_O)        0.053     0.922 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_24/O
-                         net (fo=6, unplaced)         0.207     1.129    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_24_n_0
-                         LUT6 (Prop_LUT6_I5_O)        0.038     1.167 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_7/O
-                         net (fo=4, unplaced)         0.197     1.364    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_7_n_0
-                         LUT5 (Prop_LUT5_I2_O)        0.038     1.402 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[383]_i_3/O
-                         net (fo=2, unplaced)         0.141     1.543    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[383]_i_3_n_0
-                         LUT6 (Prop_LUT6_I0_O)        0.100     1.643 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_1__0/O
-                         net (fo=1, unplaced)         0.048     1.691    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_1__0_n_0
-                         FDRE                                         r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[127]/D
+                         FDRE (Prop_FDRE_C_Q)         0.077     0.077 r  DUT/data_in_manager_i/vw_total_bytes_r_reg[4]_rep/Q
+                         net (fo=128, unplaced)       0.245     0.322    DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r_reg[2]_0
+                         LUT6 (Prop_LUT6_I0_O)        0.150     0.472 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_350/O
+                         net (fo=79, unplaced)        0.265     0.737    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_350_n_0
+                         LUT3 (Prop_LUT3_I2_O)        0.038     0.775 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_331/O
+                         net (fo=54, unplaced)        0.211     0.986    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_331_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.090     1.076 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_434/O
+                         net (fo=109, unplaced)       0.224     1.300    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_434_n_0
+                         LUT4 (Prop_LUT4_I0_O)        0.053     1.353 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_336/O
+                         net (fo=96, unplaced)        0.270     1.623    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_336_n_0
+                         LUT6 (Prop_LUT6_I4_O)        0.038     1.661 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_312/O
+                         net (fo=47, unplaced)        0.253     1.914    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_312_n_0
+                         LUT4 (Prop_LUT4_I0_O)        0.038     1.952 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_288/O
+                         net (fo=82, unplaced)        0.266     2.218    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_288_n_0
+                         LUT6 (Prop_LUT6_I2_O)        0.038     2.256 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_258/O
+                         net (fo=6, unplaced)         0.207     2.463    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_258_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.038     2.501 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_255/O
+                         net (fo=59, unplaced)        0.258     2.759    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_255_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.038     2.797 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_228/O
+                         net (fo=38, unplaced)        0.204     3.001    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_228_n_0
+                         LUT5 (Prop_LUT5_I2_O)        0.090     3.091 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_210/O
+                         net (fo=39, unplaced)        0.249     3.340    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_210_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.038     3.378 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_192/O
+                         net (fo=71, unplaced)        0.263     3.641    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_192_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.038     3.679 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_167/O
+                         net (fo=39, unplaced)        0.249     3.928    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[511]_i_167_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.038     3.966 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_182/O
+                         net (fo=61, unplaced)        0.259     4.225    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_182_n_0
+                         LUT6 (Prop_LUT6_I4_O)        0.038     4.263 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_149/O
+                         net (fo=90, unplaced)        0.224     4.487    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_149_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.100     4.587 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_108/O
+                         net (fo=117, unplaced)       0.274     4.861    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_108_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.038     4.899 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_105/O
+                         net (fo=138, unplaced)       0.278     5.177    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[927]_i_105_n_0
+                         LUT6 (Prop_LUT6_I4_O)        0.038     5.215 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_107/O
+                         net (fo=42, unplaced)        0.251     5.466    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_107_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.038     5.504 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_127/O
+                         net (fo=19, unplaced)        0.188     5.692    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_127_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.090     5.782 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_97/O
+                         net (fo=40, unplaced)        0.206     5.988    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_97_n_0
+                         LUT6 (Prop_LUT6_I1_O)        0.100     6.088 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_75/O
+                         net (fo=122, unplaced)       0.231     6.319    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_75_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.100     6.419 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1023]_i_95/O
+                         net (fo=55, unplaced)        0.213     6.632    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1023]_i_95_n_0
+                         LUT4 (Prop_LUT4_I0_O)        0.100     6.732 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_68/O
+                         net (fo=41, unplaced)        0.206     6.938    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_68_n_0
+                         LUT5 (Prop_LUT5_I0_O)        0.100     7.038 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_53/O
+                         net (fo=88, unplaced)        0.220     7.258    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_53_n_0
+                         LUT4 (Prop_LUT4_I0_O)        0.053     7.311 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_31/O
+                         net (fo=89, unplaced)        0.268     7.579    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_31_n_0
+                         LUT6 (Prop_LUT6_I5_O)        0.038     7.617 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_29/O
+                         net (fo=20, unplaced)        0.234     7.851    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[127]_i_29_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.038     7.889 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[519]_i_32/O
+                         net (fo=96, unplaced)        0.222     8.111    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[519]_i_32_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.053     8.164 r  DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r[5]_i_5/O
+                         net (fo=39, unplaced)        0.249     8.413    DUT/data_in_manager_i/vw_buffer_i/wr_ptr_r[5]_i_5_n_0
+                         LUT5 (Prop_LUT5_I0_O)        0.038     8.451 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_27/O
+                         net (fo=25, unplaced)        0.239     8.690    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_27_n_0
+                         LUT5 (Prop_LUT5_I4_O)        0.038     8.728 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_12/O
+                         net (fo=103, unplaced)       0.271     8.999    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1015]_i_12_n_0
+                         LUT4 (Prop_LUT4_I0_O)        0.038     9.037 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1023]_i_9/O
+                         net (fo=60, unplaced)        0.214     9.251    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[1023]_i_9_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.090     9.341 f  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[623]_i_2/O
+                         net (fo=1, unplaced)         0.141     9.482    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[623]_i_2_n_0
+                         LUT6 (Prop_LUT6_I0_O)        0.100     9.582 r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r[623]_i_1/O
+                         net (fo=1, unplaced)         0.048     9.630    DUT/data_in_manager_i/vw_buffer_i/mem_data_r[623]_i_1_n_0
+                         FDRE                                         r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[623]/D
   -------------------------------------------------------------------    -------------------
 
                          (clock clk rise edge)        1.250     1.250 r  
                                                       0.000     1.250 r  clk (IN)
-                         net (fo=126241, unset)       0.000     1.250    DUT/data_in_manager_i/vw_buffer_i/clk
-                         FDRE                                         r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[127]/C
+                         net (fo=426416, unset)       0.000     1.250    DUT/data_in_manager_i/vw_buffer_i/clk
+                         FDRE                                         r  DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[623]/C
                          clock pessimism              0.000     1.250    
                          clock uncertainty           -0.035     1.215    
-                         FDRE (Setup_FDRE_C_D)        0.025     1.240    DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[127]
+                         FDRE (Setup_FDRE_C_D)        0.025     1.240    DUT/data_in_manager_i/vw_buffer_i/mem_data_r_reg[623]
   -------------------------------------------------------------------
                          required time                          1.240    
-                         arrival time                          -1.691    
+                         arrival time                          -9.630    
   -------------------------------------------------------------------
-                         slack                                 -0.451    
+                         slack                                 -8.390    
 
 
 
@@ -265,9 +318,9 @@ Slack (VIOLATED) :        -0.451ns  (required time - arrival time)
 Min Delay Paths
 --------------------------------------------------------------------------------------
 Slack (MET) :             0.046ns  (arrival time - required time)
-  Source:                 DUT/bnn_main/g_layers[0].u_layer/t_wr_addr_pipe_r_reg[0][2]/C
+  Source:                 DUT/bnn_main/g_layers[1].u_layer/t_wr_addr_pipe_r_reg[0][2]/C
                             (rising edge-triggered cell FDRE clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
-  Destination:            DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/WADR2
+  Destination:            DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/WADR2
                             (rising edge-triggered cell RAMD32 clocked by clk  {rise@0.000ns fall@0.625ns period=1.250ns})
   Path Group:             clk
   Path Type:              Hold (Min at Fast Process Corner)
@@ -279,21 +332,21 @@ Slack (MET) :             0.046ns  (arrival time - required time)
   -------------------------------------------------------------------    -------------------
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=126241, unset)       0.000     0.000    DUT/bnn_main/g_layers[0].u_layer/clk
-                         FDRE                                         r  DUT/bnn_main/g_layers[0].u_layer/t_wr_addr_pipe_r_reg[0][2]/C
+                         net (fo=426416, unset)       0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/clk
+                         FDRE                                         r  DUT/bnn_main/g_layers[1].u_layer/t_wr_addr_pipe_r_reg[0][2]/C
   -------------------------------------------------------------------    -------------------
-                         FDRE (Prop_FDRE_C_Q)         0.038     0.038 r  DUT/bnn_main/g_layers[0].u_layer/t_wr_addr_pipe_r_reg[0][2]/Q
-                         net (fo=16, unplaced)        0.070     0.108    DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/ADDRH2
-                         RAMD32                                       r  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/WADR2
+                         FDRE (Prop_FDRE_C_Q)         0.038     0.038 r  DUT/bnn_main/g_layers[1].u_layer/t_wr_addr_pipe_r_reg[0][2]/Q
+                         net (fo=16, unplaced)        0.070     0.108    DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/ADDRH2
+                         RAMD32                                       r  DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/WADR2
   -------------------------------------------------------------------    -------------------
 
                          (clock clk rise edge)        0.000     0.000 r  
                                                       0.000     0.000 r  clk (IN)
-                         net (fo=126241, unset)       0.000     0.000    DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/WCLK
-                         RAMD32                                       r  DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/CLK
+                         net (fo=426416, unset)       0.000     0.000    DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/WCLK
+                         RAMD32                                       r  DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA/CLK
                          clock pessimism              0.000     0.000    
                          RAMD32 (Hold_RAMD32_CLK_WADR2)
-                                                      0.062     0.062    DUT/bnn_main/g_layers[0].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA
+                                                      0.062     0.062    DUT/bnn_main/g_layers[1].u_layer/gen_np_mems[0].u_t_ram/ram_reg_0_7_0_9/RAMA
   -------------------------------------------------------------------
                          required time                         -0.062    
                          arrival time                           0.108    

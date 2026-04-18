@@ -1,26 +1,32 @@
-\chapter{Introduction}
+\section{Top-Level Organization}
 
-This report documents the architecture, configuration path, verification flow,
-and implementation results for the \texttt{bnn\_fcc} design in this repository.
-The focus is on the current RTL implementation rather than a generic BNN
-template, so module names and behavior are tied directly to the codebase under
-\texttt{rtl/} and \texttt{verification/}.
+This report is organized in the same order that the design is used in practice.
+The top level accepts a configuration stream that loads weights and thresholds,
+an input stream that carries activation data, and an output path that returns
+the classification result. The main body then follows two phases of operation:
+the configuration phase and the compute phase.
 
-The design accepts three primary streams:
-
-\begin{itemize}
-  \item a configuration AXI-stream carrying weights and thresholds,
-  \item an input AXI-stream carrying image data, and
-  \item an output AXI-stream carrying the final classification result.
-\end{itemize}
-
-At a high level, \texttt{rtl/bnn\_fcc.sv} integrates three major subsystems:
+At the top level, \texttt{rtl/bnn\_fcc.sv} connects three major subsystems:
 \texttt{config\_manager}, \texttt{data\_in\_manager}, and \texttt{bnn}. The
-configuration path is especially important because it must correctly parse
-message headers, respect \texttt{config\_keep}, align payload data, and emit
-layer-specific write enables and write data for both weight and threshold
-storage.
+first prepares and distributes model parameters, the second reshapes incoming
+input data into the binary words expected by the network, and the third
+contains the replicated layer datapaths that perform inference.
 
-This template is intentionally compact. The next sections can be expanded with
-measured results, architectural tradeoffs, timing observations, and any contest-
-specific discussion once you decide on the final narrative.
+\begin{strip}
+  \centering
+  \resizebox{\textwidth}{!}{\input{figures/bnn_fcc_diagram}}
+  \captionof{figure}{Top-level organization of \texttt{rtl/bnn\_fcc.sv}.
+  Configuration ingress, activation ingress, the BNN core, and the output side
+  are shown with the main interface signals.}
+  \Description{Block diagram of the top-level bnn_fcc module showing a
+  configuration manager, a data input manager, the BNN core, and the final
+  output path connected by streaming control and data interfaces.}
+  \label{fig:bnn-fcc-top}
+\end{strip}
+
+The top-level structure is intentionally streaming-oriented. Rather than
+converting everything into a single global control machine, each phase reshapes
+the incoming stream into a form that is locally useful to the next stage. That
+same idea appears again inside the configuration and compute phases, where
+staging FIFOs and fanout pipeline registers are used to keep the control
+problem manageable and the timing paths short.

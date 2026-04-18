@@ -1,0 +1,37 @@
+\appendix
+
+\section{Supplementary FSMD Views}
+
+The following control-state diagrams are intentionally simplified. They do not
+attempt to reproduce every temporary register or default assignment in the RTL.
+Instead, they summarize the dominant control flow behind the configuration path
+so the higher-level block diagrams in the main text remain focused on the data
+movement.
+
+\begin{figure}[t]
+  \centering
+  \resizebox{0.88\columnwidth}{!}{\input{figures/config_manager_parser_fsmd}}
+  \caption{Simplified FSMD view of \texttt{config\_manager\_parser}.}
+  \Description{Simplified control-state diagram for the configuration parser,
+  showing header parsing, payload emission, and the main loop conditions.}
+  \label{fig:parser-fsmd}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \resizebox{0.88\columnwidth}{!}{\input{figures/config_manager_pad_fsm_fsmd}}
+  \caption{Simplified FSMD view of \texttt{config\_manager\_pad\_fsm}.}
+  \Description{Simplified control-state diagram for the pad state machine,
+  showing how payload bytes and synthetic padding are sequenced.}
+  \label{fig:pad-fsmd}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \resizebox{0.88\columnwidth}{!}{\input{figures/config_controller_fsmd}}
+  \caption{Simplified FSMD view of the layer-local \texttt{config\_controller}.}
+  \Description{Simplified control-state diagram for the layer-local
+  configuration controller, showing per-bank write sequencing across the RAM
+  banks.}
+  \label{fig:config-controller-fsmd}
+\end{figure}
