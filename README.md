@@ -17,6 +17,8 @@ OpenFlex judging runs:
 openflex bnn_fcc_timing.yml -c bnn_fcc.csv -p 1.25
 ```
 
+To verify functionality, please clone the repo into the new ECE server, the makefile may be specific to the licenses/modelsim version on the server.
+
 Instructions to run the UVM tests:
 
 1. Run the original testbench:

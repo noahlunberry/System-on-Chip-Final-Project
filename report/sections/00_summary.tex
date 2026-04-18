@@ -74,9 +74,11 @@ full system build.
 \noindent{\bfseries Important Judging Notes.}
 Use -p 1.25 in OpenFLEX when building the design. I found this to be most consistent 
 as Vivado gives up early otherwise.
-Also, I was not able to get the openFLEX timing to work, as I am on a Windows device and 
+Also, I was not able to get the openFLEX verification to work, as I am on a Windows device and 
 the commands did not work, I tried to patch the tool to make it work on windows, but
-then Modelsim would hang forever. To verify results please use make sim-original-tb.
+then Modelsim would hang forever. To verify functionality, please clone the repo into the new ECE server, 
+the makefile may be specific to the licenses/modelsim version on the server. 
+To run the base test please use make sim-original-tb.
 There are also instruction in the repo's README to utilize the entire verification flow.
 
 \subsection{Implementation and Tradeoffs}
