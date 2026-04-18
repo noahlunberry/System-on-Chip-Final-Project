@@ -29,6 +29,8 @@ VLOG = vlog
 VSIM = vsim
 VOPT = vopt
 VCOVER = vcover
+MODELSIM_INI ?= $(CURDIR)/modelsim.ini
+QUESTA_MODELSIM_FLAGS = -modelsimini $(MODELSIM_INI)
 
 # Project configuration
 TOP_MODULE ?= bnn_fcc_uvm_tb
@@ -247,6 +249,7 @@ endif
 
 # Compilation flags
 VLOG_FLAGS = -sv \
+	$(QUESTA_MODELSIM_FLAGS) \
 	-mfcu \
 	-lint \
 	+acc=pr \
@@ -264,12 +267,16 @@ VLOG_FLAGS = -sv \
 
 # Optimization flags (preserve full visibility with +acc)
 VOPT_FLAGS = +acc \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	-L $(UVM_LIB) \
 	$(COMMON_TB_GFLAGS) \
 	-o $(OPTIMIZED_TOP)
 
 # Simulation flags
 VSIM_FLAGS = -c \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-L $(UVM_LIB) \
@@ -281,6 +288,8 @@ VSIM_FLAGS = -c \
 
 # GUI simulation flags
 VSIM_GUI_FLAGS = -gui \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-L $(UVM_LIB) \
@@ -292,6 +301,8 @@ VSIM_GUI_FLAGS = -gui \
 
 define RUN_BATCH_TEST
 $(VSIM) -c \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-l $(TEST_LOG_DIR)/$(1).log \
@@ -306,6 +317,8 @@ endef
 
 define RUN_GUI_TEST
 $(VSIM) -gui \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-L $(UVM_LIB) \
@@ -319,6 +332,8 @@ endef
 
 define RUN_LEGACY_TB
 $(VSIM) -c \
+	$(QUESTA_MODELSIM_FLAGS) \
+	-work $(WORK_DIR) \
 	$(VSIM_COVERAGE_FLAGS) \
 	-debugDB \
 	-l $(LEGACY_TB_LOG_FILE) \
@@ -332,9 +347,13 @@ endef
 all: compile optimize
 
 # Create work library
-$(WORK_DIR):
+$(MODELSIM_INI):
+	cp $(QUESTA_HOME)/modelsim.ini $(MODELSIM_INI)
+
+$(WORK_DIR): $(MODELSIM_INI)
 	vlib $(WORK_DIR)
-	vmap work $(WORK_DIR)
+	# Keep the logical WORK library aligned with the selected physical library.
+	vmap -modelsimini $(MODELSIM_INI) work $(WORK_DIR)
 
 $(COVERAGE_DIR):
 	mkdir -p $(COVERAGE_DIR)

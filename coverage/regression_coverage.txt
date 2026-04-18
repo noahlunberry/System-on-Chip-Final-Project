@@ -935,8 +935,8 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          74619          1          -    Covered              
-        bin lo                                        1139413          1          -    Covered              
+        bin hi                                         181182          1          -    Covered              
+        bin lo                                        1032892          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      
@@ -2043,8 +2043,8 @@ Covergroup                                             Metric       Goal       B
         covered/total bins:                                 2          2          -                      
         missing/total bins:                                 0          2          -                      
         % Hit:                                        100.00%        100          -                      
-        bin hi                                          74619          1          -    Covered              
-        bin lo                                        1139413          1          -    Covered              
+        bin hi                                         181182          1          -    Covered              
+        bin lo                                        1032892          1          -    Covered              
     Coverpoint backpressure_cp                        100.00%        100          -    Covered              
         covered/total bins:                                 1          1          -                      
         missing/total bins:                                 0          1          -                      

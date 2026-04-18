@@ -7,6 +7,63 @@ simulating it with a provided testbench. You will then evaluate the latency, thr
 
 The contest represents a collaboration between Apple, Greg Stitt, and EEL6935 Reconfigurable Computing 2 at University of Florida. Apple will be providing prizes for the top submissions.
 
+## Judging Instructions
+
+OpenFlex judging runs:
+
+* For OpenFlex  timing collection, include `-p 1.25`, I found it to be more consistent.
+
+```bash
+openflex bnn_fcc_timing.yml -c bnn_fcc.csv -p 1.25
+```
+
+Instructions to run the UVM tests:
+
+1. Run the original testbench:
+   `make sim-original-tb`
+2. Run the full standalone UVM regression:
+   `make regress`
+3. Run the single-run coverage sweep, if scripts specify one testbench is required:
+   `make sim-coverage`
+4. Generate the detailed text report for that single-run sweep:
+   `make coverage-sweep-report`
+5. If you want to see the discovered standalone tests before running them:
+   `make list-tests`
+
+The important artifacts are:
+
+* Legacy testbench log: `coverage/logs/bnn_fcc_tb.log`
+* Per-test UVM logs: `coverage/logs/<test_name>.log`
+* Merged standalone-regression UCDB: `coverage/regression_merged.ucdb`
+* Merged standalone-regression text report: `coverage/regression_coverage.txt`
+* Single-run grading UCDB: `coverage/bnn_fcc_coverage_sweep_test.ucdb`
+* Single-run grading text report: `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`
+
+Pass/fail interpretation:
+
+* `make sim-original-tb` passes only if `coverage/logs/bnn_fcc_tb.log` contains the `SUCCESS:` banner.
+* `make sim` and `make sim-<test_name>` pass only if the corresponding UVM log contains `TEST PASSED`.
+* `make regress` fails immediately if any discovered standalone UVM test fails. If the regression passes, it also merges all per-test UCDBs and writes `coverage/regression_coverage.txt`.
+* `make sim-coverage` and `make coverage-sweep-report` are the single-run grading flow. They should both complete without simulator errors, and the generated report should exist at `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`.
+
+Coverage interpretation:
+
+* `coverage/bnn_fcc_coverage_sweep_test_coverage.txt` is the single-UCDB grading artifact.
+* `coverage/regression_coverage.txt` is the merged view across the standalone UVM regression.
+* In the text reports, `TYPE` lines summarize a covergroup, coverpoint, or cross. `100.00%` means all bins in that item were hit; values below `100.00%` mean at least one bin remains uncovered.
+* The rightmost `Covered`/`Uncovered` status shows whether that item met all of its bins.
+* The most relevant functional-coverage sections are the configuration, input, output, and system covergroups. Together they measure configuration packet structure, TKEEP/TLAST behavior, message ordering, gap/burst timing, image spacing, output patterns and backpressure, reconfiguration behavior, reset timing, and config/input/output bit toggles.
+
+Coverage-test implementation:
+
+* The dedicated grading top is `bnn_fcc_coverage_tb`, which instantiates the DUT and keeps the AXI interfaces directly at the top level so UVM monitors and external grading scripts can attach to them easily.
+* `bnn_fcc_coverage_tb` defaults to running `bnn_fcc_coverage_sweep_test`.
+* `bnn_fcc_coverage_sweep_test` serializes `21` directed scenarios into one simulation so judges can inspect one UCDB instead of merging many separate runs.
+* Those `21` scenarios cover the single-beat baseline, config/input TKEEP, directed output classes, output backpressure, threshold-preamble and out-of-order configuration traffic, threshold and weight-density extremes, directed pixel extremes, long input-gap stress, weights-only/thresholds-only/partial reconfiguration, reset bins, reset-then-reconfigure behavior, and a directed delay-gap profile.
+* The coverage components in `verification/bnn_uvm/bnn_fcc_coverage.svh` consume monitored AXI traffic through UVM analysis FIFOs and sample packet/header/order/handshake/output/system covergroups, plus explicit bit-toggle coverage for config, input, and output data paths.
+
+
+
 ## Overview
 
 This section provides an overview of the required functionality. See [rtl/README.md](rtl/README.md) for a detailed description of the bnn_fcc interface. See [verification/README.md](verification/README.md) for a detailed description of the testbench and how to simulate your design. For more background information on BNNs, see the [included slides](TBD).
@@ -88,31 +145,6 @@ The common local flow is:
 
 The `make sim-<test_name>` shorthand is also supported. For example:
 `make sim-bnn_fcc_single_beat_test`
-
-### One-Shot Coverage Flow
-
-The dedicated coverage top is `bnn_fcc_coverage_tb`, and by default it runs
-the composite UVM test `bnn_fcc_coverage_sweep_test`.
-
-The standalone regression currently contains `21` discovered tests, and the
-one-shot sweep serializes those same `21` scenario classes into one
-simulation.
-
-Useful commands:
-
-1. Show the discovered standalone regression tests:
-   `make list-tests`
-2. Run the one-shot coverage sweep on `bnn_fcc_coverage_tb`:
-   `make sim-coverage`
-3. Run the one-shot coverage sweep and generate its text report:
-   `make coverage-sweep-report`
-4. Regenerate only the text report from an existing UCDB:
-   `make reportcov UVM_TESTNAME=bnn_fcc_coverage_sweep_test`
-
-The main artifacts for this flow are:
-
-* UCDB: `coverage/bnn_fcc_coverage_sweep_test.ucdb`
-* Text report: `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`
 
 ## Verification And Scalability Claim Mapping
 
