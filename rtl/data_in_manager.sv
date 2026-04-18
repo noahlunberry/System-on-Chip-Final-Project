@@ -27,7 +27,7 @@ module data_in_manager #(
 
     // Match the top-level gating used in bnn_fcc.
     input  logic                           config_ready,
-    input  logic                           config_last,
+    input  logic                           config_valid,
 
     // AXI-style image input
     input  logic                           data_in_valid,
@@ -204,7 +204,7 @@ module data_in_manager #(
   // registered compactor.
   assign data_in_ready =
       config_ready      &&
-      config_last       &&
+      !config_valid   &&
       !bin_fifo_alm_full &&
       !padding_r        &&
       !compact_last_r;

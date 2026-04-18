@@ -86,20 +86,20 @@ module bnn_fcc_tb #(
     // Testbench configuration
     parameter int      USE_CUSTOM_TOPOLOGY                      = 1'b0,
     parameter int      CUSTOM_LAYERS                            = 4,
-    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{256, 64, 64, 8},
+    parameter int      CUSTOM_TOPOLOGY          [CUSTOM_LAYERS] = '{8, 8, 8, 8},
     parameter int      NUM_TEST_IMAGES                          = 50,
     parameter bit      VERIFY_MODEL                             = 1,
-    parameter string   BASE_DIR                                 = "/home/UFAD/ruangkanitpawin/Projects/bnn_fcc_contest/python", //C:/Users/pawin/UF/spring26/RC2/bnn_fcc_contest/python
-    parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b1,
+    parameter string   BASE_DIR                                 = "../python",
+    parameter bit      TOGGLE_DATA_OUT_READY                    = 1'b0,
     parameter real     CONFIG_VALID_PROBABILITY                 = 1.0,
-    parameter real     DATA_IN_VALID_PROBABILITY                = 0.95,
-    parameter realtime TIMEOUT                                  = 100ms,
+    parameter real     DATA_IN_VALID_PROBABILITY                = 1.0,
+    parameter realtime TIMEOUT                                  = 10ms,
     parameter realtime CLK_PERIOD                               = 10ns,
     parameter bit      DEBUG                                    = 1'b0,
 
     // Bus configuration
     parameter int CONFIG_BUS_WIDTH = 64,
-    parameter int INPUT_BUS_WIDTH  = 1024,
+    parameter int INPUT_BUS_WIDTH  = 64,
     parameter int OUTPUT_BUS_WIDTH = 8,
 
     // App configuration
@@ -114,8 +114,8 @@ module bnn_fcc_tb #(
 
     // DUT configuration (can be modified or extended for your own DUT)        
     localparam int NON_INPUT_LAYERS = USE_CUSTOM_TOPOLOGY ? CUSTOM_LAYERS - 1 : TRAINED_LAYERS - 1,
-    parameter int PARALLEL_INPUTS = 128,
-    parameter int PARALLEL_NEURONS[NON_INPUT_LAYERS] = '{256, 64, 10}
+    parameter int PARALLEL_INPUTS = 32,
+    parameter int PARALLEL_NEURONS[NON_INPUT_LAYERS] = '{64, 32, 10}
 );
     import bnn_fcc_tb_pkg::*;
 
@@ -181,7 +181,6 @@ module bnn_fcc_tb #(
         .aclk   (clk),
         .aresetn(!rst)
     );
-    
 
     bnn_fcc #(
         .INPUT_DATA_WIDTH (INPUT_DATA_WIDTH),

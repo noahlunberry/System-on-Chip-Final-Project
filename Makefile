@@ -31,9 +31,15 @@ VOPT = vopt
 VCOVER = vcover
 
 # Project configuration
-WORK_DIR = work
 TOP_MODULE ?= bnn_fcc_uvm_tb
 OPTIMIZED_TOP = $(TOP_MODULE)_opt
+LEGACY_BNN_TB_TOP ?= bnn_fcc_tb
+DEFAULT_WORK_DIR ?= work
+LEGACY_WORK_DIR ?= work_legacy
+WORK_DIR = $(DEFAULT_WORK_DIR)
+ifeq ($(TOP_MODULE),$(LEGACY_BNN_TB_TOP))
+WORK_DIR = $(LEGACY_WORK_DIR)
+endif
 COVERAGE_SWEEP_TOP ?= bnn_fcc_coverage_tb
 FIVE_LAYER_TOP ?= bnn_fcc_uvm_five_layer_tb
 FINN_SFC_TOP ?= bnn_fcc_uvm_finn_sfc_tb
@@ -156,6 +162,13 @@ TEST_LOG_FILE = $(TEST_LOG_DIR)/$(UVM_TESTNAME).log
 MERGED_COVERAGE_FILE = $(COVERAGE_DIR)/regression_merged.ucdb
 CURRENT_COVERAGE_REPORT = $(COVERAGE_DIR)/$(UVM_TESTNAME)_coverage.txt
 MERGED_COVERAGE_REPORT = $(COVERAGE_DIR)/regression_coverage.txt
+LEGACY_TB_LOG_FILE = $(TEST_LOG_DIR)/$(TOP_MODULE).log
+LEGACY_TB_COVERAGE_FILE = $(COVERAGE_DIR)/$(TOP_MODULE).ucdb
+LEGACY_TB_ARGS = \
+	TOP_MODULE=$(LEGACY_BNN_TB_TOP) \
+	BASE_DIR=$(BASE_DIR)
+SOURCE_FILE ?= sources.txt
+LEGACY_SOURCE_FILE ?= sources_legacy_tb.txt
 VSIM_COVERAGE_FLAGS = -coverage
 VSIM_RUN_DO = coverage save -onexit $(COVERAGE_FILE); run -all
 VSIM_GUI_DO = coverage save -onexit $(COVERAGE_FILE)
@@ -181,6 +194,9 @@ ARCH_VLOG_DEFINES = \
 
 ifeq ($(TOP_MODULE),$(COVERAGE_SWEEP_TOP))
 COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE)
+else ifeq ($(TOP_MODULE),$(LEGACY_BNN_TB_TOP))
+COMMON_TB_GFLAGS = \
+	-gBASE_DIR=\"$(BASE_DIR)\"
 else ifeq ($(TOP_MODULE),$(FIVE_LAYER_TOP))
 COMMON_TB_GFLAGS = \
 	-gBASE_DIR=\"$(BASE_DIR)\" \
@@ -223,6 +239,10 @@ COMMON_TB_GFLAGS = \
 	$(COMMON_TB_TIME_GFLAGS)
 else
 COMMON_TB_GFLAGS = $(COMMON_TB_GFLAGS_BASE) $(COMMON_TB_TIME_GFLAGS)
+endif
+
+ifeq ($(TOP_MODULE),$(LEGACY_BNN_TB_TOP))
+SOURCE_FILE := $(LEGACY_SOURCE_FILE)
 endif
 
 # Compilation flags
@@ -297,6 +317,17 @@ $(VSIM) -gui \
 	$(OPTIMIZED_TOP)
 endef
 
+define RUN_LEGACY_TB
+$(VSIM) -c \
+	$(VSIM_COVERAGE_FLAGS) \
+	-debugDB \
+	-l $(LEGACY_TB_LOG_FILE) \
+	-L $(UVM_LIB) \
+	-voptargs="+acc" \
+	-do "coverage save -onexit $(LEGACY_TB_COVERAGE_FILE); run -all" \
+	$(OPTIMIZED_TOP)
+endef
+
 # Default target
 all: compile optimize
 
@@ -313,7 +344,7 @@ $(TEST_LOG_DIR):
 
 # Read sources from file and compile
 compile: $(WORK_DIR)
-	$(VLOG) $(VLOG_FLAGS) -f sources.txt $(EXTRA_RTL_SOURCES)
+	$(VLOG) $(VLOG_FLAGS) -f $(SOURCE_FILE) $(EXTRA_RTL_SOURCES)
 
 # Optimize design while maintaining full visibility
 optimize: compile
@@ -364,6 +395,30 @@ run-test: $(COVERAGE_DIR) $(TEST_LOG_DIR)
 		echo "[PASS] $(UVM_TESTNAME)"; \
 	else \
 		echo "[FAIL] $(UVM_TESTNAME) (no TEST PASSED banner found in $(TEST_LOG_FILE))"; \
+		exit 1; \
+	fi
+
+run-legacy-tb: $(COVERAGE_DIR) $(TEST_LOG_DIR)
+	@set -e; \
+	rm -f "$(LEGACY_TB_LOG_FILE)"; \
+	test_status=0; \
+	$(call RUN_LEGACY_TB) || test_status=$$?; \
+	if [ $$test_status -ne 0 ]; then \
+		echo "[FAIL] $(TOP_MODULE) (simulator exit $$test_status, log: $(LEGACY_TB_LOG_FILE))"; \
+		exit $$test_status; \
+	fi; \
+	if [ ! -f "$(LEGACY_TB_LOG_FILE)" ]; then \
+		echo "[FAIL] $(TOP_MODULE) (missing log: $(LEGACY_TB_LOG_FILE))"; \
+		exit 1; \
+	fi; \
+	if grep -qiE "FAILED:|\\*\\* Error:|\\*\\* Fatal:" "$(LEGACY_TB_LOG_FILE)"; then \
+		echo "[FAIL] $(TOP_MODULE) (see $(LEGACY_TB_LOG_FILE))"; \
+		exit 1; \
+	fi; \
+	if grep -q "SUCCESS:" "$(LEGACY_TB_LOG_FILE)"; then \
+		echo "[PASS] $(TOP_MODULE)"; \
+	else \
+		echo "[FAIL] $(TOP_MODULE) (no SUCCESS banner found in $(LEGACY_TB_LOG_FILE))"; \
 		exit 1; \
 	fi
 
@@ -448,6 +503,16 @@ stats-bus512:
 stats-bus1024:
 	@$(MAKE) --no-print-directory print-config RUN_MODE=stats ARCH_PROFILE=bus1024 UVM_TESTNAME=$(UVM_TESTNAME)
 	@$(MAKE) --no-print-directory sim RUN_MODE=stats ARCH_PROFILE=bus1024 UVM_TESTNAME=$(UVM_TESTNAME)
+
+# Convenience target for the original non-UVM contest testbench using the
+# parameter values checked into verification/bnn_fcc_tb.sv.
+sim-original-tb:
+	@$(MAKE) --no-print-directory optimize $(LEGACY_TB_ARGS)
+	@$(MAKE) --no-print-directory run-legacy-tb $(LEGACY_TB_ARGS)
+
+# Backward-compatible alias for the earlier target name.
+sim-original-tb-stats:
+	@$(MAKE) --no-print-directory sim-original-tb $(LEGACY_TB_ARGS)
 
 # Convenience target: make sim-bnn_fcc_single_beat_test
 sim-%: optimize $(COVERAGE_DIR)
@@ -539,6 +604,8 @@ help:
 	@echo "make stats-bus256                     Run statistics mode for the 256-bit profile"
 	@echo "make stats-bus512                     Run statistics mode for the 512-bit profile"
 	@echo "make stats-bus1024                    Run statistics mode for the 1024-bit profile"
+	@echo "make sim-original-tb                 Run the original bnn_fcc_tb with its checked-in parameter values"
+	@echo "make sim-original-tb-stats           Alias for make sim-original-tb"
 	@echo "make regress                          Run all discovered tests and merge coverage"
 	@echo "                                      Per-test logs are written under $(TEST_LOG_DIR)"
 	@echo "make sim-coverage                     Run the one-shot coverage sweep top/testbench"
@@ -559,6 +626,8 @@ help:
 # Clean up generated files
 clean:
 	rm -rf $(WORK_DIR)
+	rm -rf $(DEFAULT_WORK_DIR)
+	rm -rf $(LEGACY_WORK_DIR)
 	rm -rf transcript
 	rm -rf vsim.wlf
 	rm -rf *.db
@@ -568,4 +637,4 @@ clean:
 	rm -rf $(COVERAGE_DIR)
 	rm -rf modelsim.ini
 
-.PHONY: all compile optimize list-tests print-config run-test sim sim-% sim-coverage stats stats-bus64 stats-bus128 stats-bus256 stats-bus512 stats-bus1024 sim-five-layer sim-ten-hidden sim-finn-sfc sim-finn-lfc sim-finn-topologies sim-topology-sweep coverage-sweep coverage-sweep-stats coverage-sweep-report gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean
+.PHONY: all compile optimize list-tests print-config run-test run-legacy-tb sim sim-% sim-coverage stats stats-bus64 stats-bus128 stats-bus256 stats-bus512 stats-bus1024 sim-original-tb sim-original-tb-stats sim-five-layer sim-ten-hidden sim-finn-sfc sim-finn-lfc sim-finn-topologies sim-topology-sweep coverage-sweep coverage-sweep-stats coverage-sweep-report gui gui-% regress mergecov reportcov reportcov-merged viewcov viewcov-merged help clean

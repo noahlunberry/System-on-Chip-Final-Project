@@ -159,7 +159,7 @@ module bnn_fcc #(
       .clk              (clk),
       .rst              (rst),
       .config_ready     (config_ready),
-      .config_last      (config_last),
+      .config_valid      (config_valid),
       .data_in_valid    (data_in_valid),
       .data_in_ready    (data_in_ready),
       .data_in_data     (data_in_data),
