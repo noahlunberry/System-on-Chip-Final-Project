@@ -2,7 +2,7 @@
 
 \subsection{Results}
 
-Table~\ref{tab:design-space-results} summarizes the explored design points.
+Table~\ref{tab:design-space-results} summarizes the measured performance results.
 The first three columns specify the architectural parameters used in each run:
 input bus width, parallel inputs, and per-layer neuron
 partitioning. Several design points exceed the maximum operating frequency
@@ -69,12 +69,14 @@ full system build.
   }
 \end{strip}
 
-\paragraph{Important Judging Notes.}
+\medskip
+\noindent{\bfseries Important Judging Notes.}
 Use -p 1.25 in OpenFLEX when building the design. I found this to be most consistent 
 as Vivado gives up early otherwise.
 Also, I was not able to get the openFLEX timing to work, as I am on a Windows device and 
 the commands did not work, I tried to patch the tool to make it work on windows, but
 then Modelsim would hang forever. To verify results please use make sim-original-tb.
+There are also instruction in the repo's README to utilize the entire verification flow.
 
 \subsection{Implementation and Tradeoffs}
 
@@ -109,6 +111,7 @@ between image streams, as well as customizable hidden layers and topologies.
 
 \subsection{Verification/Testbench}
 
+The design passes the base testbench, as well as all of these coverage based UVM tests.
 The base testbench was extended into a UVM flow to verify functionality beyond
 the nominal contest path and to provide more complete coverage of the design.
 Some of this behavior includes: partial \texttt{TKEEP} configuration and input streams,
