@@ -132,7 +132,7 @@ module neuron_processor #(
     if (rst) begin
       // final_sum_r      <= '0;
       // threshold_final_r <= '0;
-      // compare_valid_r  <= 1'b0;
+      compare_valid_r  <= 1'b0;
     end else begin
       compare_valid_r <= tree_last_out;
 
@@ -150,7 +150,7 @@ module neuron_processor #(
     if (rst) begin
       // y_r              <= 1'b0;
       // count_out        <= '0;
-      // y_valid_r <= 1'b0;
+      y_valid_r <= 1'b0;
     end else begin
       y_valid_r       <= 1'b0;
 

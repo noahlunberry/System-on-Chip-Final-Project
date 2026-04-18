@@ -9,9 +9,11 @@ openflex/build_vivado/**/*
 verification/bnn_uvm/work
 .nfs*
 work
+work_legacy
 codex_uvm_check
 vsim.dbg
 .codex
 wlftorkTRp
 *.ucdb
 coverage/logs
+modelsim.ini

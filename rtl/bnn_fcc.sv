@@ -159,7 +159,7 @@ module bnn_fcc #(
       .clk              (clk),
       .rst              (rst),
       .config_ready     (config_ready),
-      .config_last      (config_last),
+      .config_valid      (config_valid),
       .data_in_valid    (data_in_valid),
       .data_in_ready    (data_in_ready),
       .data_in_data     (data_in_data),
@@ -219,7 +219,7 @@ module bnn_fcc #(
   ) argmax_inst (
       .clk    (clk),
       .rst    (rst),
-      .en     (1'b1),           // Stalls perfectly with the rest of the pipeline
+      .en     (1'b1),
       .inputs (bnn_count_out),
       .max_val(tree_max_val),
       .max_idx(tree_max_idx)

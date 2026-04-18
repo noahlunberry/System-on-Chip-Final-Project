@@ -2,6 +2,10 @@
 
 This folder contains a parameterized SystemVerilog testbench for verifying the fully connected binary neural network classifier. It supports both a fixed SFC topology (784-256-256-10) for MNIST digit recognition and user-defined custom topologies.
 
+Legacy module-level testbenches such as `bnn_layer_tb.sv`, `bnn_layer_preconfig_tb.sv`,
+`bnn_tb.sv`, `bnn_tb_pkg.sv`, and `neuron_processor_tb.sv` are stored under
+`verification/unit tests/`.
+
 ## Features
 * **Dual Mode Operation**: Toggle between trained MNIST weights or randomized models for architectural exploration.
 * **AXI4-Stream Integration**: Fully compliant handshaking with configurable bus widths and randomized back-pressure/validity.
@@ -23,7 +27,9 @@ This folder contains a parameterized SystemVerilog testbench for verifying the f
 #### GUI Mode
 
 1. Create a project in your simulator.
-1. Add all files in the rtl/ and verification/ folder.
+1. Add all files in the `rtl/` and `verification/` folders. If you want to run
+   the legacy module-level benches, also include the files under
+   `verification/unit tests/`.
 1. Edit the parameters in bnn_fcc_tb.sv to customize your simulation.
 1. Compile all files.
 1. Start a simulation using the bnn_fcc_tb testbench.
@@ -52,29 +58,38 @@ run -all
 The repository now supports two functional-coverage flows:
 
 * **Standard UVM regression**: Uses `verification/bnn_uvm/bnn_fcc_uvm_tb.sv` and runs one `uvm_test` per simulation, then merges the resulting coverage databases.
-* **Single-run coverage sweep**: Uses `verification/bnn_uvm/bnn_fcc_uvm_cov_tb.sv`, which hard-runs the composite UVM test `bnn_fcc_coverage_sweep_test` so external evaluation scripts can collect meaningful coverage from one simulation and one UCDB.
+* **Single-run coverage sweep**: Uses `verification/bnn_uvm/bnn_fcc_coverage_tb.sv`, which defaults to the composite UVM test `bnn_fcc_coverage_sweep_test` so external evaluation scripts can collect meaningful coverage from one simulation and one UCDB.
 
 ### Which testbench should a grader use?
 
 If the grading script asks for a single testbench to measure functional coverage, use:
 
-* `bnn_fcc_uvm_cov_tb`
+* `bnn_fcc_coverage_tb`
 
-This top-level wraps `bnn_fcc_uvm_tb` and forces `run_test("bnn_fcc_coverage_sweep_test")`, so the evaluator does **not** need to iterate over individual UVM tests or merge coverage afterwards.
-For this wrapper top, the sweep clock period and timeout are intentionally fixed inside the wrapper module to avoid a Questa nested-`time`-parameter override issue.
+This top-level is a dedicated coverage testbench with `config_in_if`, `data_in_if`, and `data_out_if` defined directly under `bnn_fcc_coverage_tb`, so grader scripts can attach protocol monitors at the top level without traversing through an inner wrapper instance. By default it runs `bnn_fcc_coverage_sweep_test`, so the evaluator does **not** need to iterate over individual UVM tests or merge coverage afterwards.
+
+The standalone regression currently contains `21` discovered tests, and the
+composite sweep serializes those same `21` scenario classes into one run.
+Use `make list-tests` to print the current standalone regression list.
 
 ### Local commands
 
 * `make coverage-sweep`
-  Runs the one-shot coverage evaluation using `bnn_fcc_uvm_cov_tb`.
+  Runs the one-shot coverage evaluation using `bnn_fcc_coverage_tb`.
+* `make sim-coverage`
+  Alias for the same one-shot coverage evaluation using `bnn_fcc_coverage_tb`.
 * `make coverage-sweep-report`
   Runs the same one-shot evaluation and writes `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`.
+* `make reportcov UVM_TESTNAME=bnn_fcc_coverage_sweep_test`
+  Regenerates the text report from an existing one-shot sweep UCDB.
 * `make regress`
   Keeps the original per-test regression flow for debugging and isolated test development.
 
+For a step-by-step guide to the coverage flow, the generated artifacts, and how to write an achieved-coverage report that traces back to `verification/coverage_plan.txt`, see [coverage_reporting.md](coverage_reporting.md).
+
 ### Suggested judge instructions
 
-"To evaluate functional coverage for this project with a single simulation, compile the source list in `sources.txt` and run the top-level testbench `bnn_fcc_uvm_cov_tb`. This top invokes the composite UVM test `bnn_fcc_coverage_sweep_test`, which serializes the directed coverage scenarios into one run and emits one coverage database. The legacy/unit testbenches are not intended for final functional coverage scoring."
+"To evaluate functional coverage for this project with a single simulation, compile the source list in `sources.txt` and run the top-level testbench `bnn_fcc_coverage_tb`. The AXI interfaces `config_in_if`, `data_in_if`, and `data_out_if` are instantiated directly under this top, and the testbench defaults to the composite UVM test `bnn_fcc_coverage_sweep_test`, which serializes the directed coverage scenarios into one run and emits one coverage database. The legacy/unit testbenches are not intended for final functional coverage scoring."
 
 ---
 

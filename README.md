@@ -71,6 +71,121 @@ Submissions will be judged based on:
     └── test_vectors/
 ```
 
+## Build And Simulation Flow
+
+The common local flow is:
+
+1. Build the simulator workspace:
+   `make compile`
+2. Run one UVM test:
+   `make sim UVM_TESTNAME=bnn_fcc_single_beat_test`
+3. Run the single-run coverage flow:
+   `make sim-coverage`
+4. Generate the one-shot coverage report:
+   `make coverage-sweep-report`
+5. See all helper commands:
+   `make help`
+
+The `make sim-<test_name>` shorthand is also supported. For example:
+`make sim-bnn_fcc_single_beat_test`
+
+### One-Shot Coverage Flow
+
+The dedicated coverage top is `bnn_fcc_coverage_tb`, and by default it runs
+the composite UVM test `bnn_fcc_coverage_sweep_test`.
+
+The standalone regression currently contains `21` discovered tests, and the
+one-shot sweep serializes those same `21` scenario classes into one
+simulation.
+
+Useful commands:
+
+1. Show the discovered standalone regression tests:
+   `make list-tests`
+2. Run the one-shot coverage sweep on `bnn_fcc_coverage_tb`:
+   `make sim-coverage`
+3. Run the one-shot coverage sweep and generate its text report:
+   `make coverage-sweep-report`
+4. Regenerate only the text report from an existing UCDB:
+   `make reportcov UVM_TESTNAME=bnn_fcc_coverage_sweep_test`
+
+The main artifacts for this flow are:
+
+* UCDB: `coverage/bnn_fcc_coverage_sweep_test.ucdb`
+* Text report: `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`
+
+## Verification And Scalability Claim Mapping
+
+### Implemented UVM flow to extend the testbench to verify all additional functionality
+
+Use the regression and one-shot coverage flows:
+
+```bash
+make regress
+make sim-coverage
+make coverage-sweep-report
+```
+
+### Design supports partial TKEEP config/input streams
+
+Use the dedicated configuration-stream and input-stream TKEEP tests:
+
+```bash
+make sim-bnn_fcc_tkeep_packet_test
+make sim-bnn_fcc_input_tkeep_packet_test
+```
+
+### Design supports reconfiguring weights/thresholds after a few images
+
+Use the directed reconfiguration tests:
+
+```bash
+make sim-bnn_fcc_weights_only_reconfig_test
+make sim-bnn_fcc_thresh_only_reconfig_test
+make sim-bnn_fcc_partial_reconfig_test
+```
+
+### Design supports interleaved configuration streams (thresholds first, layers out of order)
+
+Use the threshold-preamble and config-order tests:
+
+```bash
+make sim-bnn_fcc_threshold_preamble_test
+make sim-bnn_fcc_config_order_bins_test
+```
+
+### Design supports extending the amount of hidden layers
+
+Use the deep custom-topology testbench:
+
+```bash
+make sim-ten-hidden
+```
+
+### Design tested for long delay gaps and extreme weight/threshold/pixel values
+
+Use the directed stress and extremes tests:
+
+```bash
+make sim-bnn_fcc_delay_gap_profile_test
+make sim-bnn_fcc_density_extremes_test
+make sim-bnn_fcc_threshold_abs_extremes_test
+make sim-bnn_fcc_pixel_values_directed_test
+```
+
+### Design is able to scale up to larger input-bus configurations with retuned parallelism
+
+Use the architecture-profile statistics runs:
+
+```bash
+make stats-bus128 UVM_TESTNAME=bnn_fcc_single_beat_test
+make stats-bus256 UVM_TESTNAME=bnn_fcc_single_beat_test
+make stats-bus512 UVM_TESTNAME=bnn_fcc_single_beat_test
+make stats-bus1024 UVM_TESTNAME=bnn_fcc_single_beat_test
+```
+
+These runs exercise the Makefile architecture presets for wider bus widths and their corresponding parallel-input / parallel-neuron settings.
+
 # Git Instructions for How to Participate (Forking & Syncing Guide)
 
 Use this guide to set up your design environment and keep your local files updated if the contest organizers release template updates.
@@ -147,9 +262,3 @@ If you edited a file that the organizers also updated, Git will ask you to choos
 For your submission, you must include a report.pdf that includes the timing results, area results, and verification results. Collecting these results can be done by following the instructions in the [openflex/](openflex/) folder.
 
 Additional instructions for submitting the repository with your design will be explained in EEL6935 Reconfigurable Computing 2.
-
-## Report Authoring
-
-A local LaTeX report workspace is available under [report](report). See
-[report/README.md](report/README.md) for local tool setup and compile
-instructions.
