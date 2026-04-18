@@ -4,15 +4,15 @@
     draw,
     thick,
     rounded corners=1pt,
-    minimum width=60mm,
-    minimum height=17mm,
+    minimum width=78mm,
+    minimum height=24mm,
     align=center,
     font=\normalsize
   },
   wideblock/.style={
     block,
-    minimum width=74mm,
-    minimum height=20mm
+    minimum width=100mm,
+    minimum height=30mm
   },
   data/.style={->, thick},
   bus/.style={
@@ -28,116 +28,145 @@
   },
   ctrl/.style={->, thick, dashed},
   iface/.style={font=\large\bfseries\ttfamily, fill=white, inner sep=1pt},
-  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt},
-  lab/.style={font=\normalsize, fill=white, inner sep=1pt}
+  sig/.style={font=\normalsize\ttfamily, fill=white, inner sep=1pt}
 ]
 
-\node[font=\Large\bfseries] at (0,3.4) {BNN FCC Top Level};
+\node[font=\Large\bfseries] at (0,3.6) {BNN FCC Top Level};
 
 \node[block] (cfg) at (0,0)
   {Config Manager\\[-1pt]\texttt{config\_manager}};
 
-\node[block] (din) at (-11,-8.2)
+\node[block] (din) at (-13.5,-9.2)
   {Data In Manager\\[-1pt]\texttt{data\_in\_manager}};
 
-\node[wideblock] (bnn) at (0,-8.2)
+\node[wideblock] (bnn) at (0,-9.2)
   {BNN Core\\[-1pt]\texttt{bnn}\\[-1pt]\textit{stack of \texttt{bnn\_layer[i]}}};
 
-\node[block] (out) at (11,-8.2)
-  {Argmax + Output FIFO\\[-1pt]\texttt{argmax\_tree + out\_fifo}};
+\node[block] (out) at (14.2,-9.2)
+  {Argmax + AXI Out\\[-1pt]\texttt{argmax\_tree + out\_fifo}};
 
-% Top-level config interface
-\draw[data] ([xshift=-27mm,yshift=18mm]cfg.north) -- ([xshift=-27mm]cfg.north);
-\node[iface] at ([xshift=-27mm,yshift=20.5mm]cfg.north) {\texttt{config\_valid}};
+% Top config interface
+\coordinate (cfgvTop) at ([xshift=-46mm,yshift=18mm]cfg.north);
+\coordinate (cfgvTurnA) at ([xshift=-46mm,yshift=8mm]cfg.north);
+\coordinate (cfgvTurnB) at ([xshift=-24mm,yshift=8mm]cfg.north);
+\draw[data] (cfgvTop) -- (cfgvTurnA) -- (cfgvTurnB) -- ([xshift=-24mm]cfg.north);
+\node[iface] at ($(cfgvTop)+(0,2.3mm)$) {\texttt{cfg\_valid}};
 
-\draw[bus] ([xshift=-9mm,yshift=18mm]cfg.north) -- ([xshift=-9mm]cfg.north);
-\node[iface] at ([xshift=-9mm,yshift=20.5mm]cfg.north) {\texttt{config\_data}};
+\draw[bus] ([xshift=-14mm,yshift=18mm]cfg.north) -- ([xshift=-14mm]cfg.north);
+\node[iface] at ([xshift=-14mm,yshift=20.5mm]cfg.north) {\texttt{cfg\_data}};
 
-\draw[bus] ([xshift=9mm,yshift=18mm]cfg.north) -- ([xshift=9mm]cfg.north);
-\node[iface] at ([xshift=9mm,yshift=20.5mm]cfg.north) {\texttt{config\_keep}};
+\draw[bus] ([xshift=14mm,yshift=18mm]cfg.north) -- ([xshift=14mm]cfg.north);
+\node[iface] at ([xshift=14mm,yshift=20.5mm]cfg.north) {\texttt{cfg\_keep}};
 
-\draw[data] ([xshift=27mm,yshift=18mm]cfg.north) -- ([xshift=27mm]cfg.north);
-\node[iface] at ([xshift=27mm,yshift=20.5mm]cfg.north) {\texttt{config\_last}};
+\coordinate (cfglTop) at ([xshift=46mm,yshift=18mm]cfg.north);
+\coordinate (cfglTurnA) at ([xshift=46mm,yshift=8mm]cfg.north);
+\coordinate (cfglTurnB) at ([xshift=24mm,yshift=8mm]cfg.north);
+\draw[data] (cfglTop) -- (cfglTurnA) -- (cfglTurnB) -- ([xshift=24mm]cfg.north);
+\node[iface] at ($(cfglTop)+(0,2.3mm)$) {\texttt{cfg\_last}};
 
-\coordinate (cfgreadyA) at ($(cfg.east)+(4.0,0)$);
-\coordinate (cfgreadyTop) at ($(cfgreadyA |- cfg.north)+(0,18mm)$);
-\draw[thick] (cfg.east) -- (cfgreadyA);
-\draw[data] (cfgreadyA) -- (cfgreadyTop);
-\node[iface] at ($(cfgreadyTop)+(0,2.3mm)$) {\texttt{config\_ready}};
+\coordinate (cfgReadyLane) at ($(cfg.east)+(4.8,0)$);
+\coordinate (cfgReadyTop) at ($(cfgReadyLane |- cfg.north)+(0,18mm)$);
+\draw[thick] (cfg.east) -- (cfgReadyLane);
+\draw[data] (cfgReadyLane) -- (cfgReadyTop);
+\node[iface] at ($(cfgReadyTop)+(0,2.3mm)$) {\texttt{cfg\_ready}};
 
-% Top-level data input interface
-\draw[data] ([xshift=-27mm,yshift=18mm]din.north) -- ([xshift=-27mm]din.north);
-\node[iface] at ([xshift=-27mm,yshift=20.5mm]din.north) {\texttt{data\_in\_valid}};
+% Top data input interface
+\coordinate (divTop) at ([xshift=-46mm,yshift=18mm]din.north);
+\coordinate (divTurnA) at ([xshift=-46mm,yshift=8mm]din.north);
+\coordinate (divTurnB) at ([xshift=-24mm,yshift=8mm]din.north);
+\draw[data] (divTop) -- (divTurnA) -- (divTurnB) -- ([xshift=-24mm]din.north);
+\node[iface] at ($(divTop)+(0,2.3mm)$) {\texttt{in\_valid}};
 
-\draw[bus] ([xshift=-9mm,yshift=18mm]din.north) -- ([xshift=-9mm]din.north);
-\node[iface] at ([xshift=-9mm,yshift=20.5mm]din.north) {\texttt{data\_in\_data}};
+\draw[bus] ([xshift=-14mm,yshift=18mm]din.north) -- ([xshift=-14mm]din.north);
+\node[iface] at ([xshift=-14mm,yshift=20.5mm]din.north) {\texttt{in\_data}};
 
-\draw[bus] ([xshift=9mm,yshift=18mm]din.north) -- ([xshift=9mm]din.north);
-\node[iface] at ([xshift=9mm,yshift=20.5mm]din.north) {\texttt{data\_in\_keep}};
+\draw[bus] ([xshift=14mm,yshift=18mm]din.north) -- ([xshift=14mm]din.north);
+\node[iface] at ([xshift=14mm,yshift=20.5mm]din.north) {\texttt{in\_keep}};
 
-\draw[data] ([xshift=27mm,yshift=18mm]din.north) -- ([xshift=27mm]din.north);
-\node[iface] at ([xshift=27mm,yshift=20.5mm]din.north) {\texttt{data\_in\_last}};
+\coordinate (dilTop) at ([xshift=46mm,yshift=18mm]din.north);
+\coordinate (dilTurnA) at ([xshift=46mm,yshift=8mm]din.north);
+\coordinate (dilTurnB) at ([xshift=24mm,yshift=8mm]din.north);
+\draw[data] (dilTop) -- (dilTurnA) -- (dilTurnB) -- ([xshift=24mm]din.north);
+\node[iface] at ($(dilTop)+(0,2.3mm)$) {\texttt{in\_last}};
 
-\coordinate (dinreadyA) at ($(din.east)+(4.0,0)$);
-\coordinate (dinreadyTop) at ($(dinreadyA |- din.north)+(0,18mm)$);
-\draw[thick] (din.east) -- (dinreadyA);
-\draw[data] (dinreadyA) -- (dinreadyTop);
-\node[iface] at ($(dinreadyTop)+(0,2.3mm)$) {\texttt{data\_in\_ready}};
+\coordinate (dinReadyLane) at ($(din.east)+(4.6,0)$);
+\coordinate (dinReadyTop) at ($(dinReadyLane |- din.north)+(0,18mm)$);
+\draw[thick] (din.east) -- (dinReadyLane);
+\draw[data] (dinReadyLane) -- (dinReadyTop);
+\node[iface] at ($(dinReadyTop)+(0,2.3mm)$) {\texttt{in\_ready}};
 
-% Top-level output interface
+% Top output interface
 \draw[data] ([yshift=18mm]out.north) -- (out.north);
-\node[iface] at ([yshift=20.5mm]out.north) {\texttt{data\_out\_ready}};
+\node[iface] at ([yshift=20.5mm]out.north) {\texttt{out\_ready}};
 
-\draw[data] ([xshift=-27mm]out.south) -- ++(0,-2.7);
-\node[iface] at ([xshift=-27mm,yshift=-3.2mm]out.south) {\texttt{data\_out\_valid}};
+\coordinate (dovA) at ([xshift=-24mm]out.south);
+\coordinate (dovB) at ($(dovA)+(0,-0.8)$);
+\coordinate (dovC) at ($(dovB)+(-18mm,0)$);
+\draw[data] (dovA) -- (dovB) -- (dovC) -- ++(0,-2.1);
+\node[iface] at ($(dovC)+(0,-2.6mm)$) {\texttt{out\_valid}};
 
-\draw[bus] ([xshift=-9mm]out.south) -- ++(0,-2.7);
-\node[iface] at ([xshift=-9mm,yshift=-3.2mm]out.south) {\texttt{data\_out\_data}};
+\coordinate (dodA) at ([xshift=-8mm]out.south);
+\coordinate (dodB) at ($(dodA)+(0,-0.8)$);
+\coordinate (dodC) at ($(dodB)+(-6mm,0)$);
+\draw[bus] (dodA) -- (dodB) -- (dodC) -- ++(0,-2.1);
+\node[iface] at ($(dodC)+(0,-2.6mm)$) {\texttt{out\_data}};
 
-\draw[bus] ([xshift=9mm]out.south) -- ++(0,-2.7);
-\node[iface] at ([xshift=9mm,yshift=-3.2mm]out.south) {\texttt{data\_out\_keep}};
+\coordinate (dokA) at ([xshift=8mm]out.south);
+\coordinate (dokB) at ($(dokA)+(0,-0.8)$);
+\coordinate (dokC) at ($(dokB)+(6mm,0)$);
+\draw[bus] (dokA) -- (dokB) -- (dokC) -- ++(0,-2.1);
+\node[iface] at ($(dokC)+(0,-2.6mm)$) {\texttt{out\_keep}};
 
-\draw[data] ([xshift=27mm]out.south) -- ++(0,-2.7);
-\node[iface] at ([xshift=27mm,yshift=-3.2mm]out.south) {\texttt{data\_out\_last}};
+\coordinate (dolA) at ([xshift=24mm]out.south);
+\coordinate (dolB) at ($(dolA)+(0,-0.8)$);
+\coordinate (dolC) at ($(dolB)+(18mm,0)$);
+\draw[data] (dolA) -- (dolB) -- (dolC) -- ++(0,-2.1);
+\node[iface] at ($(dolC)+(0,-2.6mm)$) {\texttt{out\_last}};
 
 % Config manager -> BNN
-\draw[bus] ([xshift=-27mm]cfg.south) -- ([xshift=-27mm]bnn.north)
-  node[pos=0.52,left,sig] {\texttt{weight\_wr\_data}};
+\draw[bus] ([xshift=-30mm]cfg.south) -- ([xshift=-30mm]bnn.north)
+  node[pos=0.52,left,sig] {\texttt{w\_data}};
 
-\draw[data] ([xshift=-9mm]cfg.south) -- ([xshift=-9mm]bnn.north)
-  node[pos=0.52,left,sig] {\texttt{weight\_wr\_en}};
+\draw[data] ([xshift=-10mm]cfg.south) -- ([xshift=-10mm]bnn.north)
+  node[pos=0.52,left,sig] {\texttt{w\_en}};
 
-\draw[bus] ([xshift=9mm]cfg.south) -- ([xshift=9mm]bnn.north)
-  node[pos=0.52,right,sig] {\texttt{threshold\_wr\_data}};
+\draw[bus] ([xshift=10mm]cfg.south) -- ([xshift=10mm]bnn.north)
+  node[pos=0.52,right,sig] {\texttt{t\_data}};
 
-\draw[data] ([xshift=27mm]cfg.south) -- ([xshift=27mm]bnn.north)
-  node[pos=0.52,right,sig] {\texttt{threshold\_wr\_en}};
+\draw[data] ([xshift=30mm]cfg.south) -- ([xshift=30mm]bnn.north)
+  node[pos=0.52,right,sig] {\texttt{t\_en}};
 
-% Data in manager -> BNN
-\draw[bus] ([yshift=4mm]din.east) -- ([yshift=4mm]bnn.west)
-  node[pos=0.50,above,sig] {\texttt{bnn\_data\_in}};
+% Data input manager -> BNN
+\draw[bus] ([yshift=5mm]din.east) -- ([yshift=5mm]bnn.west)
+  node[pos=0.50,above,sig] {\texttt{x\_in}};
 
-\draw[data] ([yshift=-4mm]din.east) -- ([yshift=-4mm]bnn.west)
-  node[pos=0.50,below,sig] {\texttt{bnn\_data\_in\_valid}};
+\draw[data] ([yshift=-5mm]din.east) -- ([yshift=-5mm]bnn.west)
+  node[pos=0.50,below,sig] {\texttt{x\_valid}};
 
 % BNN -> output side
-\draw[bus] ([yshift=4mm]bnn.east) -- ([yshift=4mm]out.west)
-  node[pos=0.50,above,sig] {\texttt{count\_out}};
+\draw[bus] ([yshift=5mm]bnn.east) -- ([yshift=5mm]out.west)
+  node[pos=0.50,above,sig] {\texttt{count}};
 
-\draw[data] ([yshift=-4mm]bnn.east) -- ([yshift=-4mm]out.west)
-  node[pos=0.50,below,sig] {\texttt{count\_valid}};
+\draw[data] ([yshift=-5mm]bnn.east) -- ([yshift=-5mm]out.west)
+  node[pos=0.50,below,sig] {\texttt{count\_v}};
 
-% Flow-control loop
-\coordinate (readyA) at ($(bnn.south west)+(0,-1.2)$);
-\coordinate (readyB) at ($(din.south east)+(0,-1.2)$);
-\draw[ctrl] ([xshift=-18mm]bnn.south) -- (readyA) -- (readyB) -- ([xshift=18mm]din.south);
-\node[sig,below] at ($(readyA)!0.52!(readyB)$) {\texttt{bnn\_ready}};
+% bnn_ready loop
+\coordinate (readySrc) at ([xshift=-24mm]bnn.south);
+\coordinate (readyDrop) at ($(readySrc)+(0,-1.8)$);
+\coordinate (readyTap) at ([xshift=20mm]din.south |- readyDrop);
+\draw[thick,dashed] (readySrc) -- (readyDrop) -- (readyTap);
+\draw[ctrl] (readyTap) -- ([xshift=20mm]din.south);
+\node[sig,below] at ($(readyDrop)!0.50!(readyTap)$) {\texttt{bnn\_ready}};
 
-\coordinate (enA) at ($(out.south west)+(0,-2.5)$);
-\coordinate (enB) at ($(bnn.south east)+(0,-2.5)$);
-\coordinate (enC) at ($(din.south east)+(0,-2.5)$);
-\draw[ctrl] ([xshift=-18mm]out.south) -- (enA) -- (enB) -- ([xshift=18mm]bnn.south);
-\draw[ctrl] (enB) -- (enC) -- ([xshift=22mm]din.south);
-\node[sig,below] at ($(enA)!0.50!(enB)$) {\texttt{bnn\_en}};
+% bnn_en trunk with taps into BNN and input manager
+\coordinate (enSrc) at ([xshift=-20mm]out.south);
+\coordinate (enDrop) at ($(enSrc)+(0,-3.6)$);
+\coordinate (enLeft) at ([xshift=24mm]din.south |- enDrop);
+\coordinate (enTapBnn) at ([xshift=22mm]bnn.south |- enDrop);
+\coordinate (enTapDin) at ([xshift=24mm]din.south |- enDrop);
+\draw[thick,dashed] (enSrc) -- (enDrop) -- (enLeft);
+\draw[ctrl] (enTapBnn) -- ([xshift=22mm]bnn.south);
+\draw[ctrl] (enTapDin) -- ([xshift=24mm]din.south);
+\node[sig,below] at ($(enDrop)!0.52!(enLeft)$) {\texttt{bnn\_en}};
 
 \end{tikzpicture}
