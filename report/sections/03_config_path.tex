@@ -85,11 +85,9 @@ first-layer datapath.
     thresholds and produces the next layer's output bits along with the
     accumulator counts used by the last-stage argmax tree.
 
-    As in the configuration phase, the implementation is easier to follow
-    because the responsibilities are divided cleanly: replay and alignment
-    handle the activation side, the controller and RAM banks handle operand
-    scheduling, and the neuron processors perform the actual
-    XNOR-accumulate-and-threshold work.
+    Another timing optimization made is that the rd enables on the RAM's are hardcoded to 1,
+    this is possible since the data is gated by valid and address signals. As a result, the fanout of a 
+    read enable was avoided.
   \end{minipage}
 
   \vspace{0.75em}

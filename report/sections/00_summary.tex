@@ -30,7 +30,8 @@ full system build.
 
 \begin{strip}
   \centering
-  \captionof{table}{Current design-space results summary.}
+  \captionof{table}{Current design-space results summary on
+  \texttt{XCU250-FIGD2104-2L-E}.}
   \label{tab:design-space-results}
   \resizebox{\textwidth}{!}{%
     \begin{tabular}{@{}rrrrrrr@{}}
@@ -103,6 +104,19 @@ parallel neuron counts without collapsing FMAX. The design is also heavily
 parameterized, which made it possible to evaluate the architecture across a
 range of bus widths, parallel-input counts, and neuron configurations while
 preserving the same overall structure.
+
+Another important implementation choice was how to map the layer memories.
+After trying multiple implementations, the best timing results came from
+leaving the memory style unspecified and allowing synthesis to choose between
+LUTRAM and BRAM automatically. In the best measured result, the design mapped
+entirely into LUTRAM. This suggests that the on-chip memory was shallow enough,
+and the device had enough available logic fabric, that embedding these memories
+into LUTs did not create a congestion bottleneck. It also matched what was seen
+in timing: BRAM-based variants tended to show more long-delay paths, likely
+because the block RAM primitives are fixed physical resources on the device.
+That makes it harder to route the distributed control and fanout-heavy RAM-side
+signals to those fixed locations, whereas LUTRAM allows the storage elements to
+be placed closer to the surrounding logic.
 
 The design also supports functionality beyond what was tested for the project.
 Notably, the design supports partial configuration and input buses as specified
