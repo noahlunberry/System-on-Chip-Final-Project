@@ -13,6 +13,10 @@
     block,
     minimum width=74mm
   },
+  timingblock/.style={
+    block,
+    fill=black!8
+  },
   data/.style={->, thick},
   bus/.style={
     ->,
@@ -45,7 +49,7 @@
 \node[block] (binarize) at (0,-12.4)
   {Binarizer\\[-1pt]\textit{byte $\geq$ 128}};
 
-\node[block] (binfifo) at (0,-16.6)
+\node[timingblock] (binfifo) at (0,-16.6)
   {Binary FIFO\\[-1pt]\texttt{bin\_fifo}};
 
 % Top-level image inputs

@@ -7,56 +7,94 @@ into the binary words expected by the network. The second is the layer-local
 forward datapath inside \texttt{bnn\_layer}, where buffered activations, RAM
 reads, and neuron-processor outputs are coordinated.
 
-\subsection{Input Preparation}
+\subsection{Input Framing and Packing}
 
 \texttt{rtl/data\_in\_manager.sv} mirrors several of the same structural ideas
-used in the configuration path. It begins with byte compaction on the external
-stream, repacks the resulting bytes into bus-width words, applies the local
-frame and padding rules needed by the design, binarizes pixel values, and then
-stages the resulting binary words before handing them to the BNN core.
+used in the configuration path, but now for activation traffic rather than
+parameter traffic. The front end again begins with
+\texttt{tkeep\_byte\_compactor}, because the image stream can arrive with sparse
+valid-byte patterns. After compaction, local frame-count logic tracks how many
+real bytes have been accepted in the current image and determines whether the
+final beat needs zero padding so the frame length becomes a clean multiple of
+\texttt{PARALLEL\_INPUTS}. That merged real-data/padding stream is then written
+through \texttt{vw\_buffer}, which repacks the byte stream into full internal
+words.
 
+This block is intentionally separate from the actual layer compute logic. By
+finishing byte compaction, frame shaping, and word packing at the top level,
+the \texttt{bnn} core sees a regular stream instead of having to carry AXI byte
+validity and end-of-frame corner cases deep into the runtime datapath.
+
+\subsection{Binarization and Staging}
+
+After repacking, \texttt{data\_in\_manager} converts each byte into one binary
+activation bit using the local binarization threshold and writes those bits
+into the internal \texttt{bin\_fifo}. This FIFO is more than a convenience
+buffer: it decouples the image-side repacking path from the BNN-side
+\texttt{bnn\_ready}/\texttt{bnn\_en} handshake, and it provides the backpressure
+signal that throttles the upstream byte path before the staging queue
+overflows. In other words, the compute phase still starts with a small stream
+conditioning problem, and the FIFO is what isolates that problem from the
+first-layer datapath.
+
+\clearpage
 \begin{strip}
   \centering
-  \resizebox{!}{0.39\textheight}{\input{figures/data_in_manager_diagram}}
+  \resizebox{!}{0.72\textheight}{\input{figures/data_in_manager_diagram}}
   \captionof{figure}{Block diagram of the \texttt{data\_in\_manager} datapath
-  and its primary interface signals.}
+  and its primary interface signals. The light gray staging block marks the
+  BNN-facing queue that decouples input reshaping from the core compute flow.}
   \Description{Block diagram of the data input manager showing valid-byte
-  compaction, repacking, input framing, binarization, and the staged interface
+  compaction, frame shaping, repacking, binarization, and the staged interface
   that feeds the BNN core.}
   \label{fig:data-in-manager}
 \end{strip}
-
-This preprocessing stage is important because it decouples the external input
-stream shape from the internal datapath width. By the time activations leave
-\texttt{data\_in\_manager}, they already match the first layer's expected
-binary format and can be replayed locally without repeatedly revisiting the
-original byte-level protocol.
-
 \clearpage
 
-\subsection{Layer Compute Flow}
+\subsection{Replay and Input Alignment}
 
-Inside \texttt{rtl/bnn\_layer.sv}, the forward path is organized around the
-replay buffer, the read-side control logic, the banked parameter memories, and
-the neuron-processor array. The intent is to keep the activation stream and the
-shared RAM-read schedule locally synchronized while still exposing the timing
-registers that matter to the implementation.
+Inside \texttt{rtl/bnn\_layer.sv}, the forward path begins with the local
+\texttt{replay\_buffer}. This block allows one accepted activation frame to be
+reused across the repeated neuron-group computations required by the layer,
+instead of demanding the external source resend the same activations for every
+parallel-neuron slice. The replayed activation word then passes through the
+explicit alignment delay stage so it reaches the neuron processors in step with
+the parameter-read pipeline.
 
-\begin{figure*}[t]
+That alignment stage matters because the RAM path is not a single-cycle lookup.
+Between the controller scheduling, local per-bank address registers, and the
+registered RAM outputs, the weight and threshold operands emerge several cycles
+after the replay buffer launches the activation word. Keeping the input side
+explicitly delayed in the diagram makes that timing relationship much easier to
+understand than burying it inside the controller or RAM descriptions.
+
+\subsection{Read Control and Neuron Array}
+
+The second half of the compute phase is the parameter-read and evaluation path.
+\texttt{neuron\_controller} sequences the shared weight and threshold read
+addresses, while the banked RAM structures provide one local operand stream per
+parallel neuron. The gray read-register stages shown in the diagram represent
+the staging/alignment points that keep the controller side, RAM side, and
+neuron-processor side synchronized. Finally, the \texttt{u\_np[gi]} array
+consumes aligned activations, weights, and thresholds and produces the next
+layer's output bits along with the accumulator counts used by the last-stage
+argmax tree.
+
+As in the configuration phase, the implementation is easier to follow because
+the responsibilities are divided cleanly: replay and alignment handle the
+activation side, the controller and RAM banks handle operand scheduling, and
+the neuron processors perform the actual XNOR-accumulate-and-threshold work.
+
+\clearpage
+\begin{strip}
   \centering
   \resizebox{0.95\textwidth}{!}{\input{figures/bnn_layer_compute_diagram}}
-  \caption{Simplified compute flow inside one \texttt{bnn\_layer}. The replay
-  buffer, read-control path, RAM banks, and neuron-processor array are shown in
-  the order they participate in inference.}
+  \captionof{figure}{Simplified compute flow inside one \texttt{bnn\_layer}.
+  The light gray blocks mark the explicit staging and alignment registers in the
+  activation and read-data paths.}
   \Description{Block diagram of the layer compute flow showing replay buffering
   of activations, alignment, controller-driven reads from weight and threshold
   RAM banks, and the final neuron-processor array that produces outputs.}
   \label{fig:bnn-layer-compute}
-\end{figure*}
-
-The replay buffer and align-delay logic keep the activation side available when
-the local controller issues parameter reads. In parallel,
-\texttt{neuron\_controller} sequences the weight and threshold-bank access
-pattern, and the neuron processors combine those operands to generate the next
-layer's outputs. Together, these blocks form the runtime half of the design
-that follows the earlier configuration phase.
+\end{strip}
+\clearpage

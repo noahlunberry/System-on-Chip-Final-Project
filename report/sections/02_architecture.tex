@@ -8,8 +8,6 @@ payloads from threshold payloads. Then each \texttt{bnn\_layer} uses a local
 \texttt{config\_controller} path to distribute those writes across replicated
 RAM banks.
 
-\subsection{Configuration Manager}
-
 The top-level configuration datapath is implemented in
 \texttt{rtl/config\_manager.sv} with support from
 \texttt{tkeep\_byte\_compactor}, \texttt{vw\_buffer},
@@ -24,6 +22,49 @@ level meaning of the stream by decoding the message header, choosing the weight
 or threshold destination, and generating the control metadata needed by the
 padding logic. On the weight side, the pad state machine inserts synthetic
 bytes so the downstream layer packers can emit aligned write words.
+
+\subsection{Parser Control}
+
+The parser in \texttt{rtl/config\_manager\_parser.sv} is responsible for
+recovering message structure from the serialized byte stream. It operates as a
+small three-state controller: \texttt{PARSE\_HEADER} consumes the 16-byte
+header, \texttt{PARSE\_PAYLOAD} streams the payload bytes, and
+\texttt{PARSE\_DONE} waits for the rest of the datapath to drain the current
+message before the next header begins. In practice, this means the parser owns
+all protocol-oriented responsibilities: it extracts \texttt{msg\_type} and
+\texttt{layer\_id}, computes the expected payload length from the compile-time
+layer tables, and asserts \texttt{payload\_start} exactly when the header has
+finished.
+
+That separation is intentional. The parser does not try to solve alignment or
+packer timing at the same time it is decoding the stream. Instead, it emits a
+clean payload-byte stream plus a small set of control signals and lets the next
+block deal with write alignment. Splitting those responsibilities into
+\texttt{config\_manager\_parser} and \texttt{config\_manager\_pad\_fsm} made the
+control easier to implement and easier to reason about, because one FSM is
+stream/protocol-facing while the other is write-format-facing.
+
+\subsection{Padding Control}
+
+The padding controller in \texttt{rtl/config\_manager\_pad\_fsm.sv} handles the
+weight-side alignment problem after the parser has already identified the
+message. Its state machine is likewise explicit: \texttt{IDLE} latches the
+message metadata at \texttt{payload\_start}, \texttt{READ} consumes real payload
+bytes, \texttt{PAD} emits synthetic \texttt{0xFF} bytes when a neuron payload
+does not end on a packer-word boundary, and \texttt{DRAIN} flushes the
+remaining staged bytes before the next message starts. During \texttt{PAD}, the
+FSM asserts \texttt{stall} back to the parser so that the protocol side does
+not advance while synthetic bytes are being inserted.
+
+The \texttt{fifo\_vr} primitive is what makes that padded-byte path practical.
+The parser first writes weight payload bytes into a byte-wide
+\texttt{fifo\_weights\_bytes}, then the pad FSM chooses whether the next byte
+forwarded downstream is a real FIFO byte or a synthetic padding byte. That
+single-byte stream is finally repacked by the layer-local \texttt{fifo\_vr}
+packer FIFOs into the wider aligned write words expected by each layer. Using
+the same variable-read FIFO style for both staging and repacking keeps the byte
+injection mechanism simple: the pad FSM only has to control one downstream
+byte-write interface, even though the final writes leave as much wider words.
 
 \clearpage
 \begin{strip}

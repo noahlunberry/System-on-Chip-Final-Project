@@ -40,3 +40,64 @@
 #   Layer 1 (hidden): 256 Neurons
 #   Layer 2 (output): 10 Neurons
 # [95 ns] Streaming weights and thresholds.
+# [362335 ns] Streaming image 0.
+# [363715 ns] Streaming image 1.
+# [364955 ns] Streaming image 2.
+# [366195 ns] Streaming image 3.
+# [367445 ns] Streaming image 4.
+# [368725 ns] Streaming image 5.
+# [369925 ns] Streaming image 6.
+# [371205 ns] Streaming image 7.
+# [372405 ns] Streaming image 8.
+# [373645 ns] Streaming image 9.
+# [374895 ns] Streaming image 10.
+# [376125 ns] Streaming image 11.
+# [377335 ns] Streaming image 12.
+# [378605 ns] Streaming image 13.
+# [379905 ns] Streaming image 14.
+# [381185 ns] Streaming image 15.
+# [382395 ns] Streaming image 16.
+# [383635 ns] Streaming image 17.
+# [384865 ns] Streaming image 18.
+# [386175 ns] Streaming image 19.
+# [387425 ns] Streaming image 20.
+# [388735 ns] Streaming image 21.
+# [390005 ns] Streaming image 22.
+# [391255 ns] Streaming image 23.
+# [392545 ns] Streaming image 24.
+# [393785 ns] Streaming image 25.
+# [394985 ns] Streaming image 26.
+# [396185 ns] Streaming image 27.
+# [397485 ns] Streaming image 28.
+# [398745 ns] Streaming image 29.
+# [399975 ns] Streaming image 30.
+# [401195 ns] Streaming image 31.
+# [402425 ns] Streaming image 32.
+# [403685 ns] Streaming image 33.
+# [404895 ns] Streaming image 34.
+# [406075 ns] Streaming image 35.
+# [407285 ns] Streaming image 36.
+# [408555 ns] Streaming image 37.
+# [409755 ns] Streaming image 38.
+# [410975 ns] Streaming image 39.
+# [412175 ns] Streaming image 40.
+# [413315 ns] Streaming image 41.
+# [414535 ns] Streaming image 42.
+# [415815 ns] Streaming image 43.
+# [417075 ns] Streaming image 44.
+# [418395 ns] Streaming image 45.
+# [419665 ns] Streaming image 46.
+# [420995 ns] Streaming image 47.
+# [422185 ns] Streaming image 48.
+# [423485 ns] Streaming image 49.
+# [424675 ns] All images loaded, waiting for outputs.
+# [426645 ns] SUCCESS: all 50 tests completed successfully.
+# 
+# Stats:
+# Avg latency (cycles) per image: 313.1 cycles
+# Avg latency (time) per image: 3130.6 ns
+# Avg throughput (outputs/sec): 779423.2
+# Avg throughput (cycles/output): 128.3
+#  quit -f
+# End time: 23:41:27 on Apr 17,2026, Elapsed time: 0:57:12
+# Errors: 0, Warnings: 2

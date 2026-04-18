@@ -3,29 +3,67 @@
 \subsection{Results}
 
 Table~\ref{tab:design-space-results} summarizes the explored design points.
-The first three columns identify the architectural choice for each run: input
-bus width, parallel input consumption, and the per-layer neuron split. The
-remaining columns are the judging metrics: FMAX, throughput, latency, FPS, and
-resource utilization. The blank FPS and resource fields are placeholders for
-the final submission measurements once the selected point is locked.
+The first three columns specify the architectural parameters used in each run:
+input bus width, parallel input consumption, and per-layer neuron
+partitioning. Several design points exceed the maximum operating frequency
+typically associated with BRAM on the target device. However, these results
+were achieved using LUTRAM rather than BRAM, indicating that the datapath
+itself is capable of higher clock frequencies when not limited by BRAM timing.
+Furthermore, all results were obtained from an out-of-context implementation,
+which excludes board-level I/O and other full-system constraints.
+Consequently, these frequencies should be interpreted as optimistic upper-bound
+estimates rather than fully realizable system-level results. Following the
+FINN-style reporting convention, FPS is computed from the steady-state
+throughput rather than the end-to-end latency:
+\[
+\mathrm{FPS} = \frac{F_{\max}}{\text{cycles/output}}
+\]
+where \(F_{\max}\) is in Hz. The latency column is still reported separately as
+the average cycles per image. Among the explored points, the best measured
+implementation was the 256-bit / 128-input / \(64,64,10\) configuration,
+which reached 15.56M FPS. The FINN paper reports a maximum of 12.3 million
+image classifications per second on MNIST, so this best measured point is
+1.27\(\times\) higher, or about 26.5\% above that published result. This
+comparison should still be interpreted carefully, since the values reported
+here come from an out-of-context LUTRAM-based implementation rather than a
+full system build.
 
 \begin{strip}
   \centering
   \captionof{table}{Current design-space results summary.}
   \label{tab:design-space-results}
   \resizebox{\textwidth}{!}{%
-    \begin{tabular}{@{}rrrrrrrr@{}}
+    \begin{tabular}{@{}rrrrrrr@{}}
       \toprule
       \textbf{Input Bus Width} & \textbf{Parallel Inputs} &
       \textbf{Parallel Neurons} & \textbf{FMAX} &
-      \textbf{Throughput} & \textbf{Latency} &
-      \textbf{FPS} & \textbf{Resource Utilization} \\
+      \textbf{Cycles/Output} & \textbf{Latency} &
+      \textbf{FPS} \\
       \midrule
-      64   & 32  & 64,32,10      & 722 & 105  & 290.2 & --- & --- \\
-      128  & 64  & 64,32,10      & 635 & 56.1 & 195.2 & --- & --- \\
-      256  & 128 & 64,64,10      & 501 & 32.2 & 130.2 & --- & --- \\
-      512  & 128 & 256,64,10     & --- & 17.8 & 95.2  & --- & --- \\
-      1024 & 128 & 256,64,10     & --- & 10.6 & 78.4  & --- & --- \\
+      64   & 32  & 64,32,10      & 722 & 104.8 & 290   & 6.89M \\
+      128  & 64  & 64,32,10      & 635 & 56.1  & 195.2 & 11.32M \\
+      256  & 128 & 64,64,10      & 501 & 32.2  & 130.2 & 15.56M \\
+      512  & 128 & 256,64,10     & --- & 17.8  & 95.2  & --- \\
+      1024 & 128 & 256,64,10     & --- & 10.6  & 78.4  & --- \\
+      \bottomrule
+    \end{tabular}%
+  }
+\end{strip}
+
+\begin{strip}
+  \centering
+  \captionof{table}{Resource utilization for the top three measured design points.}
+  \label{tab:design-space-resources}
+  \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}rrrrrrr@{}}
+      \toprule
+      \textbf{Input Bus Width} & \textbf{Parallel Inputs} &
+      \textbf{Parallel Neurons} & \textbf{LUT} & \textbf{Registers} &
+      \textbf{LUTRAM} & \textbf{BRAM} \\
+      \midrule
+      64   & 32  & 64,32,10  & 27723 (1.60\%) & 46757 (1.35\%)  & 8625 (0.50\%) & 0 (0.00\%) \\
+      128  & 64  & 64,32,10  & 42518 (2.46\%) & 60436 (1.75\%)  & 8281 (0.48\%) & 0 (0.00\%) \\
+      256  & 128 & 64,64,10  & 67663 (3.92\%) & 107002 (3.10\%) & 9037 (0.52\%) & 0 (0.00\%) \\
       \bottomrule
     \end{tabular}%
   }
@@ -35,7 +73,8 @@ the final submission measurements once the selected point is locked.
 Use -p 1.2 in OpenFLEX when building the design. I found this to be most consistent 
 as Vivado gives up early otherwise.
 Also, I was not able to get the openFLEX timing to work, as I am on a Windows device and 
-the commands did not work. To verify results please use make sim-original-tb.
+the commands did not work, I tried to patch the tool to make it work on windows, but
+then Modelsim would hang forever. To verify results please use make sim-original-tb.
 
 \subsection{Implementation and Tradeoffs}
 
@@ -79,14 +118,72 @@ topologies, extreme threshold/weight/pixel values, long inter-transaction
 gaps, output backpressure, and reset/reconfigure behavior.
 
 \begin{itemize}
-  \item Functional coverage was collected with \texttt{make coverage-sweep}.
-  \item A text coverage report was generated with \texttt{make coverage-sweep-report}.
+  \item Functional coverage was collected with\\
+  \hspace*{1.5em}\texttt{make coverage-sweep}.
+  \item A text coverage report was generated with\\
+  \hspace*{1.5em}\texttt{make coverage-sweep-report}.
   \item The achieved-coverage report is written to\\
-  \hspace*{1.5em}\texttt{coverage/bnn\_fcc\_coverage\_sweep\_test\_coverage.txt}.
+  \hspace*{1.5em}\texttt{coverage/}\\
+  \hspace*{1.5em}\texttt{bnn\_fcc\_coverage\_sweep\_test\_coverage.txt}.
   \item Supports partial \texttt{TKEEP} configuration and input streams.
   \item Supports reconfiguring weights and thresholds after a few images.
-  \item Supports interleaved configuration streams, including thresholds-first and out-of-order layer updates.
-  \item Supports deeper hidden-layer stacks; see \texttt{make sim-ten-hidden}.
+  \item Supports interleaved configuration streams, including\\
+  \hspace*{1.5em}thresholds-first and out-of-order layer updates.
+  \item Supports deeper hidden-layer stacks; see\\
+  \hspace*{1.5em}\texttt{make sim-ten-hidden}.
   \item Tested long delay gaps and extreme weight, threshold, and pixel values.
   \item Scales to higher neuron counts when the input bus width increases.
 \end{itemize}
+
+The coverage sweep achieved 93.18\% total covergroup coverage, covering
+392 of 445 bins across 26 covergroup types, with 0 assertion failures in the
+reported run.
+
+\begin{strip}
+  \centering
+  \captionof{table}{Coverage summary from the directed UVM sweep.}
+  \label{tab:coverage-summary}
+  \small
+  \renewcommand{\arraystretch}{1.18}
+  \begin{tabular}{@{}p{0.18\textwidth}p{0.23\textwidth}p{0.10\textwidth}p{0.41\textwidth}@{}}
+    \toprule
+    \textbf{Area} & \textbf{Measured Groups} & \textbf{Status} & \textbf{Main Open Bins} \\
+    \midrule
+    Config stream &
+    toggle 100\%, interface 100\%, handshake 100\%, packet 75.00\%, header 80.00\%, order 86.66\% &
+    Strong &
+    Short or single config packets, plus a few header and ordering corner bins. \\
+
+    Image input &
+    toggle 100\%, interface 100\%, handshake 100\%, spacing 100\%, image 62.50\% &
+    Strong &
+    Only generic short-packet image-shape bins remain; the contest image path is covered. \\
+
+    Output stream &
+    toggle 100\%, interface 100\%, backpressure 100\%, pattern 100\%, output 95.00\% &
+    Strong &
+    All 10 classes were observed; remaining misses are a few first-class transition bins. \\
+
+    Config data diversity &
+    weight density 100\%, threshold 86.66\% &
+    Strong &
+    Main miss is the threshold \texttt{unknown} ratio bin. \\
+
+    Computational stimulus &
+    output class 100\%, class transition cross 70.00\% &
+    Strong &
+    Every class was produced; misses are mostly ``first output was class X'' bins. \\
+
+    Reconfiguration &
+    reconfig 83.33\% &
+    Good &
+    Full, weights-only, thresholds-only, and partial reconfiguration were hit; the open bin is reconfiguring all layers at once. \\
+
+    Reset / recovery &
+    reset 53.75\%, post-reset 100\% &
+    Partial &
+    Reset timing was mostly exercised during configuration, not idle, image, output, or TLAST boundaries. \\
+    \bottomrule
+  \end{tabular}
+  \renewcommand{\arraystretch}{1.0}
+\end{strip}

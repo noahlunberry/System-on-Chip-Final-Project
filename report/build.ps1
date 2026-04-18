@@ -25,6 +25,8 @@ if (-not $pdflatex) {
 $targetDir = Split-Path -Parent $targetPath
 $targetName = Split-Path -Leaf $targetPath
 $pdfPath = Join-Path $targetDir ([System.IO.Path]::ChangeExtension($targetName, ".pdf"))
+$repoRoot = Split-Path -Parent $scriptDir
+$rootPdfPath = Join-Path $repoRoot "report.pdf"
 
 $env:PATH = "$(Split-Path -Parent $pdflatex);$env:PATH"
 
@@ -39,6 +41,11 @@ try {
     }
 
     Write-Host "Built PDF: $pdfPath"
+
+    if ([System.IO.Path]::GetFileNameWithoutExtension($targetName) -eq "main") {
+        Copy-Item -LiteralPath $pdfPath -Destination $rootPdfPath -Force
+        Write-Host "Copied PDF: $rootPdfPath"
+    }
 } finally {
     Pop-Location
 }
