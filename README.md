@@ -1,298 +1,362 @@
-# BNN_FCC Hardware Design Contest
+# ZUBoard-1CG Bare-Metal BNN FCC Accelerator
 
-This repository provides a top-level interface and testing framework for a binary neural network (BNN). Specifically, the module implements a fully connected classifier (FCC).
+This repository contains a bare-metal Zynq UltraScale+ demo for a binary neural
+network fully connected classifier (`bnn_fcc`). The original accelerator remains
+in `rtl/bnn_fcc.sv`; the board flow adds an AXI4-Lite MMIO wrapper so the Zynq
+PS can send model configuration data and MNIST image data from C++.
 
-In this contest, you will be implementing the provided top-level [bnn_fcc](rtl/bnn_fcc.sv) module, optimizing it for a specific use case, and ensuring it passes a variety of tests by 
-simulating it with a provided testbench. You will then evaluate the latency, throughput, clock frequency, and resource utilization for your design.
+The target board is the Avnet ZUBoard-1CG. The demo does not require Linux,
+PetaLinux, or a softcore processor. It uses the hard Zynq PS, Vivado, XSCT, and
+a bare-metal A53 application.
 
-The contest represents a collaboration between Apple, Greg Stitt, and EEL6935 Reconfigurable Computing 2 at University of Florida. Apple will be providing prizes for the top submissions.
+## Design Overview
 
-## Judging Instructions
+The `bnn_fcc` module classifies MNIST-style 8-bit pixel images into one of ten
+digits. The network topology used by the ZUBoard flow is:
 
-OpenFlex judging runs:
-
-* For OpenFlex  timing collection, include `-p 1.25`, I found it to be more consistent.
-
-```bash
-openflex bnn_fcc_timing.yml -c bnn_fcc.csv -p 1.25
-```
-
-To verify functionality, please clone the repo into the new ECE server, the makefile may be specific to the licenses/modelsim version on the server.
-
-Instructions to run the UVM tests:
-
-1. Run the original testbench:
-   `make sim-original-tb`
-2. Run the full standalone UVM regression:
-   `make regress`
-3. Run the single-run coverage sweep, if scripts specify one testbench is required:
-   `make sim-coverage`
-4. Generate the detailed text report for that single-run sweep:
-   `make coverage-sweep-report`
-5. If you want to see the discovered standalone tests before running them:
-   `make list-tests`
-
-The important artifacts are:
-
-* Legacy testbench log: `coverage/logs/bnn_fcc_tb.log`
-* Per-test UVM logs: `coverage/logs/<test_name>.log`
-* Merged standalone-regression UCDB: `coverage/regression_merged.ucdb`
-* Merged standalone-regression text report: `coverage/regression_coverage.txt`
-* Single-run grading UCDB: `coverage/bnn_fcc_coverage_sweep_test.ucdb`
-* Single-run grading text report: `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`
-
-Pass/fail interpretation:
-
-* `make sim-original-tb` passes only if `coverage/logs/bnn_fcc_tb.log` contains the `SUCCESS:` banner.
-* `make sim` and `make sim-<test_name>` pass only if the corresponding UVM log contains `TEST PASSED`.
-* `make regress` fails immediately if any discovered standalone UVM test fails. If the regression passes, it also merges all per-test UCDBs and writes `coverage/regression_coverage.txt`.
-* `make sim-coverage` and `make coverage-sweep-report` are the single-run grading flow. They should both complete without simulator errors, and the generated report should exist at `coverage/bnn_fcc_coverage_sweep_test_coverage.txt`.
-
-Coverage interpretation:
-
-* `coverage/bnn_fcc_coverage_sweep_test_coverage.txt` is the single-UCDB grading artifact.
-* `coverage/regression_coverage.txt` is the merged view across the standalone UVM regression.
-* In the text reports, `TYPE` lines summarize a covergroup, coverpoint, or cross. `100.00%` means all bins in that item were hit; values below `100.00%` mean at least one bin remains uncovered.
-* The rightmost `Covered`/`Uncovered` status shows whether that item met all of its bins.
-* The most relevant functional-coverage sections are the configuration, input, output, and system covergroups. Together they measure configuration packet structure, TKEEP/TLAST behavior, message ordering, gap/burst timing, image spacing, output patterns and backpressure, reconfiguration behavior, reset timing, and config/input/output bit toggles.
-
-Coverage-test implementation:
-
-* The dedicated grading top is `bnn_fcc_coverage_tb`, which instantiates the DUT and keeps the AXI interfaces directly at the top level so UVM monitors and external grading scripts can attach to them easily.
-* `bnn_fcc_coverage_tb` defaults to running `bnn_fcc_coverage_sweep_test`.
-* `bnn_fcc_coverage_sweep_test` serializes `21` directed scenarios into one simulation so judges can inspect one UCDB instead of merging many separate runs.
-* Those `21` scenarios cover the single-beat baseline, config/input TKEEP, directed output classes, output backpressure, threshold-preamble and out-of-order configuration traffic, threshold and weight-density extremes, directed pixel extremes, long input-gap stress, weights-only/thresholds-only/partial reconfiguration, reset bins, reset-then-reconfigure behavior, and a directed delay-gap profile.
-* The coverage components in `verification/bnn_uvm/bnn_fcc_coverage.svh` consume monitored AXI traffic through UVM analysis FIFOs and sample packet/header/order/handshake/output/system covergroups, plus explicit bit-toggle coverage for config, input, and output data paths.
-
-
-
-## Overview
-
-This section provides an overview of the required functionality. See [rtl/README.md](rtl/README.md) for a detailed description of the bnn_fcc interface. See [verification/README.md](verification/README.md) for a detailed description of the testbench and how to simulate your design. For more background information on BNNs, see the [included slides](TBD).
-
-The bnn_fcc module takes an image input, consisting of 8-bit pixels, and classifies that image into one of multiple possible categories. The module is parameterized to support
-any BNN topology, but the contest will be judged based on the small, fully connected (SFC) topology from the following FINN paper:
-
-> Umuroglu, Y., Fraser, N. J., Gambardella, G., Blott, M., Leong, P., Jahre, M., & Vissers, K. (2017). FINN: A Framework for Fast, Scalable Binarized Neural Network Inference. In Proceedings of the 2017 ACM/SIGDA International Symposium on Field-Programmable Gate Arrays (pp. 65-74). DOI: 10.1145/3020078.3021744
-
-The SFC topology is referred to as 784->256->256->10, which means 784 8-bit inputs, one hidden layer with 256 neurons, a second hidden layer with 256 neurons, and an output layer with 10 neurons. The repository provides a model (weights and thresholds) for the SFC topology, which was trained from the [MNIST](https://www.tensorflow.org/datasets/catalog/mnist) dataset for 0-9 digit recognition. Each of the 10 neurons in the output layer corresponds to a single category.
-
-The bnn_fcc module has three different interfaces: configuration, data input, and data output. All three interfaces use the [AXI4-Stream protocol](https://developer.arm.com/documentation/ihi0051/a/).
-
-The configuration interface receives a stream of data that contains the "model" of the network. For a BNN, this model specifies weights and thresholds for every neuron in every layer of the BNN. The exact format of the configuration stream is specified [here](TBD). Your design must initially parse this configuration stream and configure your own custom on-chip memory hierarchy to feed weights and thresholds to your neuron processing units. This "data movement" is surprisingly challenging and will likely be the most time consuming part of the project.
-
-The data input stream provides 8-bit pixels from an image. The bnn_fcc module then uses the provided model (weights and thresholds) to classify that image into a specific category.
-
-The data output stream provides the classified result for the provided input image. 
-
-Note that both the configuration stream and data input stream leverage the TKEEP functionality from the AXI4-Stream protocol. AXI4 streaming requires the bus width to be byte aligned (i.e., a multiple of 8 bits). For specific bus widths, some of those bytes might be unused. For example, assume we have a 64-bit bus (8 bytes), and receive an image with 9 8-bit pixels. The initial "beat" on the bus would contain 8 valid bytes. However, the second beat would contain only one valid byte. While the bnn_fcc module could potentially leverage knowledge of the image size to ignore the unused bytes, AXI streaming also provides the TKEEP signal to flag the validity of each byte. For this example, the second beat would assert TKEEP for the first byte, and clear it for the other 7 bytes.
-
-Similarly, all interfaces leverage TLAST, which specifies the last beat in a stream. For the configuration stream, TLAST specifies the end of a configuration message. For the image input, TLAST specifies the end of the image. For the output interface, TLAST should always be asserted since the size of an output "packet" is always one beat (unless you modify the parameters to support > 256 categories).
-
-Since a BNN can only process individual bits, the 8-bit pixels must initially be "binarized." To match the functionality of the testbench, this binarization should be done by comparing the 8-bit pixel value with 128. If the value is >= 128, the 8-bit pixel is replaced by a 1. Otherwise, it is replaced by a 0.
-
-Neurons in hidden layers always output a 0 or 1. However, the output layer is handled differently. Output layer neurons output their multi-bit "population count", which represents the strength of the classification for that neuron, where each neuron represents one classification category. The BNN then applies an "argmax" across those population counts, which simply assigns the BNN output with the index of the the neuron (i.e., the classified category) that had the largest population count.
-
-## Project Objective
-The finish the project, you must complete the following:
-* Simulate your design using the provided testbench with no failing tests.
-* Synthesize your design for a TBD FPGA, measure maximum clock frequency, and collect resource utilization results.
-* Measure cycle latency and throughput using the provided testbench.
-* Include a report that describes your targeted use case (e.g., minimize latency given a throughput constraint) and presents your results.
-
-## Judging Criteria
-Submissions will be judged based on:
-* Quality of optimization for the chosen use case.
-* Quality of overall verification (unit testing of individual modules, functional coverage, etc.)
-* Quality of code (readability, paramterization, )
-
-## Languages, Tools, FPGA
-* **HDL:** SystemVerilog (IEEE 1800-2012)
-* **Simulator:** Siemens Questa/ModelSim or IEEE 1800-2012 compliant simulator
-* **Synthesis:** Xilinx Vivado (any recent version)
-* **FPGA:** Xilinx Ultrascale+ TBD
-
-## Directory Structure
 ```text
-.
-├── rtl/                 # Hardware Source Files
-|   ├── bnn_fcc.sv       # Top-level DUT (complete this file)
-|   └── your own files
-├── verification/        # Testbench files
-|   ├── bnn_fcc_tb.sv
-|   ├── bnn_fcc_tb_pkg.sv
-|   └── your own files
-├── slides/              # Slides explaning the project
-|   └── TBD
-├── sim/                 # Recommended location for simulator project
-└── python/              # Python training scripts, reference model, training data, and test vectors
-    ├── training_data/   # Weights and Thresholds
-    └── test_vectors/
+784 -> 256 -> 256 -> 10
 ```
 
-## Build And Simulation Flow
+The accelerator consumes:
 
-The common local flow is:
+- A configuration stream containing weights and thresholds.
+- An image input stream containing 8-bit pixels.
+- An output stream containing the predicted class.
 
-1. Build the simulator workspace:
-   `make compile`
-2. Run one UVM test:
-   `make sim UVM_TESTNAME=bnn_fcc_single_beat_test`
-3. Run the single-run coverage flow:
-   `make sim-coverage`
-4. Generate the one-shot coverage report:
-   `make coverage-sweep-report`
-5. See all helper commands:
-   `make help`
+All three accelerator-facing interfaces use AXI4-Stream-style
+ready/valid/keep/last handshakes.
 
-The `make sim-<test_name>` shorthand is also supported. For example:
-`make sim-bnn_fcc_single_beat_test`
+The RTL binarizes image pixels by comparing each 8-bit value against `128`:
 
-## Verification And Scalability Claim Mapping
+```text
+pixel >= 128 -> 1
+pixel <  128 -> 0
+```
 
-### Implemented UVM flow to extend the testbench to verify all additional functionality
+Hidden-layer neurons output one bit. Output-layer neurons produce population
+counts, and the BNN applies argmax to choose the predicted digit.
 
-Use the regression and one-shot coverage flows:
+## ZUBoard Wrapper
 
-```bash
+The board-facing wrapper is:
+
+```text
+rtl/bnn_fcc_axi_lite.sv
+```
+
+Vivado instantiates it through:
+
+```text
+vivado/hdl/bnn_fcc_vivado_axi_lite_small.v
+```
+
+The wrapper exposes a 32-bit AXI4-Lite slave at:
+
+```text
+0xA0000000
+```
+
+It converts MMIO writes into the existing `bnn_fcc` streams:
+
+- `config_*` for weights and thresholds.
+- `data_in_*` for MNIST image pixels.
+- `data_out_*` for classification results.
+
+Small FIFOs/skid stages hold stream `valid` high until `bnn_fcc` asserts
+`ready`. Output packets are captured into a small output FIFO that software
+polls through status and output registers.
+
+The small ZUBoard build uses:
+
+| Parameter | Value |
+| --- | --- |
+| `PARALLEL_INPUTS` | `8` |
+| `PARALLEL_NEURONS` | `{8, 8, 10}` |
+| `TOPOLOGY` | `{784, 256, 256, 10}` |
+| Config bus | 64-bit |
+| Image bus | 64-bit |
+| Output bus | 8-bit |
+
+## Register Map
+
+The AXI4-Lite register map is byte-addressed from the accelerator base address.
+
+| Offset | Name | Description |
+| --- | --- | --- |
+| `0x00` | `CONTROL` | `[0]` reset pulse, `[1]` clear output FIFO, `[2]` clear sticky errors, `[3]` clear cycle counter |
+| `0x04` | `STATUS` | `[0]` cfg full, `[1]` image full, `[2]` output valid, `[3]` busy, `[4]` cfg empty, `[5]` image empty, `[6]` cfg overflow, `[7]` image overflow, `[8]` output full |
+| `0x08` | `CFG_DATA_LO` | `config_data[31:0]` |
+| `0x0c` | `CFG_DATA_HI` | `config_data[63:32]` |
+| `0x10` | `CFG_META` | `[7:0]` config keep, `[8]` config last, `[16]` push config beat |
+| `0x14` | `IMG_DATA_LO` | `data_in_data[31:0]` |
+| `0x18` | `IMG_DATA_HI` | `data_in_data[63:32]` |
+| `0x1c` | `IMG_META` | `[7:0]` image keep, `[8]` image last, `[16]` push image beat |
+| `0x20` | `OUT_DATA` | Classification result at output FIFO head |
+| `0x24` | `OUT_CTRL` | `[0]` pop result, `[1]` clear output FIFO |
+| `0x28` | `CYCLE_COUNT` | Counts cycles while the wrapper reports busy |
+
+The configuration stream format follows `rtl/README.md` and the little-endian
+packing used by `verification/bnn_fcc_tb_pkg.sv`.
+
+## Software Organization
+
+The bare-metal software is under:
+
+```text
+sw/src
+```
+
+It follows the same class organization style as the referenced convolve example,
+but without Linux `mmap`, `/dev/mem`, sysfs, or `/dev/xdevcfg`.
+
+| Class/File | Purpose |
+| --- | --- |
+| `Board` | Low-level MMIO reads/writes using `Xil_In32` and `Xil_Out32` |
+| `App` | Typed helper layer above `Board` |
+| `BnnFcc` | Accelerator-specific register protocol |
+| `main.cpp` | Reset, send model config, send MNIST images, poll results, print timing |
+| `bnn_model_data.h` | Compiled-in model configuration beats |
+| `bnn_test_data.h` | Compiled-in MNIST image/test-label data |
+
+## Hardware Connections
+
+Connect the board before running the demo:
+
+```text
+J15 USB-C:     USB-C PD power supply with 15V support
+J16 micro-USB: PC connection for onboard JTAG/UART
+SW2 boot mode: ON-ON-ON-ON for JTAG
+```
+
+The board does not need exactly 45 W, but the USB-C supply must support the
+15 V USB-C Power Delivery profile. A 45 W or 65 W USB-C PD charger is fine if
+its label lists `15V`. Do not rely on the micro-USB JTAG/UART port for board
+power.
+
+Useful LEDs:
+
+| LED | Meaning |
+| --- | --- |
+| `D14` | 15 V present |
+| `D16` | 5 V present |
+| `D17` | USB-C sink enabled |
+| `D23` | Power good |
+
+If the board gets hot quickly, unplug it and verify the charger/cable before
+continuing.
+
+## UART Terminal
+
+Open a serial terminal before running the JTAG demo.
+
+Use Tera Term or PuTTY:
+
+```text
+Port: COM4
+Baud: 115200
+Data: 8
+Parity: none
+Stop: 1
+Flow control: none
+```
+
+If your COM port is different, find it with:
+
+```powershell
+Get-CimInstance Win32_SerialPort |
+    Where-Object { $_.Name -match "USB|FTDI|UART|Serial" } |
+    Select-Object DeviceID,Name
+```
+
+Close other serial tools if the terminal reports that the COM port is busy.
+
+## One-Time Driver Setup
+
+If Vivado or XSCT cannot see the board, install Xilinx cable drivers from an
+Administrator PowerShell:
+
+```powershell
+cd C:\Xilinx\Vivado\2024.2\data\xicom\cable_drivers\nt64
+.\install_drivers_wrapper.bat
+```
+
+Then unplug/replug `J16` and power-cycle the board.
+
+## Build Hardware
+
+From the repository root:
+
+```powershell
+cd C:\Users\pawin\UF\spring26\SoC-Design\System-on-Chip-Final-Project
+C:\Xilinx\Vivado\2024.2\bin\vivado.bat -mode batch -source .\vivado\create_zuboard_bnn_project.tcl -tclargs -build_bitstream -jobs 4
+```
+
+Expected outputs:
+
+```text
+build\vivado\zuboard_bnn_fcc\zuboard_bnn_fcc.xsa
+build\vivado\zuboard_bnn_fcc\zuboard_bnn_fcc.runs\impl_1\zuboard_bnn_fcc_bd_wrapper.bit
+```
+
+The checked build met timing and passed routed DRC.
+
+## Build Software
+
+From the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sw\cli\build_app.ps1
+```
+
+Expected ELF:
+
+```text
+build\vitis_cli\bnn_fcc_demo\Debug\bnn_fcc_demo.elf
+```
+
+## Connect With Vivado Hardware Manager
+
+This matches the class workflow: confirm the board in Vivado Hardware Manager
+before running the software.
+
+Batch check:
+
+```powershell
+C:\Xilinx\Vivado\2024.2\bin\vivado.bat -mode batch -source .\vivado\check_jtag_targets.tcl
+type .\build\jtag_check\vivado_jtag_targets.txt
+```
+
+Expected devices:
+
+```text
+xczu1_0
+arm_dap_1
+```
+
+To open the Vivado GUI directly into Hardware Manager:
+
+```powershell
+C:\Xilinx\Vivado\2024.2\bin\vivado.bat -mode gui -source .\vivado\open_hw_manager_connected.tcl
+```
+
+## Run The JTAG Demo
+
+Keep the UART terminal open, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sw\cli\run_jtag.ps1
+```
+
+The script initializes the PS, programs the PL bitstream, downloads the
+bare-metal ELF to Cortex-A53 #0, and starts the program.
+
+Expected UART output begins with:
+
+```text
+BNN FCC bare-metal test
+Sending 4466 configuration beats
+```
+
+The validated demo output ends with:
+
+```text
+Passed 100/100 images
+Accelerator busy cycles: 443200
+PS timer ticks: 0x0000000001B99CBE
+```
+
+This proves the board is running the bitstream and bare-metal C++ application:
+the PS sends model data and image packets through AXI4-Lite, the wrapper
+converts them to BNN streams, and the accelerator returns the predicted class.
+
+## DAP Error Recovery
+
+If XSCT reports a stale DAP error like:
+
+```text
+DAP (AXI AP transaction error, DAP status 0x30000021)
+```
+
+try:
+
+```powershell
+C:\Xilinx\Vitis\2024.2\bin\xsct.bat .\sw\cli\clear_dap_error.tcl
+```
+
+Then rerun:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sw\cli\run_jtag.ps1
+```
+
+If the error remains, power-cycle the board:
+
+1. Unplug/replug `J15` USB-C power.
+2. Keep `SW2 = ON-ON-ON-ON`.
+3. Press `SW7` if needed.
+4. Confirm `D23` is on.
+5. Run the demo again.
+
+## Optional SD-Card Boot
+
+If JTAG is unavailable and you have a microSD card, build a boot image:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\sw\cli\make_sd_boot.ps1
+```
+
+Generated file:
+
+```text
+build\sd_boot\BOOT.BIN
+```
+
+Copy `BOOT.BIN` to a FAT32 microSD card, set:
+
+```text
+SW2 = OFF-ON-OFF-ON
+```
+
+Then insert the card, keep UART open at `115200 8N1`, and power-cycle the
+board.
+
+## Simulation And Verification
+
+The original simulation flow remains available:
+
+```powershell
+make compile
+make sim UVM_TESTNAME=bnn_fcc_single_beat_test
 make regress
 make sim-coverage
 make coverage-sweep-report
 ```
 
-### Design supports partial TKEEP config/input streams
+Useful directed tests:
 
-Use the dedicated configuration-stream and input-stream TKEEP tests:
-
-```bash
+```powershell
 make sim-bnn_fcc_tkeep_packet_test
 make sim-bnn_fcc_input_tkeep_packet_test
-```
-
-### Design supports reconfiguring weights/thresholds after a few images
-
-Use the directed reconfiguration tests:
-
-```bash
 make sim-bnn_fcc_weights_only_reconfig_test
 make sim-bnn_fcc_thresh_only_reconfig_test
 make sim-bnn_fcc_partial_reconfig_test
-```
-
-### Design supports interleaved configuration streams (thresholds first, layers out of order)
-
-Use the threshold-preamble and config-order tests:
-
-```bash
-make sim-bnn_fcc_threshold_preamble_test
-make sim-bnn_fcc_config_order_bins_test
-```
-
-### Design supports extending the amount of hidden layers
-
-Use the deep custom-topology testbench:
-
-```bash
-make sim-ten-hidden
-```
-
-### Design tested for long delay gaps and extreme weight/threshold/pixel values
-
-Use the directed stress and extremes tests:
-
-```bash
 make sim-bnn_fcc_delay_gap_profile_test
 make sim-bnn_fcc_density_extremes_test
 make sim-bnn_fcc_threshold_abs_extremes_test
 make sim-bnn_fcc_pixel_values_directed_test
 ```
 
-### Design is able to scale up to larger input-bus configurations with retuned parallelism
+## Directory Structure
 
-Use the architecture-profile statistics runs:
-
-```bash
-make stats-bus128 UVM_TESTNAME=bnn_fcc_single_beat_test
-make stats-bus256 UVM_TESTNAME=bnn_fcc_single_beat_test
-make stats-bus512 UVM_TESTNAME=bnn_fcc_single_beat_test
-make stats-bus1024 UVM_TESTNAME=bnn_fcc_single_beat_test
+```text
+rtl/                 SystemVerilog accelerator and AXI4-Lite wrapper
+vivado/              ZUBoard Vivado project scripts and block-design wrapper
+sw/src/              Bare-metal C++ application
+sw/cli/              No-GUI build, JTAG run, DAP recovery, and SD boot scripts
+verification/        Legacy and UVM testbenches
+python/model_data/   Weights and thresholds
+python/test_vectors/ Reference inputs and expected outputs
+openflex/            Previous timing/resource exploration artifacts
+report/              Project report source
 ```
-
-These runs exercise the Makefile architecture presets for wider bus widths and their corresponding parallel-input / parallel-neuron settings.
-
-# Git Instructions for How to Participate (Forking & Syncing Guide)
-
-Use this guide to set up your design environment and keep your local files updated if the contest organizers release template updates.
-
----
-
-## 1. Fork the Original Repository
-
-You initially want your own copy of the contest repository that you can change. Git makes this posssible via a "fork."
-
-### Option A: Standard UI Fork
-Click the **Fork** button at the top-right of the contest repository. This creates a copy under your own account where you can safely upload your designs.
-
-### Option B: Manual Mirroring
-If you need to move the files to a different platform (e.g., from GitHub to a private GitLab):
-1. Create a new, empty repository on your account.
-2. Clone the original as a bare mirror:
-   `git clone --mirror https://github.com/CONTEST_HOLDER/template-repo.git`
-3. Push to your new repository:
-   `cd template-repo.git`
-   `git push --mirror https://github.com/YOUR_USERNAME/your-design-repo.git`
-
----
-
-## 2. Local Setup
-Once you have your fork, clone it and link it back to the original source to receive updates.
-
-1. **Clone your fork:**
-   `git clone https://github.com/YOUR_USERNAME/your-design-repo.git`
-2. **Add the contest source as 'upstream':**
-   `git remote add upstream https://github.com/CONTEST_HOLDER/template-repo.git`
-
----
-
-## 3. Pulling Updates from Organizers
-If the contest organizers update the template or assets, run these commands to sync your work:
-
-1. `git fetch upstream`
-2. `git checkout main`
-3. `git merge upstream/main`
-4. `git push origin main`
-
----
-
-## 4. Resolving Conflicts
-If you edited a file that the organizers also updated, Git will ask you to choose which version to keep during the merging process.
-
-1. Open the conflicted file.
-2. You will see markers:
-   `<<<<<<< HEAD` (Your Design)
-   `=======`
-   `>>>>>>> upstream/main` (Organizer Update)
-3. Delete the markers and keep the parts of the code/design you want. For the contest, you must keep the changes from the organizers.
-4. Finalize the fix:
-   `git add <filename>`
-   `git commit -m "Merged updates from contest source"`
-5. Run `git status`. It should no longer say "You have unmerged paths."
-6. Your local merge isn't on GitHub until you push:
-   `git push origin main`
-
----
-
-## Quick Command Table
-
-| Task | Command |
-| :--- | :--- |
-| **Link Original** | `git remote add upstream <url>` |
-| **Download Updates** | `git fetch upstream` |
-| **Apply Updates** | `git merge upstream/main` |
-| **Update Your Fork** | `git push origin main` |
-
-# Submission Instructions
-
-For your submission, you must include a report.pdf that includes the timing results, area results, and verification results. Collecting these results can be done by following the instructions in the [openflex/](openflex/) folder.
-
-Additional instructions for submitting the repository with your design will be explained in EEL6935 Reconfigurable Computing 2.

@@ -1,15 +1,20 @@
 
 # Vivado / OpenFlex build artifacts
 openflex/build_vivado/**/*
+build/
+vivado*.jou
+vivado*.log
 *.dcp
 !openflex/build_vivado/**/
 !openflex/build_vivado/**/*.rpt
 
 # sim
+transcript
 verification/bnn_uvm/work
 .nfs*
 work
 work_legacy
+work_compile*
 codex_uvm_check
 vsim.dbg
 .codex

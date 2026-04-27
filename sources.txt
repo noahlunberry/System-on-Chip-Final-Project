@@ -22,6 +22,8 @@ rtl/tkeep_byte_compactor.sv
 rtl/vw_buffer.sv
 rtl/data_in_manager.sv
 rtl/bnn_fcc.sv
+rtl/bnn_fcc_axi_lite.sv
+vivado/hdl/bnn_fcc_vivado_axi_lite_small.v
 # Unused RTL moved under rtl/unused/:
 # rtl/unused/fifo_vw.sv
 # rtl/unused/sync_fifo.sv
